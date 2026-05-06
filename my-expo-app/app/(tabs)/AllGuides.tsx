@@ -7,6 +7,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import AppBar from '../../components/AppBar';
 
 const COLORS = {
   primary: '#16A34A',
@@ -149,6 +150,9 @@ export default function AllGuidesScreen() {
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       
+
+          {/* ── Top App Bar ── */}
+            <AppBar />
       {/* App Bar */}
       <View style={styles.appBar}>
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>

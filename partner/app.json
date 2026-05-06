@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.jatin551.gmrpartner"
+      "package": "com.jatin551.gmrpartner",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",

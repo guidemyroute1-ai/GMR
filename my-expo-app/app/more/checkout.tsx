@@ -1,12 +1,15 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Platform, TextInput
+  View, StyleSheet, ScrollView, TouchableOpacity, StatusBar, TextInput,
+  Modal, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Text } from '../../components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../utils/supabase';
 
 // ─── Colors ────────────────────────────────────────────────────────────────────
 const C = {
@@ -26,6 +29,7 @@ type PickerState = { visible: boolean; mode: 'date' | 'time'; target: 'start' | 
 export default function CheckoutScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
   const params = useLocalSearchParams<{
     bookingType: string; itemId: string; itemName: string;
     pricePerUnit: string; partnerId: string; unitLabel: string;
@@ -46,6 +50,11 @@ export default function CheckoutScreen() {
   const [picker, setPicker] = useState<PickerState>({ visible: false, mode: 'date', target: 'start' });
   const [coupon, setCoupon] = useState('');
   const [discountApplied, setDiscountApplied] = useState(false);
+
+  // ── Phone modal state ─────────────────────────────────────────────────────────
+  const [showPhoneModal, setShowPhoneModal] = useState(false);
+  const [phoneInput, setPhoneInput] = useState('');
+  const [phoneSaving, setPhoneSaving] = useState(false);
 
   // ── Pricing ──────────────────────────────────────────────────────────────────
   const quantity = useMemo(() => {
@@ -85,7 +94,7 @@ export default function CheckoutScreen() {
     setPicker({ visible: true, mode, target });
 
   // ── Navigate to payment ──────────────────────────────────────────────────────
-  const handleProceed = () => {
+  const proceedToPayment = () => {
     router.push({
       pathname: '/more/payment',
       params: {
@@ -96,8 +105,54 @@ export default function CheckoutScreen() {
         itemName: params.itemName || '',
         days: String(quantity),
         partnerId: params.partnerId || params.itemId || '',
+        coupon: discountApplied ? coupon.trim().toUpperCase() : '',
+        discountAmount: String(discountAmount),
       },
     });
+  };
+
+  const handleProceed = () => {
+    const phone = user?.phoneNumber || user?.user_metadata?.phone || '';
+    if (!phone || phone.trim().length < 10) {
+      // Pre-fill with any partial number they may have
+      setPhoneInput(phone || '');
+      setShowPhoneModal(true);
+    } else {
+      proceedToPayment();
+    }
+  };
+
+  const handleSavePhone = async () => {
+    const trimmed = phoneInput.trim();
+    if (trimmed.length < 10) {
+      Alert.alert('Invalid Number', 'Please enter a valid 10-digit phone number.');
+      return;
+    }
+    if (!user) return;
+
+    setPhoneSaving(true);
+    try {
+      // 1. Update Supabase Auth metadata
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { phone: trimmed },
+      });
+      if (authError) throw authError;
+
+      // 2. Sync to public users table
+      const { error: dbError } = await supabase
+        .from('users')
+        .update({ phone: trimmed, updated_at: new Date().toISOString() })
+        .eq('id', user.id);
+      if (dbError) throw dbError;
+
+      setShowPhoneModal(false);
+      // Small delay to allow auth state to refresh, then proceed
+      setTimeout(() => proceedToPayment(), 300);
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Could not save phone number. Please try again.');
+    } finally {
+      setPhoneSaving(false);
+    }
   };
 
   // ── UI ───────────────────────────────────────────────────────────────────────
@@ -223,6 +278,76 @@ export default function CheckoutScreen() {
         <View style={{ height: 120 }} />
       </ScrollView>
 
+      {/* ── Phone Number Modal ── */}
+      <Modal
+        visible={showPhoneModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowPhoneModal(false)}
+      >
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={s.modalOverlay}
+        >
+          <View style={s.modalSheet}>
+            {/* Handle bar */}
+            <View style={s.modalHandle} />
+
+            {/* Icon */}
+            <View style={s.modalIconBox}>
+              <Ionicons name="call" size={28} color={C.primary} />
+            </View>
+
+            <Text style={s.modalTitle}>Phone Number Required</Text>
+            <Text style={s.modalSubtitle}>
+              We need your phone number to confirm your booking and keep you updated.
+            </Text>
+
+            {/* Input */}
+            <View style={s.phoneInputWrapper}>
+              <View style={s.phonePrefix}>
+                <Text style={s.phonePrefixText}>🇮🇳 +91</Text>
+              </View>
+              <TextInput
+                style={s.phoneInput}
+                placeholder="Enter 10-digit number"
+                placeholderTextColor={C.gray}
+                keyboardType="number-pad"
+                maxLength={10}
+                value={phoneInput}
+                onChangeText={(t) => setPhoneInput(t.replace(/[^0-9]/g, ''))}
+                autoFocus
+              />
+            </View>
+
+            {/* Actions */}
+            <TouchableOpacity
+              style={[s.phoneSaveBtn, (phoneSaving || phoneInput.length < 10) && s.phoneSaveBtnDisabled]}
+              onPress={handleSavePhone}
+              activeOpacity={0.85}
+              disabled={phoneSaving || phoneInput.length < 10}
+            >
+              {phoneSaving ? (
+                <ActivityIndicator color={C.white} size="small" />
+              ) : (
+                <>
+                  <Ionicons name="checkmark-circle" size={18} color={C.white} />
+                  <Text style={s.phoneSaveBtnText}>Save & Continue</Text>
+                </>
+              )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={s.phoneCancelBtn}
+              onPress={() => setShowPhoneModal(false)}
+              activeOpacity={0.7}
+            >
+              <Text style={s.phoneCancelBtnText}>Not now</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
       {/* Picker */}
       {picker.visible && (
         <DateTimePicker
@@ -337,6 +462,121 @@ const s = StyleSheet.create({
   trustRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, marginTop: 4 },
   trustBadge: { alignItems: 'center', gap: 6, flex: 1 },
   trustText: { fontSize: 11, color: C.gray, fontWeight: '600', textAlign: 'center' },
+
+  // Phone Modal
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0,0,0,0.45)',
+  },
+  modalSheet: {
+    backgroundColor: C.white,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    paddingBottom: 36,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -4 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 20,
+  },
+  modalHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#D1D5DB',
+    marginBottom: 20,
+  },
+  modalIconBox: {
+    width: 64,
+    height: 64,
+    borderRadius: 20,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: C.dark,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    color: C.gray,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 21,
+    marginBottom: 24,
+    paddingHorizontal: 8,
+  },
+  phoneInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '100%',
+    borderWidth: 1.5,
+    borderColor: C.border,
+    borderRadius: 14,
+    backgroundColor: C.lightGray,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  phonePrefix: {
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderRightWidth: 1,
+    borderRightColor: C.border,
+    backgroundColor: '#F1F5F9',
+  },
+  phonePrefixText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: C.dark,
+  },
+  phoneInput: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: '600',
+    color: C.dark,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+  },
+  phoneSaveBtn: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: C.primary,
+    paddingVertical: 16,
+    borderRadius: 14,
+    marginBottom: 10,
+    shadowColor: C.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  phoneSaveBtnDisabled: {
+    opacity: 0.5,
+  },
+  phoneSaveBtnText: {
+    color: C.white,
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  phoneCancelBtn: {
+    paddingVertical: 10,
+  },
+  phoneCancelBtnText: {
+    color: C.gray,
+    fontSize: 14,
+    fontWeight: '600',
+  },
 
   // Bottom CTA
   bottomCTA: {

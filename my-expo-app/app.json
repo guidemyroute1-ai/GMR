@@ -20,7 +20,8 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.jatin551.guidemyroute"
+      "package": "com.jatin551.guidemyroute",
+      "googleServicesFile": "./google-services.json"
     },
     "web": {
       "output": "static",

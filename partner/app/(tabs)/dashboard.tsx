@@ -119,36 +119,7 @@ export default function DashboardScreen() {
           <StatCard label="Pending" value={earnings.pendingBookings} Icon={Clock} color={Colors.warning} />
         </View>
 
-        {/* Quick actions */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quick Actions</Text>
-          <View style={styles.actionsRow}>
-            <QuickAction
-              Icon={ClipboardList}
-              label="View Bookings"
-              color={Colors.primary}
-              onPress={() => router.replace('/(tabs)/bookings')}
-            />
-            <QuickAction
-              Icon={Plus}
-              label="Add Listing"
-              color={Colors.secondary}
-              onPress={() => router.replace('/(tabs)/listings')}
-            />
-            <QuickAction
-              Icon={MessageSquare}
-              label="Messages"
-              color={Colors.accent}
-              onPress={() => router.replace('/(tabs)/bookings')}
-            />
-            <QuickAction
-              Icon={BarChart3}
-              label="Reports"
-              color={Colors.roleHotel}
-              onPress={() => router.replace('/(tabs)/dashboard')}
-            />
-          </View>
-        </View>
+     
 
         {/* Recent bookings */}
         <View style={styles.section}>
@@ -192,11 +163,9 @@ const statStyles = StyleSheet.create({
     padding: Spacing.md,
     alignItems: 'center',
     marginHorizontal: 4,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 3,
+    borderColor: '#d3dbe2',
+    borderWidth: 1,
+    elevation: 4,
   },
   icon: { marginBottom: 4 },
   value: { fontSize: FontSize.xl, fontWeight: '800' },
@@ -293,11 +262,8 @@ const bcStyles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     marginBottom: 12,
-    shadowColor: Colors.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: '#d3dbe2',
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   info: { flex: 1, paddingRight: 8 },

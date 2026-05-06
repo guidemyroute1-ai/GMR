@@ -70,96 +70,91 @@ const HotelCard = ({ hotel }: { hotel: Hotel }) => {
   const scoreText = hotel.scoreText || 'Exceptional';
   const roomType = hotel.roomType || '1 bed';
   const cancellationPolicy = hotel.cancellationPolicy || 'Free cancellation';
-  const paymentPolicy = hotel.paymentPolicy || 'No prepayment needed';
 
   return (
     <TouchableOpacity
       style={styles.card}
-      activeOpacity={0.9}
+      activeOpacity={0.95}
       onPress={() => router.push({ pathname: '/more/hotel', params: { id: hotel.id } })}
     >
-      <View style={styles.cardContent}>
-        {/* Left Side: Image */}
-        <View style={styles.imageContainer}>
-          {hotel.image ? (
-            <Image source={{ uri: hotel.image }} style={styles.hotelImage} />
-          ) : (
-            <View style={styles.emojiContainer}>
-              <Text style={styles.hotelEmoji}>{hotel.emoji}</Text>
-            </View>
-          )}
+      {/* Top Image Section */}
+      <View style={styles.imageContainer}>
+        {hotel.image ? (
+          <Image source={{ uri: hotel.image }} style={styles.hotelImage} />
+        ) : (
+          <View style={styles.emojiContainer}>
+            <Text style={styles.hotelEmoji}>{hotel.emoji}</Text>
+          </View>
+        )}
+        
+        {/* Gradient Overlay for text readability if we add anything at the bottom of the image, and subtle dark overlay on top */}
+        <View style={styles.imageGradientTop} />
+        <View style={styles.imageGradientBottom} />
+
+        {/* Top Overlay: Badges and Heart */}
+        <View style={styles.imageOverlayTop}>
+          {isGenius ? (
+             <View style={styles.geniusBadge}>
+                <Ionicons name="sparkles" size={12} color="#FBBF24" style={{ marginRight: 4 }} />
+                <Text style={styles.geniusText}>Premium</Text>
+             </View>
+          ) : <View/>}
+          <TouchableOpacity style={styles.heartButton} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+            <Ionicons name="heart-outline" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
         </View>
-
-        {/* Right Side: Details */}
-        <View style={styles.detailsContainer}>
-          {/* Header Row */}
-          <View style={styles.headerRow}>
-            <Text style={styles.hotelName} numberOfLines={2}>{hotel.name}</Text>
-            <TouchableOpacity hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
-              <Ionicons name="heart-outline" size={20} color={COLORS.darkGray} />
-            </TouchableOpacity>
-          </View>
-
-          {/* Location */}
-          <Text style={styles.locationText} numberOfLines={1}>{hotel.location || 'Paharganj, New Delhi'}</Text>
-
-          {/* Stars and Genius */}
-          <View style={styles.starsRow}>
-            <View style={styles.stars}>
-              {[1, 2, 3, 4].map((_, i) => (
-                <Ionicons key={i} name="star" size={14} color="#FBBF24" />
-              ))}
-            </View>
-            {isGenius && (
-              <View style={styles.geniusBadge}>
-                <Text style={styles.geniusText}>Genius</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Score Row */}
-          <View style={styles.scoreRow}>
-            <View style={styles.scoreBox}>
-              <Text style={styles.scoreNumber}>{hotel.rating.toFixed(1)}</Text>
-            </View>
-            <Text style={styles.scoreText}>
-              {scoreText} <Text style={styles.bullet}>•</Text> {hotel.reviews} reviews
-            </Text>
-          </View>
-
-          {/* Distance */}
-          <View style={styles.distanceRow}>
-            <Ionicons name="location-outline" size={14} color={COLORS.darkGray} />
-            <Text style={styles.distanceText}>Paharganj <Text style={styles.bullet}>•</Text> {distance}</Text>
-          </View>
-
-          {/* Getaway Deal */}
+        
+        {/* Bottom Overlay: Rating and Deal */}
+        <View style={styles.imageOverlayBottom}>
           <View style={styles.dealBadge}>
             <Text style={styles.dealText}>Getaway Deal</Text>
           </View>
+          <View style={styles.ratingBadgeImage}>
+            <Ionicons name="star" size={14} color="#FBBF24" />
+            <Text style={styles.ratingTextImage}>{hotel.rating.toFixed(1)}</Text>
+          </View>
+        </View>
+      </View>
 
-          {/* Room Info */}
-          <Text style={styles.roomInfo}><Text style={styles.roomInfoBold}>Hotel room: </Text>{roomType}</Text>
+      {/* Details Section */}
+      <View style={styles.detailsContainer}>
+        <View style={styles.headerRow}>
+          <Text style={styles.hotelName} numberOfLines={1}>{hotel.name}</Text>
+        </View>
 
-          {/* Policies */}
-          <View style={styles.policyRow}>
-            <Ionicons name="checkmark" size={16} color="#16A34A" />
+        {/* Subtitle: Location and Distance */}
+        <View style={styles.locationRow}>
+          <Ionicons name="location-outline" size={14} color={COLORS.mediumGray} />
+          <Text style={styles.locationText} numberOfLines={1}>
+            {hotel.location || 'New Delhi'} <Text style={styles.bullet}>•</Text> {distance}
+          </Text>
+        </View>
+
+        {/* Room Info */}
+        <View style={styles.roomInfoRow}>
+          <View style={styles.roomInfoTag}>
+            <Ionicons name="bed-outline" size={14} color={COLORS.darkGray} />
+            <Text style={styles.roomInfoText}>{roomType}</Text>
+          </View>
+          <View style={[styles.roomInfoTag, { backgroundColor: '#ECFDF5' }]}>
+            <Ionicons name="checkmark-circle-outline" size={14} color={COLORS.primary} />
             <Text style={styles.policyText}>{cancellationPolicy}</Text>
           </View>
-          <View style={styles.policyRow}>
-            <Ionicons name="checkmark" size={16} color="#16A34A" />
-            <Text style={styles.policyText}>{paymentPolicy}</Text>
-          </View>
+        </View>
 
-          {/* Pricing area */}
-          <View style={styles.pricingContainer}>
-            <Text style={styles.priceSubtitle}>Price for 1 night, 2 adults</Text>
-            <View style={styles.priceRow}>
-              <Text style={styles.originalPrice}>₹ {originalPrice.toLocaleString()}</Text>
-              <Text style={styles.currentPrice}>₹ {hotel.pricePerNight.toLocaleString()}</Text>
-            </View>
-            <Text style={styles.taxesText}>+ ₹ {taxes} taxes and charges</Text>
-          </View>
+        {/* Footer: Reviews and Price */}
+        <View style={styles.footerRow}>
+           <View style={styles.reviewsContainer}>
+             <Text style={styles.scoreText}>{scoreText}</Text>
+             <Text style={styles.reviewCountText}>{hotel.reviews} verified reviews</Text>
+           </View>
+           <View style={styles.priceContainer}>
+             <View style={styles.priceRow}>
+               <Text style={styles.originalPrice}>₹{originalPrice.toLocaleString()}</Text>
+               <Text style={styles.currentPrice}>₹{hotel.pricePerNight.toLocaleString()}</Text>
+             </View>
+             <Text style={styles.taxesText}>+ ₹{taxes} taxes / night</Text>
+           </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -180,7 +175,7 @@ export default function HotelListingsScreen() {
       name: doc.title,
       type: propertyType,
       rating: doc.details?.rating || 4.5,
-      reviews: doc.details?.reviews || Math.floor(Math.random() * 50) + 10,
+      reviews: doc.details?.reviews || 0,
       pricePerNight: doc.price,
       emoji: doc.details?.emoji || (propertyType === 'Resort' ? '🌴' : propertyType === 'Villa' ? '🏡' : '🏨'),
       image: doc.images?.[0],
@@ -296,7 +291,7 @@ export default function HotelListingsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.lightGray,
   },
   filterTabsContainer: {
     backgroundColor: COLORS.white,
@@ -313,21 +308,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 8,
     borderRadius: 50,
-    backgroundColor: COLORS.lightGray,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: COLORS.borderGray,
   },
   filterTabActive: {
-    backgroundColor: '#DCFCE7',
-    borderColor: COLORS.primary,
+    backgroundColor: COLORS.darkGray,
+    borderColor: COLORS.darkGray,
   },
   filterTabText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.mediumGray,
   },
   filterTabTextActive: {
-    color: COLORS.primary,
+    color: COLORS.white,
   },
   loaderContainer: {
     flex: 1,
@@ -359,21 +354,21 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
-    gap: 16,
+    gap: 20,
   },
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
+    borderRadius: 24,
     borderWidth: 1,
     borderColor: COLORS.borderGray,
     overflow: 'hidden',
-  },
-  cardContent: {
-    flexDirection: 'row',
+   
   },
   imageContainer: {
-    width: 120,
-    backgroundColor: '#F8FAFC',
+    width: '100%',
+    height: 220,
+    backgroundColor: '#F3F4F6',
+    position: 'relative',
   },
   emojiContainer: {
     flex: 1,
@@ -385,146 +380,195 @@ const styles = StyleSheet.create({
     height: '100%',
     resizeMode: 'cover',
   },
+  imageGradientTop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 60,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  imageGradientBottom: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+   // backgroundColor: 'rgba(0,0,0,0.4)',
+  },
   hotelEmoji: {
-    fontSize: 40,
+    fontSize: 80,
+  },
+  imageOverlayTop: {
+    position: 'absolute',
+    top: 16,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  geniusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(17, 24, 39, 0.85)',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    backdropFilter: 'blur(4px)',
+  },
+  geniusText: {
+    color: '#FBBF24',
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  heartButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    padding: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  imageOverlayBottom: {
+    position: 'absolute',
+    bottom: 16,
+    left: 16,
+    right: 16,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+  },
+  dealBadge: {
+    backgroundColor: COLORS.primary,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  dealText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  ratingBadgeImage: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+  },
+  ratingTextImage: {
+    color: COLORS.darkGray,
+    fontWeight: '800',
+    fontSize: 14,
   },
   detailsContainer: {
-    flex: 1,
-    padding: 12,
-    paddingLeft: 12,
+    padding: 20,
   },
   headerRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 6,
   },
   hotelName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    flex: 1,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+    gap: 4,
+  },
+  locationText: {
+    fontSize: 14,
+    color: COLORS.mediumGray,
+    fontWeight: '500',
+  },
+  bullet: {
+    color: COLORS.borderGray,
+    marginHorizontal: 4,
+  },
+  roomInfoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginBottom: 20,
+  },
+  roomInfoTag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightGray,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+  },
+  roomInfoText: {
+    fontSize: 13,
+    color: COLORS.darkGray,
+    fontWeight: '600',
+  },
+  policyText: {
+    fontSize: 13,
+    color: COLORS.primary,
+    fontWeight: '600',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
+    paddingTop: 16,
+  },
+  reviewsContainer: {
+    flex: 1,
+  },
+  scoreText: {
     fontSize: 15,
     fontWeight: '700',
     color: COLORS.darkGray,
-    flex: 1,
-    marginRight: 8,
-    lineHeight: 20,
+    marginBottom: 2,
   },
-  locationText: {
+  reviewCountText: {
     fontSize: 12,
-    color: COLORS.darkGray,
-    marginTop: 4,
-    marginBottom: 6,
-  },
-  starsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  stars: {
-    flexDirection: 'row',
-    marginRight: 6,
-  },
-  geniusBadge: {
-    backgroundColor: '#004CB8',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-  },
-  geniusText: {
-    color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  scoreRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  scoreBox: {
-    backgroundColor: '#003580',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    marginRight: 8,
-  },
-  scoreNumber: {
-    color: COLORS.white,
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  scoreText: {
-    fontSize: 12,
-    color: COLORS.darkGray,
-  },
-  bullet: {
     color: COLORS.mediumGray,
+    fontWeight: '500',
   },
-  distanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  distanceText: {
-    fontSize: 11,
-    color: COLORS.darkGray,
-    marginLeft: 4,
-  },
-  dealBadge: {
-    backgroundColor: '#008234',
-    alignSelf: 'flex-start',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-    marginBottom: 8,
-  },
-  dealText: {
-    color: COLORS.white,
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  roomInfo: {
-    fontSize: 11,
-    color: COLORS.darkGray,
-    marginBottom: 6,
-  },
-  roomInfoBold: {
-    fontWeight: '700',
-  },
-  policyRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  policyText: {
-    fontSize: 11,
-    color: '#008234',
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  pricingContainer: {
-    marginTop: 12,
+  priceContainer: {
     alignItems: 'flex-end',
-  },
-  priceSubtitle: {
-    fontSize: 11,
-    color: COLORS.darkGray,
-    marginBottom: 2,
   },
   priceRow: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'baseline',
+    gap: 6,
   },
   originalPrice: {
     fontSize: 13,
-    color: '#D91E18',
+    color: COLORS.mediumGray,
     textDecorationLine: 'line-through',
-    marginRight: 6,
+    fontWeight: '500',
   },
   currentPrice: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '800',
     color: COLORS.darkGray,
   },
   taxesText: {
-    fontSize: 10,
+    fontSize: 12,
     color: COLORS.mediumGray,
     marginTop: 2,
+    fontWeight: '500',
   },
 });

@@ -37,9 +37,15 @@ export default function PersonalInformationScreen() {
 
   const onSave = async () => {
     const trimmedName = fullName.trim();
+    const trimmedPhone = phone.replace(/[^0-9]/g, '').trim();
 
     if (!trimmedName) {
       Alert.alert('Name required', 'Please enter your full name.');
+      return;
+    }
+
+    if (trimmedPhone && trimmedPhone.length < 10) {
+      Alert.alert('Invalid phone', 'Please enter a valid 10-digit phone number.');
       return;
     }
 
@@ -50,10 +56,23 @@ export default function PersonalInformationScreen() {
 
     setSaving(true);
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: { full_name: trimmedName, phone: phone.trim() },
+      // 1. Update Supabase Auth metadata
+      const { error: authError } = await supabase.auth.updateUser({
+        data: { full_name: trimmedName, phone: trimmedPhone },
       });
-      if (error) throw error;
+      if (authError) throw authError;
+
+      // 2. Sync to public users table
+      const { error: dbError } = await supabase
+        .from('users')
+        .update({
+          name: trimmedName,
+          phone: trimmedPhone || null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', authUser.id);
+      if (dbError) throw dbError;
+
       Alert.alert('Saved', 'Your personal information has been updated.');
       router.back();
     } catch {
@@ -98,13 +117,14 @@ export default function PersonalInformationScreen() {
             style={styles.input}
             value={phone}
             onChangeText={setPhone}
-            placeholder="Enter your phone"
+            placeholder="Enter 10-digit phone number"
             placeholderTextColor={COLORS.mediumGray}
-            keyboardType="phone-pad"
+            keyboardType="number-pad"
+            maxLength={10}
           />
 
           <Text style={styles.noteText}>
-            Phone updates are local for now. Name updates your account profile.
+            Your phone number is required to confirm bookings.
           </Text>
         </View>
 

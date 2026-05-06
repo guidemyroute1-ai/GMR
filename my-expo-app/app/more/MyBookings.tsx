@@ -1,6 +1,7 @@
 import { Text } from '../../components/Text';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
+import { router } from 'expo-router';
 import React, { useState, useEffect } from 'react';
 import { ScrollView,
   RefreshControl,
@@ -45,6 +46,7 @@ interface Booking {
   totalAmount: number;
   status: StatusType;
   tab: TabType;
+  item_id?: string;
   _createdAt?: number;
 }
 
@@ -192,7 +194,11 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
       <View style={styles.actionRow}>
         {isUpcoming && booking.status === 'Confirmed' && (
           <>
-            <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.8}>
+            <TouchableOpacity 
+              style={styles.secondaryBtn} 
+              activeOpacity={0.8}
+              onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: booking.id } })}
+            >
               <Text style={styles.secondaryBtnText}>View Details</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85}>
@@ -203,7 +209,11 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
         )}
         {isUpcoming && booking.status === 'Pending' && (
           <>
-            <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.8}>
+            <TouchableOpacity 
+              style={styles.secondaryBtn} 
+              activeOpacity={0.8}
+              onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: booking.id } })}
+            >
               <Text style={styles.secondaryBtnText}>View Details</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.dangerBtn} activeOpacity={0.85}>
@@ -213,10 +223,18 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
         )}
         {isCompleted && (
           <>
-            <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.8}>
+            <TouchableOpacity 
+              style={styles.secondaryBtn} 
+              activeOpacity={0.8}
+              onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: booking.id } })}
+            >
               <Text style={styles.secondaryBtnText}>View Details</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.tealBtn} activeOpacity={0.85}>
+            <TouchableOpacity 
+              style={styles.tealBtn} 
+              activeOpacity={0.85}
+              onPress={() => router.push({ pathname: '/more/RateAndReview', params: { bookingId: booking.id, itemId: booking.item_id } })}
+            >
               <Ionicons name="star-outline" size={14} color={COLORS.white} />
               <Text style={styles.tealBtnText}>Rate & Review</Text>
             </TouchableOpacity>
@@ -224,7 +242,11 @@ const BookingCard = ({ booking }: { booking: Booking }) => {
         )}
         {isCancelled && (
           <>
-            <TouchableOpacity style={styles.secondaryBtn} activeOpacity={0.8}>
+            <TouchableOpacity 
+              style={styles.secondaryBtn} 
+              activeOpacity={0.8}
+              onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: booking.id } })}
+            >
               <Text style={styles.secondaryBtnText}>View Details</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85}>
@@ -337,6 +359,7 @@ export default function MyBookingsScreen() {
           totalAmount: row.amount || row.price || 0,
           status,
           tab,
+          item_id: row.item_id,
           _createdAt: row.created_at ? new Date(row.created_at).getTime() : 0,
         };
       });

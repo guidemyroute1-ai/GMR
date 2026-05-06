@@ -19,10 +19,6 @@ export function setBackgroundMessageHandler() {
 }
 
 export async function registerFCMToken(userId: string) {
-  // Temporarily disabled to avoid the Firebase initialization crash
-  console.log('[Push] Push notifications temporarily disabled.');
-  return null;
-
   if (!userId || Platform.OS === 'web' || !Device.isDevice) return null;
 
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
@@ -42,11 +38,8 @@ export async function registerFCMToken(userId: string) {
     });
   }
 
-  const projectId =
-    Constants.easConfig?.projectId ||
-    Constants.expoConfig?.extra?.eas?.projectId ||
-    undefined;
-  const tokenResponse = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+  // Get raw device push token (FCM token on Android, APNs token on iOS)
+  const tokenResponse = await Notifications.getDevicePushTokenAsync();
   const token = tokenResponse.data;
 
   await supabase.from('push_tokens').upsert(
@@ -64,6 +57,8 @@ export async function registerFCMToken(userId: string) {
   const { data: profile } = await supabase.from('users').select('fcm_tokens').eq('id', userId).maybeSingle();
   const tokens = Array.from(new Set([...(profile?.fcm_tokens || []), token]));
   await supabase.from('users').update({ fcm_tokens: tokens }).eq('id', userId);
+
+  console.log('[Push] FCM token successfully saved in the DB');
 
   return token;
 }

@@ -66,6 +66,10 @@ create table if not exists public.bookings (
   amount numeric not null default 0,
   price numeric not null default 0,
   payment_id text,
+  razorpay_order_id text,
+  razorpay_signature text,
+  payment_provider text not null default 'razorpay',
+  payment_verified_at timestamptz,
   payment_status text,
   status public.booking_status not null default 'pending',
   note text,
@@ -91,6 +95,7 @@ create index if not exists listings_partner_id_idx on public.listings(partner_id
 create index if not exists listings_type_active_idx on public.listings(type, is_active);
 create index if not exists bookings_user_id_idx on public.bookings(user_id);
 create index if not exists bookings_partner_id_idx on public.bookings(partner_id);
+create unique index if not exists bookings_payment_id_unique_idx on public.bookings(payment_id) where payment_id is not null and payment_id <> '';
 create index if not exists push_tokens_user_id_idx on public.push_tokens(user_id);
 
 alter table public.users enable row level security;

@@ -2,14 +2,25 @@
 
 import { supabaseAdmin } from './supabase-server';
 
-type ExpoTicket = {
-  status: 'ok' | 'error';
-  id?: string;
-  message?: string;
-  details?: { error?: string };
-};
+import * as admin from 'firebase-admin';
+import path from 'path';
 
-async function sendExpoPush(
+// Initialize Firebase Admin
+if (!admin.apps.length) {
+  try {
+    const serviceAccountPath = path.resolve(
+      process.cwd(),
+      'guidemyroute-77af8-firebase-adminsdk-fbsvc-67e173961a.json'
+    );
+    admin.initializeApp({
+      credential: admin.credential.cert(serviceAccountPath),
+    });
+  } catch (error) {
+    console.error('Firebase Admin initialization error:', error);
+  }
+}
+
+async function sendFCMPush(
   tokens: string[],
   title: string,
   body: string,
@@ -17,45 +28,35 @@ async function sendExpoPush(
 ): Promise<{ successCount: number; failureCount: number; invalidTokens: string[] }> {
   if (!tokens.length) return { successCount: 0, failureCount: 0, invalidTokens: [] };
 
-  const messages = tokens.map((to) => ({
-    to,
-    sound: 'default',
-    title,
-    body,
-    data: data || {},
-  }));
-
   try {
-    const response = await fetch('https://exp.host/--/api/v2/push/send', {
-      method: 'POST',
-      headers: {
-        Accept: 'application/json',
-        'Accept-Encoding': 'gzip, deflate',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(messages),
-    });
+    const message = {
+      notification: { title, body },
+      data: data || {},
+      tokens,
+    };
 
-    const json = await response.json();
-    const tickets = (json?.data || []) as ExpoTicket[];
+    const response = await admin.messaging().sendEachForMulticast(message);
     const invalidTokens: string[] = [];
-    let successCount = 0;
-    let failureCount = 0;
 
-    tickets.forEach((ticket, index) => {
-      if (ticket.status === 'ok') {
-        successCount += 1;
-      } else {
-        failureCount += 1;
-        if (ticket.details?.error === 'DeviceNotRegistered') {
+    response.responses.forEach((res, index) => {
+      if (!res.success) {
+        const errorCode = res.error?.code;
+        if (
+          errorCode === 'messaging/invalid-registration-token' ||
+          errorCode === 'messaging/registration-token-not-registered'
+        ) {
           invalidTokens.push(tokens[index]);
         }
       }
     });
 
-    return { successCount, failureCount, invalidTokens };
+    return {
+      successCount: response.successCount,
+      failureCount: response.failureCount,
+      invalidTokens,
+    };
   } catch (error) {
-    console.error('Expo push send error:', error);
+    console.error('FCM push send error:', error);
     return { successCount: 0, failureCount: tokens.length, invalidTokens: [] };
   }
 }
@@ -87,7 +88,7 @@ export async function sendNotificationToUser(
 
     if (!tokens.length) return { success: true, sent: 0, failed: 0 };
 
-    const result = await sendExpoPush(tokens, title, body, data);
+    const result = await sendFCMPush(tokens, title, body, data);
 
     if (result.invalidTokens.length > 0) {
       await supabaseAdmin.from('push_tokens').delete().in('token', result.invalidTokens);
