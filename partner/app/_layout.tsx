@@ -204,18 +204,15 @@ export default function RootLayout() {
       }
     }
 
-    // Only redirect if we have a target AND it's different from our current path
-    // AND it's different from the last attempted redirect to prevent loops
     if (target && target !== currentPath && target !== lastRedirect.current) {
       console.log(`[Router] Redirecting from ${currentPath} to ${target}`);
       lastRedirect.current = target;
       
-      // Use a small timeout to ensure navigation state is ready for the replace
-      const timer = setTimeout(() => {
+      // We use setTimeout(..., 0) without clearing it to avoid race conditions
+      // where the timeout gets cleared before it executes.
+      setTimeout(() => {
         router.replace(target as any);
-      }, 10);
-      
-      return () => clearTimeout(timer);
+      }, 0);
     }
   }, [isInitialized, isProfileLoading, navigationState?.key, userUid, profile?.isOnboarded, segments]);
 

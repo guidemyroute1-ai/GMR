@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 import AppBar from '../../components/AppBar';
 import { supabase } from '../../utils/supabase';
@@ -222,7 +222,7 @@ export default function HotelListingsScreen() {
   const filtered = hotels.filter((h) => activeTab === 'All' || h.type === activeTab);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       <AppBar />
 
@@ -289,7 +289,7 @@ export default function HotelListingsScreen() {
           }
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

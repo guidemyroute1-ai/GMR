@@ -20,7 +20,7 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "package": "com.mohit551.guidemyroute"
+      "package": "com.jatin551.guidemyroute"
     },
     "web": {
       "output": "static",

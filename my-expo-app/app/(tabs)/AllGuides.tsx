@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, FlatList, TextInput, TouchableOpacity, StatusBar, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
 import { Text } from '../../components/Text';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
@@ -146,7 +146,7 @@ export default function AllGuidesScreen() {
   );
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       
       {/* App Bar */}
@@ -227,7 +227,7 @@ export default function AllGuidesScreen() {
           }
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

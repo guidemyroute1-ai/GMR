@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Platform,
+  View, StyleSheet, ScrollView, TouchableOpacity, StatusBar, Platform, TextInput
 } from 'react-native';
 import { Text } from '../../components/Text';
 import { Ionicons } from '@expo/vector-icons';
@@ -44,6 +44,8 @@ export default function CheckoutScreen() {
     d.setDate(d.getDate() + 1); d.setHours(10); return d;
   });
   const [picker, setPicker] = useState<PickerState>({ visible: false, mode: 'date', target: 'start' });
+  const [coupon, setCoupon] = useState('');
+  const [discountApplied, setDiscountApplied] = useState(false);
 
   // ── Pricing ──────────────────────────────────────────────────────────────────
   const quantity = useMemo(() => {
@@ -56,7 +58,8 @@ export default function CheckoutScreen() {
 
   const subtotal = unitPrice * quantity;
   const serviceFee = Math.round(subtotal * 0.05);
-  const total = subtotal + serviceFee;
+  const discountAmount = discountApplied ? Math.round(subtotal * 0.1) : 0; // 10% off for demo
+  const total = subtotal + serviceFee - discountAmount;
 
   // ── Picker handler ───────────────────────────────────────────────────────────
   const onPickerChange = (_: any, selected?: Date) => {
@@ -169,11 +172,43 @@ export default function CheckoutScreen() {
           </View>
         </View>
 
+        {/* Offers & Promos */}
+        <Text style={s.sectionLabel}>Offers & Promos</Text>
+        <View style={s.card}>
+          <View style={s.couponRow}>
+            <Ionicons name="pricetag-outline" size={20} color={C.gray} style={s.couponIcon} />
+            <TextInput
+              style={s.couponInput}
+              placeholder="Enter coupon code"
+              placeholderTextColor={C.gray}
+              value={coupon}
+              onChangeText={setCoupon}
+              autoCapitalize="characters"
+            />
+            <TouchableOpacity 
+              style={[s.applyBtn, !coupon.trim() && { opacity: 0.5 }]} 
+              disabled={!coupon.trim()}
+              onPress={() => setDiscountApplied(true)}
+            >
+              <Text style={s.applyBtnText}>{discountApplied ? 'Applied' : 'Apply'}</Text>
+            </TouchableOpacity>
+          </View>
+          {discountApplied && (
+            <View style={s.discountMsg}>
+              <Ionicons name="checkmark-circle" size={16} color={C.primary} />
+              <Text style={s.discountText}>Coupon applied! You saved ₹{discountAmount.toLocaleString('en-IN')}</Text>
+            </View>
+          )}
+        </View>
+
         {/* Price breakdown */}
         <Text style={s.sectionLabel}>Price Details</Text>
         <View style={s.card}>
           <Row label={`₹${unitPrice.toLocaleString('en-IN')} × ${quantity} ${unitLabel}${quantity > 1 ? 's' : ''}`} value={`₹${subtotal.toLocaleString('en-IN')}`} />
           <Row label="Service fee (5%)" value={`₹${serviceFee.toLocaleString('en-IN')}`} />
+          {discountApplied && (
+            <Row label="Discount" value={`-₹${discountAmount.toLocaleString('en-IN')}`} isDiscount />
+          )}
           <View style={s.priceDivider} />
           <Row label="Total" value={`₹${total.toLocaleString('en-IN')}`} bold />
         </View>
@@ -215,10 +250,10 @@ export default function CheckoutScreen() {
 }
 
 // ── Tiny components ────────────────────────────────────────────────────────────
-const Row = ({ label, value, bold }: { label: string; value: string; bold?: boolean }) => (
+const Row = ({ label, value, bold, isDiscount }: { label: string; value: string; bold?: boolean; isDiscount?: boolean }) => (
   <View style={s.priceRow}>
-    <Text style={[s.priceLabel, bold && s.priceBold]}>{label}</Text>
-    <Text style={[s.priceValue, bold && s.priceBold]}>{value}</Text>
+    <Text style={[s.priceLabel, bold && s.priceBold, isDiscount && { color: C.primary }]}>{label}</Text>
+    <Text style={[s.priceValue, bold && s.priceBold, isDiscount && { color: C.primary }]}>{value}</Text>
   </View>
 );
 
@@ -279,6 +314,24 @@ const s = StyleSheet.create({
   priceValue: { fontSize: 14, color: C.dark, fontWeight: '600' },
   priceBold: { fontWeight: '800', fontSize: 16, color: C.dark },
   priceDivider: { height: 1, backgroundColor: C.border, marginVertical: 4 },
+
+  // Coupon
+  couponRow: {
+    flexDirection: 'row', alignItems: 'center', backgroundColor: C.lightGray,
+    borderRadius: 12, paddingHorizontal: 12, paddingVertical: 4,
+  },
+  couponIcon: { marginRight: 8 },
+  couponInput: {
+    flex: 1, fontSize: 14, color: C.dark, fontWeight: '600',
+    paddingVertical: 10,
+  },
+  applyBtn: { paddingHorizontal: 12, paddingVertical: 8 },
+  applyBtnText: { color: C.primary, fontWeight: '700', fontSize: 14 },
+  discountMsg: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#F0FDFA', padding: 10, borderRadius: 8, marginTop: 12,
+  },
+  discountText: { color: C.primary, fontSize: 13, fontWeight: '600' },
 
   // Trust
   trustRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16, marginTop: 4 },

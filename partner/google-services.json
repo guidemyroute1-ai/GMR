@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "26135307430",
+    "project_id": "guide-my-route",
+    "storage_bucket": "guide-my-route.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:26135307430:android:50fe95e7d9951c56ea8067",
+        "android_client_info": {
+          "package_name": "com.jatin551.gmrpartner"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2yaPjCfZXOuAG86eMYCkipcvuDjpN7nU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:26135307430:android:19707fa07ce8cf3eea8067",
+        "android_client_info": {
+          "package_name": "com.jatin551.guidemyroute"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB2yaPjCfZXOuAG86eMYCkipcvuDjpN7nU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -24,6 +24,10 @@ export default function ProfileScreen() {
   const [name, setName] = useState(profile?.name ?? '');
   const [phone, setPhone] = useState(profile?.phone ?? '');
   const [saving, setSaving] = useState(false);
+
+  const [editingBusiness, setEditingBusiness] = useState(false);
+  const [businessData, setBusinessData] = useState<Record<string, any>>(profile?.profileData ?? {});
+  const [savingBusiness, setSavingBusiness] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -57,6 +61,20 @@ export default function ProfileScreen() {
       Alert.alert('Error', 'Could not save changes.');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleSaveBusiness = async () => {
+    if (!user) return;
+    setSavingBusiness(true);
+    try {
+      await updateUserProfile(user.uid, { profileData: businessData });
+      setProfile({ ...profile!, profileData: businessData });
+      setEditingBusiness(false);
+    } catch {
+      Alert.alert('Error', 'Could not save business profile.');
+    } finally {
+      setSavingBusiness(false);
     }
   };
 
@@ -190,12 +208,76 @@ export default function ProfileScreen() {
           </View>
 
           {/* Business Profile section */}
-          {profileRows.length > 0 && (
+          {Object.keys(profile?.profileData || {}).length > 0 && (
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Business Profile</Text>
-              {profileRows.map((row) => (
-                <ProfileRow key={row.key} label={row.label} value={row.value} Icon={Clipboard} />
-              ))}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.sm }}>
+                <Text style={[styles.sectionTitle, { marginBottom: 0 }]}>Business Profile</Text>
+                {!editingBusiness && (
+                  <TouchableOpacity onPress={() => {
+                    setBusinessData(profile?.profileData ?? {});
+                    setEditingBusiness(true);
+                  }}>
+                    <Edit2 color={Colors.primary} size={16} />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {editingBusiness ? (
+                <View style={{ marginTop: Spacing.sm }}>
+                  {Object.entries(businessData).map(([key, value]) => (
+                    <View key={key} style={{ marginBottom: Spacing.md }}>
+                      <Text style={styles.label}>
+                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
+                      </Text>
+                      <TextInput
+                        style={styles.input}
+                        value={Array.isArray(value) ? value.join(', ') : String(value || '')}
+                        onChangeText={(text) => {
+                          setBusinessData((prev) => ({
+                            ...prev,
+                            [key]: Array.isArray(prev[key]) ? text.split(',').map((s) => s.trim()) : text,
+                          }));
+                        }}
+                        placeholder={`Enter ${key}`}
+                        placeholderTextColor={Colors.textLight}
+                      />
+                    </View>
+                  ))}
+
+                  <View style={styles.editActions}>
+                    <TouchableOpacity
+                      style={styles.cancelBtn}
+                      onPress={() => {
+                        setBusinessData(profile?.profileData ?? {});
+                        setEditingBusiness(false);
+                      }}
+                    >
+                      <Text style={styles.cancelText}>Cancel</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.saveBtn, savingBusiness && { opacity: 0.7 }]}
+                      onPress={handleSaveBusiness}
+                      disabled={savingBusiness}
+                    >
+                      {savingBusiness ? (
+                        <ActivityIndicator color={Colors.white} size="small" />
+                      ) : (
+                        <Text style={styles.saveText}>Save</Text>
+                      )}
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                profileRows.length > 0 ? (
+                  profileRows.map((row) => (
+                    <ProfileRow key={row.key} label={row.label} value={row.value} Icon={Clipboard} />
+                  ))
+                ) : (
+                  <Text style={{ color: Colors.textMuted, fontSize: FontSize.sm, paddingVertical: Spacing.sm }}>
+                    No business profile data available.
+                  </Text>
+                )
+              )}
             </View>
           )}
 

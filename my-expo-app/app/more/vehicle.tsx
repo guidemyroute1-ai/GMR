@@ -398,7 +398,7 @@ export default function VehicleDetailScreen() {
         )}
 
         {/* ── Select Dates ── */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <SectionTitle title="Select Dates" />
           <View style={styles.dateRow}>
             <DateSelectorCard
@@ -420,19 +420,19 @@ export default function VehicleDetailScreen() {
               icon="flag-outline"
               onPress={() => setShowPicker({ visible: true, mode: 'date', type: 'dropoff' })}
             />
-          </View>
+          </View> */}
 
           {/* Duration Chip */}
-          <View style={styles.durationChip}>
+          {/* <View style={styles.durationChip}>
             <Ionicons name="time-outline" size={14} color={COLORS.teal} />
             <Text style={styles.durationChipText}>
               Duration: <Text style={{ fontWeight: '700', color: COLORS.teal }}>{durationDays} Days</Text>
             </Text>
           </View>
-        </View>
+        </View> */}
 
         {/* ── Price Breakdown ── */}
-        <View style={styles.section}>
+        {/* <View style={styles.section}>
           <SectionTitle title="Price Details" />
           <View style={styles.card}>
             {priceRows.map((row, idx) => (
@@ -449,7 +449,8 @@ export default function VehicleDetailScreen() {
               </View>
             ))}
           </View>
-        </View>
+        </View> */}
+
 
 
 
@@ -470,15 +471,7 @@ export default function VehicleDetailScreen() {
 
       {/* ── Sticky Bottom CTA ── */}
       <View style={styles.bottomCTA}>
-        <View style={styles.bottomCTAPrice}>
-          <Text style={styles.bottomCTAPriceLabel}>Total</Text>
-          <Text style={styles.bottomCTAPriceValue}>
-            ₹{totalAmount.toLocaleString()}
-          </Text>
-          <Text style={styles.bottomCTAPriceDays}>
-            for {durationDays} days
-          </Text>
-        </View>
+
         <TouchableOpacity
           style={styles.bookPayBtn}
           activeOpacity={0.88}
@@ -1018,17 +1011,13 @@ const styles = StyleSheet.create({
     right:             0,
     flexDirection:     'row',
     alignItems:        'center',
-    justifyContent:    'space-between',
+    justifyContent:    'center',
     backgroundColor:   COLORS.white,
     paddingHorizontal: 20,
     paddingVertical:   18,
     borderTopWidth:    1,
     borderTopColor:    '#F1F5F9',
-    shadowColor:       '#000',
-    shadowOffset:      { width: 0, height: -10 },
-    shadowOpacity:     0.06,
-    shadowRadius:      15,
-    elevation:         20,
+   
   },
   bottomCTAPrice: {
     gap: 4,

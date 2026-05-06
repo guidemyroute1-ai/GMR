@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AppBar from '../../components/AppBar';
 import { supabase } from '../../utils/supabase';
@@ -172,7 +172,7 @@ export default function RentAVehicleScreen() {
   });
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       <AppBar />
 
@@ -260,7 +260,7 @@ export default function RentAVehicleScreen() {
           }
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
