@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
 import { Text } from '../../components/Text';
 import { Ionicons } from '@expo/vector-icons';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../utils/supabase';
 
@@ -22,6 +22,7 @@ export default function RateAndReviewScreen() {
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleSubmit = async () => {
     if (rating === 0) {
@@ -99,7 +100,7 @@ export default function RateAndReviewScreen() {
         />
       </View>
 
-      <View style={styles.footer}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
         <TouchableOpacity
           style={[styles.submitBtn, submitting && { opacity: 0.7 }]}
           onPress={handleSubmit}

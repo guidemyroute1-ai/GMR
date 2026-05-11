@@ -10,7 +10,7 @@ import { ScrollView,
   TouchableOpacity,
   View,
   ActivityIndicator } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppBar from '../../components/AppBar';
 import { supabase } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -27,6 +27,23 @@ const COLORS = {
   mediumGray: '#6B7280',
   borderGray: '#d3dbe2',
   danger: '#EF4444',
+};
+
+const SHADOWS = {
+  small: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
 };
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -356,6 +373,7 @@ const EmptyState = ({ tab }: { tab: TabType }) => {
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 export default function MyBookingsScreen() {
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<TabType>('Upcoming');
   const [refreshing, setRefreshing] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -448,7 +466,7 @@ export default function MyBookingsScreen() {
   }, [] as { sectionTitle: string; data: Booking[] }[]);
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
       {/* ── Header ── */}
@@ -534,7 +552,7 @@ export default function MyBookingsScreen() {
           <View style={{ height: 20 }} />
         </ScrollView>
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -658,9 +676,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 18,
     marginBottom: 14,
-    borderWidth: 1.5,
-    borderColor: COLORS.borderGray,
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
     overflow: 'hidden',
+    ...SHADOWS.small,
   },
   prePayBanner: {
     paddingVertical: 8,
@@ -863,13 +882,9 @@ const styles = StyleSheet.create({
     padding: 14,
     marginTop: 4,
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: '#F1F5F9',
     gap: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    ...SHADOWS.medium,
   },
   helpIconBox: {
     width: 44,

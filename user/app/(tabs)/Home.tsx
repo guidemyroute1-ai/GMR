@@ -1,6 +1,6 @@
 import { Text } from '../../components/Text';
 import { Image as ExpoImage } from 'expo-image';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../utils/supabase';
 // import * as Location from 'expo-location';
@@ -13,7 +13,9 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Dimensions
+  
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AppBar from '../../components/AppBar';
@@ -30,6 +32,31 @@ const COLORS = {
   mediumGray: '#6B7280',
   borderGray: '#d3dbe2',
   onlineDot: '#22C55E',
+};
+
+// ─── Shadows ──────────────────────────────────────────────────────────────────
+const SHADOWS = {
+  small: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+  large: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 8,
+  },
 };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -57,7 +84,15 @@ interface Category {
   color: string;
 }
 
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
 // Mock Data for fallback or other categories
+const BANNERS = [
+  { id: '1', source: require('../../assets/images/banner1.jpeg') },
+  { id: '2', source: require('../../assets/images/banner2.jpeg') },
+  { id: '3', source: require('../../assets/images/banner3.jpeg') },
+];
+
 const VEHICLES: Vehicle[] = [
   { id: '1', type: 'scooty', pricePerDay: 499, image: require('../../assets/images/scooty.png') },
   { id: '2', type: 'bike', pricePerDay: 899, image: require('../../assets/images/bike.png') },
@@ -188,6 +223,21 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [currentLocation, setCurrentLocation] = useState<string>('Fetching location...');
+  const [activeBanner, setActiveBanner] = useState(0);
+  const flatListRef = useRef<FlatList>(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const nextIndex = (activeBanner + 1) % BANNERS.length;
+      flatListRef.current?.scrollToIndex({
+        index: nextIndex,
+        animated: true,
+      });
+      setActiveBanner(nextIndex);
+    }, 3000);
+
+    return () => clearInterval(timer);
+  }, [activeBanner]);
 
   useEffect(() => {
     (async () => {
@@ -304,12 +354,44 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.heroPanel}>
-
-          <ExpoImage
-            source={require('../../assets/images/banner1.jpeg')}
-            style={styles.heroImage}
-            contentFit="contain"
+          <FlatList
+            ref={flatListRef}
+            data={BANNERS}
+            keyExtractor={(item) => item.id}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            getItemLayout={(data, index) => ({
+              length: SCREEN_WIDTH - 32,
+              offset: (SCREEN_WIDTH - 32) * index,
+              index,
+            })}
+            onMomentumScrollEnd={(e) => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / (SCREEN_WIDTH - 32));
+              setActiveBanner(index);
+            }}
+            renderItem={({ item }) => (
+              <View style={styles.heroSlide}>
+                <ExpoImage
+                  source={item.source}
+                  style={styles.heroImage}
+                  contentFit="fill"
+                  transition={300}
+                />
+              </View>
+            )}
           />
+          <View style={styles.paginationDots}>
+            {BANNERS.map((_, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.dot,
+                  activeBanner === index ? styles.activeDot : null,
+                ]}
+              />
+            ))}
+          </View>
         </View>
 
         {/* Search Bar */}
@@ -480,16 +562,38 @@ const styles = StyleSheet.create({
   heroPanel: {
     marginHorizontal: 16,
     marginTop: 16,
+    marginBottom: 16,
     borderRadius: 22,
     overflow: 'hidden',
-    minHeight: 170,
+    height: 180,
+    ...SHADOWS.medium,
+    backgroundColor: COLORS.white,
+    position: 'relative',
+  },
+  heroSlide: {
+    width: SCREEN_WIDTH - 32,
+    height: 180,
   },
   heroImage: {
-    ...StyleSheet.absoluteFillObject,
-    opacity: 1,
-
-    borderRadius: 20,
-
+    width: '100%',
+    height: '100%',
+  },
+  paginationDots: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: 12,
+    alignSelf: 'center',
+    gap: 6,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  activeDot: {
+    width: 18,
+    backgroundColor: COLORS.primary,
   },
   heroCopy: {
     position: 'relative',
@@ -538,10 +642,10 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 1.5,
+    borderWidth: 1,
     borderColor: '#E2E8F0',
     marginTop: 12,
-
+    ...SHADOWS.small,
   },
   searchInput: {
     flex: 1,
@@ -602,8 +706,8 @@ const styles = StyleSheet.create({
     marginRight: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-
+    borderColor: '#F1F5F9',
+    ...SHADOWS.small,
   },
   guideImagePlaceholder: {
     width: '100%',
@@ -701,8 +805,8 @@ const styles = StyleSheet.create({
     padding: 12,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
-
+    borderColor: '#F1F5F9',
+    ...SHADOWS.small,
   },
   vehicleImagePlaceholder: {
     width: '100%',
@@ -772,12 +876,8 @@ const styles = StyleSheet.create({
     padding: 18,
     overflow: 'hidden',
     borderWidth: 0,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 12 },
-    shadowOpacity: 0.18,
-    shadowRadius: 18,
-    elevation: 5,
-
+    ...SHADOWS.medium,
+    shadowColor: COLORS.primary, // Custom colored shadow for promo
   },
   promoContent: {
     flex: 1,

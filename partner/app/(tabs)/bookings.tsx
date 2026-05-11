@@ -54,9 +54,16 @@ const statusConfig: Record<BookingStatus, { color: string; label: string; Icon: 
 };
 
 export default function BookingsScreen() {
-  const { user, refreshProfile } = useAuthStore();
+  const { user, refreshProfile, profile } = useAuthStore();
   const userUid = user?.uid;
-  const [activeTab, setActiveTab] = useState<'requests' | 'bookings'>('requests');
+  const showRequestsTab = profile?.role !== 'hotel' && profile?.role !== 'rental';
+  const [activeTab, setActiveTab] = useState<'requests' | 'bookings'>(showRequestsTab ? 'requests' : 'bookings');
+
+  useEffect(() => {
+    if (!showRequestsTab && activeTab === 'requests') {
+      setActiveTab('bookings');
+    }
+  }, [showRequestsTab, activeTab]);
   const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,20 +191,24 @@ export default function BookingsScreen() {
         </View>
       </View>
 
-      <View style={styles.tabContainer}>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'requests' && styles.tabButtonActive]}
-          onPress={() => setActiveTab('requests')}
-        >
-          <Text style={[styles.tabText, activeTab === 'requests' && styles.tabTextActive]}>Requests ({requests.length})</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === 'bookings' && styles.tabButtonActive]}
-          onPress={() => setActiveTab('bookings')}
-        >
-          <Text style={[styles.tabText, activeTab === 'bookings' && styles.tabTextActive]}>My Bookings ({bookings.length})</Text>
-        </TouchableOpacity>
-      </View>
+      {showRequestsTab ? (
+        <View style={styles.tabContainer}>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'requests' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('requests')}
+          >
+            <Text style={[styles.tabText, activeTab === 'requests' && styles.tabTextActive]}>Requests ({requests.length})</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.tabButton, activeTab === 'bookings' && styles.tabButtonActive]}
+            onPress={() => setActiveTab('bookings')}
+          >
+            <Text style={[styles.tabText, activeTab === 'bookings' && styles.tabTextActive]}>My Bookings ({bookings.length})</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <View style={{ marginBottom: Spacing.sm }} />
+      )}
 
       {/* Filters */}
       {activeTab === 'bookings' && (

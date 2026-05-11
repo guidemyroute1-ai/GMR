@@ -1,31 +1,61 @@
 import messaging, { FirebaseMessagingTypes } from '@react-native-firebase/messaging';
 import * as ExpoNotifications from 'expo-notifications';
-import { Platform } from 'react-native';
+import { Platform, PermissionsAndroid } from 'react-native';
 import { supabase } from './supabase';
 import { Router } from 'expo-router';
 
 const CHANNEL_ID = 'gmr-default';
 
 export async function initNotifications(userId: string): Promise<() => void> {
+  // 1. Request Android 13+ POST_NOTIFICATIONS permission explicitly
+  if (Platform.OS === 'android' && Platform.Version >= 33) {
+    try {
+      const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS);
+      console.log('[FCM] Android 13+ Notification permission:', granted);
+    } catch (err) {
+      console.warn('[FCM] Failed to request Android 13+ permissions:', err);
+    }
+  }
+
+  // 2. Request local notification permissions via Expo (critical for Android 13+)
+  try {
+    const { status: existingStatus } = await ExpoNotifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+    if (existingStatus !== 'granted') {
+      const { status } = await ExpoNotifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+    console.log('[FCM] Expo notification status:', finalStatus);
+  } catch (err) {
+    console.warn('[FCM] Failed to request Expo notification permissions:', err);
+  }
+
+  // 2. Request FCM permissions via Firebase
   const authStatus = await messaging().requestPermission();
   const enabled =
     authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
     authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
   if (!enabled) {
-    console.log('[FCM] Permission not granted');
-    return () => { };
+    console.log('[FCM] Firebase permission not granted');
+    // We continue anyway as some systems might still allow token retrieval
   }
 
   try {
+    // 3. Register for remote notifications (essential for iOS)
+    if (Platform.OS === 'ios' && !messaging().isDeviceRegisteredForRemoteMessages) {
+      await messaging().registerDeviceForRemoteMessages();
+    }
+
     const token = await messaging().getToken();
-    console.log('[FCM] Got token:', token ? token.substring(0, 20) + '...' : 'null');
+    console.log('[FCM] Got token:', token ? token.substring(0, 15) + '...' : 'null');
+    
     if (token) {
       const { error } = await supabase.rpc('register_fcm_token', { p_token: token });
       if (error) {
-        console.error('[FCM] Failed to register token via RPC:', error.message);
+        console.error('[FCM] RPC register_fcm_token failed:', error.message);
       } else {
-        console.log('[FCM] Token registered successfully for user:', userId);
+        console.log('[FCM] Token registered successfully in DB');
       }
     }
   } catch (err) {

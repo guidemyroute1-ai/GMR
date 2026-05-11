@@ -7,21 +7,21 @@ import { Text } from './Text';
 
 export default function Header() {
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
+    <View  style={styles.safe}>
       <View style={styles.header}>
         <View style={styles.icon}>
           <BriefcaseBusiness size={18} color={Colors.white} />
         </View>
         <Text style={styles.title}>Partner Console</Text>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   safe: { backgroundColor: Colors.white },
   header: {
-    height: 54,
+    height: 60,
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,

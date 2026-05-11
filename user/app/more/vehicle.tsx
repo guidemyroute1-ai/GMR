@@ -12,7 +12,7 @@ import {
   Image,
 } from 'react-native';
 import { Text } from '../../components/Text';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
 import { supabase } from '../../utils/supabase';
 import DateTimePicker from '@react-native-community/datetimepicker';
@@ -128,6 +128,7 @@ export default function VehicleDetailScreen() {
   const [vehicle, setVehicle] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
+  const insets = useSafeAreaInsets();
   const [activeTab, setActiveTab] = useState<'overview' | 'specs'>('specs');
 
   const [pickupDate, setPickupDate] = useState<Date>(new Date());
@@ -241,19 +242,19 @@ export default function VehicleDetailScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: insets.top }]}>
         <AppBar />
         <View style={styles.loaderContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loaderText}>Loading details...</Text>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   if (!vehicle) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <View style={[styles.safeArea, { paddingTop: insets.top }]}>
         <AppBar />
         <View style={styles.errorContainer}>
           <MaterialCommunityIcons name="alert-circle-outline" size={60} color={COLORS.danger} />
@@ -262,7 +263,7 @@ export default function VehicleDetailScreen() {
             <Text style={styles.backBtnText}>Go Back</Text>
           </TouchableOpacity>
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
@@ -275,7 +276,7 @@ export default function VehicleDetailScreen() {
   const totalAmount = priceRows[priceRows.length - 1].amount;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <View style={[styles.safeArea, { paddingTop: insets.top }]}>
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
       {/* ── Scrollable Content ── */}
@@ -303,7 +304,7 @@ export default function VehicleDetailScreen() {
           )}
 
           {/* Overlay Header */}
-          <View style={styles.imageOverlayHeader}>
+          <View style={[styles.imageOverlayHeader, { top: Math.max(insets.top, 12) + 8 }]}>
             <TouchableOpacity style={styles.overlayBtn} activeOpacity={0.8} onPress={() => router.back()}>
               <Ionicons name="arrow-back" size={20} color={COLORS.darkGray} />
             </TouchableOpacity>
@@ -470,7 +471,7 @@ export default function VehicleDetailScreen() {
       )}
 
       {/* ── Sticky Bottom CTA ── */}
-      <View style={styles.bottomCTA}>
+      <View style={[styles.bottomCTA, { paddingBottom: Math.max(insets.bottom, 18) }]}>
 
         <TouchableOpacity
           style={styles.bookPayBtn}
@@ -493,7 +494,7 @@ export default function VehicleDetailScreen() {
           <Text style={styles.bookPayBtnText}>Book & Pay Now</Text>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -565,7 +566,6 @@ const styles = StyleSheet.create({
   },
   imageOverlayHeader: {
     position: 'absolute',
-    top: 20,
     left: 16,
     right: 16,
     flexDirection: 'row',

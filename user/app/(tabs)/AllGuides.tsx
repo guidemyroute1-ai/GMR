@@ -20,6 +20,23 @@ const COLORS = {
   skyBlue: '#0EA5E9',
 };
 
+const SHADOWS = {
+  small: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+};
+
 interface Guide {
   id: string;
   name: string;
@@ -267,7 +284,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: '#E2E8F0',
+    ...SHADOWS.small,
   },
 
   searchInput: {
@@ -284,7 +302,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: '#E2E8F0',
+    ...SHADOWS.small,
   },
 
   listContent: {
@@ -298,8 +317,9 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: '#F1F5F9',
     alignItems: 'center',
+    ...SHADOWS.small,
   },
   guideImagePlaceholder: {
     width: 60,

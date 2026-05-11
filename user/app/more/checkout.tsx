@@ -151,13 +151,34 @@ export default function CheckoutScreen() {
     }
   };
 
+  const processCheckout = () => {
+    if (params.bookingType === 'hotel' || params.bookingType === 'rental' || params.bookingType === 'vehicle') {
+      router.replace({
+        pathname: '/more/payment',
+        params: {
+          amount: total.toString(),
+          description: `${params.itemName} – ${quantity} ${unitLabel}${quantity > 1 ? 's' : ''}`,
+          bookingType: params.bookingType,
+          itemId: params.itemId || '',
+          itemName: params.itemName || '',
+          days: quantity.toString(),
+          partnerId: params.partnerId || '',
+          coupon: discountApplied ? coupon.trim().toUpperCase() : undefined,
+          discountAmount: discountApplied ? discountAmount.toString() : undefined,
+        }
+      });
+    } else {
+      sendBookingRequest();
+    }
+  };
+
   const handleProceed = () => {
     const phone = user?.phoneNumber || user?.user_metadata?.phone || '';
     if (!phone || phone.trim().length < 10) {
       setPhoneInput(phone || '');
       setShowPhoneModal(true);
     } else {
-      sendBookingRequest();
+      processCheckout();
     }
   };
 
@@ -185,7 +206,7 @@ export default function CheckoutScreen() {
       if (dbError) throw dbError;
 
       setShowPhoneModal(false);
-      setTimeout(() => sendBookingRequest(), 300);
+      setTimeout(() => processCheckout(), 300);
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Could not save phone number. Please try again.');
     } finally {
@@ -414,7 +435,9 @@ export default function CheckoutScreen() {
           ) : (
             <Ionicons name="paper-plane" size={16} color={C.white} />
           )}
-          <Text style={s.ctaBtnText}>{requesting ? 'Sending Request…' : 'Request a Guide'}</Text>
+          <Text style={s.ctaBtnText}>
+            {requesting ? 'Sending Request…' : (params.bookingType === 'guide' ? 'Request a Guide' : 'Book')}
+          </Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

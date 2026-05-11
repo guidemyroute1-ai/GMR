@@ -30,6 +30,23 @@ const COLORS = {
   borderGray: '#d3dbe2',
 };
 
+const SHADOWS = {
+  small: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  medium: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    elevation: 4,
+  },
+};
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface FeatureTag {
   label: string;
@@ -360,9 +377,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: '#F1F5F9',
     overflow: 'hidden',
-   
+    ...SHADOWS.small,
   },
   imageContainer: {
     width: '100%',

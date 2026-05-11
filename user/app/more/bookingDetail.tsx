@@ -12,7 +12,7 @@ import { Text } from '../../components/Text';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../utils/supabase';
 
 // ─── Color Palette ─────────────────────────────────────────────────────────────
@@ -66,6 +66,7 @@ export default function BookingDetailScreen() {
   const { id } = useLocalSearchParams();
   const [loading, setLoading] = useState(true);
   const [booking, setBooking] = useState<BookingDetail | null>(null);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!id) return;
@@ -280,7 +281,7 @@ export default function BookingDetailScreen() {
       </ScrollView>
 
       {/* ── Bottom Actions ── */}
-      <View style={styles.bottomActions}>
+      <View style={[styles.bottomActions, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>
         {booking.status === 'Cancelled' ? (
           <TouchableOpacity 
             style={[styles.actionBtn, { backgroundColor: COLORS.primary }]}
