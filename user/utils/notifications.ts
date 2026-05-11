@@ -14,7 +14,7 @@ export async function initNotifications(userId: string): Promise<() => void> {
 
   if (!enabled) {
     console.log('[FCM] Permission not granted');
-    return () => {};
+    return () => { };
   }
 
   try {
@@ -75,7 +75,33 @@ export async function handleNotificationTap(
   router: Router
 ): Promise<void> {
   if (!remoteMessage) return;
-  router.push('/(tabs)/bookings');
+
+  const data = remoteMessage.data ?? {};
+  const type = typeof data.type === 'string' ? data.type : '';
+  const bookingId = typeof data.bookingId === 'string' ? data.bookingId : '';
+  const amount = typeof data.amount === 'string' ? data.amount : '';
+  const description = typeof data.description === 'string' ? data.description : 'Guide Booking';
+
+  if (type === 'guide_accepted') {
+    if (bookingId && amount) {
+      router.push({
+        pathname: '/more/payment',
+        params: {
+          bookingId,
+          amount,
+          description,
+        },
+      });
+      return;
+    }
+
+    router.push('/more/MyBookings');
+    return;
+  }
+
+  if (type.startsWith('booking_') || type === 'new_booking') {
+    router.push('/more/MyBookings');
+  }
 }
 
 export async function unregisterFCMToken(): Promise<void> {

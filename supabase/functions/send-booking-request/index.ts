@@ -5,6 +5,7 @@ import {
   HttpError,
   json,
 } from '../_shared/razorpay.ts';
+import { sendPush, type PushDispatchResult } from '../_shared/push.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.105.1';
 
 type SendBookingRequestBody = {
@@ -177,32 +178,27 @@ Deno.serve(async (req) => {
       .eq('id', bookingId);
 
     let notifiedCount = 0;
+    const pushResults: Array<PushDispatchResult & { guideId: string }> = [];
     const displayCity = city.charAt(0).toUpperCase() + city.slice(1);
     for (const guide of eligibleGuides) {
-      try {
-        const pushResponse = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${serviceKey}`,
-            apikey: serviceKey,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            userId: guide.id,
-            title: `New booking in ${displayCity}!`,
-            body: `${userName} is looking for a guide in ${displayCity}. Tap to accept!`,
-            data: {
-              type: 'booking_request',
-              bookingId,
-              screen: 'bookings',
-            },
-          }),
-        });
-        const pushResult = await pushResponse.json().catch(() => ({}));
-        notifiedCount += Number(pushResult?.sent || 0);
-      } catch (e) {
-        console.warn('push failed for guide', guide.id, e instanceof Error ? e.message : String(e));
-      }
+      const pushResult = await sendPush(supabaseUrl, serviceKey, {
+        userId: guide.id,
+        title: `New booking in ${displayCity}!`,
+        body: `${userName} is looking for a guide in ${displayCity}. Tap to accept!`,
+        data: {
+          type: 'booking_request',
+          bookingId,
+          screen: 'bookings',
+        },
+      });
+
+      console.log(`[send-booking-request] Push to guide ${guide.id}: sent=${pushResult.sent}, attempted=${pushResult.attempted}, success=${pushResult.success}, reason=${pushResult.reason || 'none'}`);
+      notifiedCount += pushResult.sent;
+      pushResults.push({ guideId: guide.id, ...pushResult });
+    }
+
+    if (notifiedCount === 0 && eligibleGuides.length > 0) {
+      console.warn('[send-booking-request] No push notifications were sent. Check guide FCM tokens and send-push edge function logs.');
     }
 
     return json({
@@ -210,6 +206,7 @@ Deno.serve(async (req) => {
       bookingId,
       notifiedCount,
       requestCount: eligibleGuides.length,
+      pushResults,
     });
   } catch (error) {
     return errorResponse(error);

@@ -11,23 +11,32 @@ export async function approvePartner(id: string) {
     // Send push notification
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY;
+    console.log('[approvePartner] Push config:', { supabaseUrl: !!supabaseUrl, serviceKey: !!serviceKey, partnerId: id });
     if (supabaseUrl && serviceKey) {
-      await fetch(`${supabaseUrl}/functions/v1/send-push`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${serviceKey}`,
-          apikey: serviceKey,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          userId: id,
-          title: 'You are approved! 🎉',
-          body: 'Your partner account has been approved. You can now receive booking requests.',
-          data: {
-            type: 'partner_approved',
+      try {
+        const pushRes = await fetch(`${supabaseUrl}/functions/v1/send-push`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${serviceKey}`,
+            apikey: serviceKey,
+            'Content-Type': 'application/json',
           },
-        }),
-      }).catch(e => console.error('Failed to send push notification:', e));
+          body: JSON.stringify({
+            userId: id,
+            title: 'You are approved! 🎉',
+            body: 'Your partner account has been approved. You can now receive booking requests.',
+            data: {
+              type: 'partner_approved',
+            },
+          }),
+        });
+        const pushBody = await pushRes.text();
+        console.log('[approvePartner] Push response:', pushRes.status, pushBody);
+      } catch (e) {
+        console.error('[approvePartner] Failed to send push notification:', e);
+      }
+    } else {
+      console.error('[approvePartner] Missing env vars for push notification');
     }
 
     revalidatePath('/partners');

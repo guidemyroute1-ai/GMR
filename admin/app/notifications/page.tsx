@@ -16,14 +16,14 @@ export default function NotificationsPage() {
     setError('');
 
     const res = await sendCustomNotification(formData);
-    
+
     if (res.success) {
       setSuccess(`Successfully sent notifications to ${res.sentCount} devices.`);
       (document.getElementById('notification-form') as HTMLFormElement).reset();
     } else {
       setError(res.error || 'Failed to send notification');
     }
-    
+
     setLoading(false);
   }
 
@@ -32,7 +32,7 @@ export default function NotificationsPage() {
       <h1 className="text-3xl font-bold text-gray-900 mb-8">Notifications Management</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        
+
         {/* Send Custom Notification */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
           <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
@@ -43,8 +43,8 @@ export default function NotificationsPage() {
           <form id="notification-form" action={handleSubmit} className="space-y-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Target Audience</label>
-              <select 
-                name="targetType" 
+              <select
+                name="targetType"
                 value={targetType}
                 onChange={(e) => setTargetType(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
@@ -59,8 +59,8 @@ export default function NotificationsPage() {
             {targetType === 'specific' && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">User/Partner ID</label>
-                <input 
-                  type="text" 
+                <input
+                  type="text"
                   name="targetId"
                   placeholder="e.g., 550e8400-e29b-41d4-a716-446655440000"
                   required
@@ -71,8 +71,8 @@ export default function NotificationsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Notification Title</label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 name="title"
                 placeholder="e.g., Special Weekend Offer!"
                 required
@@ -82,7 +82,7 @@ export default function NotificationsPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Notification Message</label>
-              <textarea 
+              <textarea
                 name="body"
                 rows={4}
                 placeholder="Type your message here..."
@@ -142,8 +142,8 @@ export default function NotificationsPage() {
                 <div>
                   <h3 className="font-medium text-gray-900">New Booking Request</h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    <span className="font-medium text-gray-800">Target:</span> Eligible Partners (Guides)<br/>
-                    <span className="font-medium text-gray-800">Trigger:</span> When a user creates a new booking request for a specific city or guide.<br/>
+                    <span className="font-medium text-gray-800">Target:</span> Eligible Partners (Guides)<br />
+                    <span className="font-medium text-gray-800">Trigger:</span> When a user creates a new booking request for a specific city or guide.<br />
                     <span className="text-xs text-gray-400 block mt-1">Managed by Edge Function: send-booking-request</span>
                   </p>
                 </div>
@@ -157,8 +157,8 @@ export default function NotificationsPage() {
                 <div>
                   <h3 className="font-medium text-gray-900">Booking Accepted</h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    <span className="font-medium text-gray-800">Target:</span> Traveler (User)<br/>
-                    <span className="font-medium text-gray-800">Trigger:</span> When a guide accepts an open booking request.<br/>
+                    <span className="font-medium text-gray-800">Target:</span> Traveler (User)<br />
+                    <span className="font-medium text-gray-800">Trigger:</span> When a guide accepts an open booking request.<br />
                     <span className="text-xs text-gray-400 block mt-1">Managed by Edge Function: accept-booking-request</span>
                   </p>
                 </div>
@@ -172,8 +172,8 @@ export default function NotificationsPage() {
                 <div>
                   <h3 className="font-medium text-gray-900">Partner Approved</h3>
                   <p className="text-sm text-gray-600 mt-1">
-                    <span className="font-medium text-gray-800">Target:</span> Partner (Guide)<br/>
-                    <span className="font-medium text-gray-800">Trigger:</span> When an admin approves a partner's profile from the Partners dashboard.<br/>
+                    <span className="font-medium text-gray-800">Target:</span> Partner (Guide)<br />
+                    <span className="font-medium text-gray-800">Trigger:</span> When an admin approves a partner's profile from the Partners dashboard.<br />
                     <span className="text-xs text-gray-400 block mt-1">Managed by Server Action: approvePartner</span>
                   </p>
                 </div>

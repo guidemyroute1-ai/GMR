@@ -193,6 +193,7 @@ export async function updateBookingStatus(id: string, status: BookingStatus) {
   if (error) throw error;
 
   if (booking?.user_id) {
+    console.log(`[updateBookingStatus] Sending ${status} notification to user ${booking.user_id} for booking ${id}`);
     supabase.functions.invoke('send-push', {
       body: {
         userId: booking.user_id,
@@ -200,8 +201,10 @@ export async function updateBookingStatus(id: string, status: BookingStatus) {
         body: `Your booking for ${booking.item_name || 'your trip'} is now ${status}.`,
         data: { type: `booking_${status}`, screen: 'bookings' },
       },
-    }).catch((pushError) => {
-      console.warn('Push notification failed:', pushError.message);
+    }).then((res) => {
+      console.log(`[updateBookingStatus] Push sent successfully:`, res);
+    }).catch((pushError: any) => {
+      console.warn('[updateBookingStatus] Push notification failed:', pushError.message);
     });
   }
 }

@@ -1,15 +1,20 @@
 import { Tabs } from 'expo-router';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Colors } from '../../constants/colors';
-import { View, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { Home, Calendar, Compass, Hotel, Bike, User } from 'lucide-react-native';
 import Header from '../../components/Header';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-function TabIcon({ Icon, focused }: { Icon: any; focused: boolean }) {
+function TabIcon({ Icon, focused, badge }: { Icon: any; focused: boolean; badge?: number }) {
   return (
     <View style={tabStyles.iconWrap}>
       <Icon color={focused ? Colors.primary : Colors.textLight} size={22} />
+      {!!badge && badge > 0 && (
+        <View style={tabStyles.badge}>
+          <Text style={tabStyles.badgeText}>{badge > 99 ? '99+' : badge}</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -27,10 +32,27 @@ const tabStyles = StyleSheet.create({
     backgroundColor: Colors.accent,
     marginTop: 2,
   },
+  badge: {
+    position: 'absolute',
+    top: -2,
+    right: -8,
+    backgroundColor: Colors.accent,
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '700',
+  },
 });
 
 export default function TabsLayout() {
-  const { profile } = useAuthStore();
+  const { profile, pendingRequestCount } = useAuthStore();
   const role = profile?.role ?? 'guide';
   const insets = useSafeAreaInsets();
   
@@ -80,7 +102,7 @@ export default function TabsLayout() {
         options={{
           title: 'Bookings',
           tabBarIcon: ({ focused }) => (
-            <TabIcon Icon={Calendar} focused={focused} />
+            <TabIcon Icon={Calendar} focused={focused} badge={pendingRequestCount} />
           ),
         }}
       />

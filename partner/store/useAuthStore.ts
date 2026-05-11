@@ -7,6 +7,7 @@ type State = {
   profile: PartnerProfile | null;
   isInitialized: boolean;
   isProfileLoading: boolean;
+  pendingRequestCount: number;
 };
 
 let state: State = {
@@ -14,6 +15,7 @@ let state: State = {
   profile: null,
   isInitialized: false,
   isProfileLoading: false,
+  pendingRequestCount: 0,
 };
 
 const listeners = new Set<() => void>();
@@ -34,7 +36,8 @@ const setUser = (user: PartnerAuthUser | null) => setState({ user });
 const setProfile = (profile: PartnerProfile | null) => setState({ profile });
 const setInitialized = (isInitialized: boolean) => setState({ isInitialized });
 const setProfileLoading = (isProfileLoading: boolean) => setState({ isProfileLoading });
-const reset = () => setState({ user: null, profile: null, isInitialized: true, isProfileLoading: false });
+const setPendingRequestCount = (pendingRequestCount: number) => setState({ pendingRequestCount });
+const reset = () => setState({ user: null, profile: null, isInitialized: true, isProfileLoading: false, pendingRequestCount: 0 });
 const refreshProfile = async () => {
   if (!state.user) return null;
   const profile = await getUserDoc(state.user.uid);
@@ -50,6 +53,7 @@ export function useAuthStore() {
     setProfile,
     setInitialized,
     setProfileLoading,
+    setPendingRequestCount,
     reset,
     refreshProfile,
   };

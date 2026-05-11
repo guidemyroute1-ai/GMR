@@ -107,10 +107,15 @@ Deno.serve(async (req) => {
       }
     }
 
-    const supabaseClient = createClient(
-      Deno.env.get("SUPABASE_URL") ?? "",
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
-    )
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")
+    const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")
+    if (!supabaseUrl || !serviceRoleKey) {
+      throw new Error("Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY env var")
+    }
+
+    const supabaseClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false },
+    })
 
     let targetTokens: string[] = []
 
@@ -122,7 +127,7 @@ Deno.serve(async (req) => {
         .from("users")
         .select("fcm_tokens")
         .eq("id", userId)
-        .single()
+        .maybeSingle()
 
       if (error) {
         throw new Error(`Error fetching user tokens: ${error.message}`)
@@ -131,30 +136,48 @@ Deno.serve(async (req) => {
     }
 
     if (targetTokens.length === 0) {
-      return new Response(JSON.stringify({ message: "No tokens found for user/target", sent: 0 }), {
+      return new Response(JSON.stringify({
+        success: false,
+        message: "No tokens found for user/target",
+        attempted: 0,
+        sent: 0,
+        failed: 0,
+        stale: 0,
+        failures: [],
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       })
     }
 
-    const serviceAccountStr = Deno.env.get("FIREBASE_SERVICE_ACCOUNT")
+    let serviceAccountStr = Deno.env.get("FIREBASE_SERVICE_ACCOUNT")
     if (!serviceAccountStr) {
       throw new Error("FIREBASE_SERVICE_ACCOUNT env var not set")
+    }
+    // Strip surrounding quotes that may have been included by .env or shell wrapping
+    serviceAccountStr = serviceAccountStr.trim()
+    if (
+      (serviceAccountStr.startsWith('"') && serviceAccountStr.endsWith('"')) ||
+      (serviceAccountStr.startsWith("'") && serviceAccountStr.endsWith("'"))
+    ) {
+      serviceAccountStr = serviceAccountStr.slice(1, -1)
     }
     const serviceAccount = JSON.parse(serviceAccountStr)
     const projectId = serviceAccount.project_id
 
     const accessToken = await getAccessToken(serviceAccount)
     
+    const attemptedCount = targetTokens.length
     let sentCount = 0
     let staleTokens: string[] = []
+    const failures: Array<Record<string, unknown>> = []
 
     // Send notifications to all target tokens.
     // We use DATA-ONLY messages (no "notification" key) so that:
     //   - Foreground: onMessage always fires → we show via expo-notifications
     //   - Background: setBackgroundMessageHandler fires → we show via expo-notifications
     // Including title/body inside data so the client can read them.
-    for (const t of targetTokens) {
+    for (const [tokenIndex, t] of targetTokens.entries()) {
       const fcmMessage = {
         message: {
           token: t,
@@ -192,7 +215,7 @@ Deno.serve(async (req) => {
 
       if (!res.ok) {
         const resultString = await res.text()
-        console.error(`Failed to send to token ${t}:`, resultString)
+        console.error(`Failed to send to token index ${tokenIndex}:`, resultString)
         let errorData
         try {
            errorData = JSON.parse(resultString)
@@ -207,6 +230,12 @@ Deno.serve(async (req) => {
         ) {
           staleTokens.push(t)
         }
+        failures.push({
+          tokenIndex,
+          status: res.status,
+          errorCode: errorCode || "UNKNOWN",
+          message: errorData?.error?.message || resultString.slice(0, 240),
+        })
       } else {
         sentCount++
       }
@@ -217,7 +246,7 @@ Deno.serve(async (req) => {
       // Remove stale tokens from users array using array_remove logic we can do directly or via RPC.
       // Calling unregister won't work easily here since it uses auth.uid() based security context.
       // Alternatively, we update manually via service role.
-      const { data: dbData } = await supabaseClient.from("users").select("fcm_tokens").eq("id", userId).single()
+      const { data: dbData } = await supabaseClient.from("users").select("fcm_tokens").eq("id", userId).maybeSingle()
       if (dbData && dbData.fcm_tokens) {
         const remainingTokens = dbData.fcm_tokens.filter((tok: string) => !staleTokens.includes(tok))
         await supabaseClient.from("users").update({ fcm_tokens: remainingTokens }).eq("id", userId)
@@ -225,7 +254,14 @@ Deno.serve(async (req) => {
     }
 
     return new Response(
-      JSON.stringify({ success: true, sent: sentCount }),
+      JSON.stringify({
+        success: sentCount > 0,
+        attempted: attemptedCount,
+        sent: sentCount,
+        failed: failures.length,
+        stale: staleTokens.length,
+        failures,
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" }, status: 200 }
     )
   } catch (error) {

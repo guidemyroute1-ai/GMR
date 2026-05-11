@@ -14,7 +14,7 @@ export async function initNotifications(userId: string): Promise<() => void> {
 
   if (!enabled) {
     console.log('[FCM] Permission not granted');
-    return () => {};
+    return () => { };
   }
 
   try {

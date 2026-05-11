@@ -28,7 +28,7 @@ export async function sendCustomNotification(formData: FormData) {
         .select('fcm_tokens')
         .eq('id', targetId)
         .single();
-      
+
       if (error) throw error;
       tokens = data?.fcm_tokens || [];
     } else {
@@ -61,11 +61,11 @@ export async function sendCustomNotification(formData: FormData) {
     // To send to multiple tokens, we can either update `send-push` to take `tokens: string[]` or call it in a loop.
     // Let's call it in a loop or we can just update `send-push` to accept an array.
     // It's safer to just do a loop here for simplicity.
-    
+
     let sentCount = 0;
-    
+
     // We can run these in parallel
-    const sendPromises = tokens.map(token => 
+    const sendPromises = tokens.map(token =>
       fetch(`${supabaseUrl}/functions/v1/send-push`, {
         method: 'POST',
         headers: {

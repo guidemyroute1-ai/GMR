@@ -5,6 +5,7 @@ import {
   HttpError,
   json,
 } from '../_shared/razorpay.ts';
+import { sendPush, type PushDispatchResult } from '../_shared/push.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.105.1';
 
 type AcceptBody = {
@@ -106,27 +107,25 @@ Deno.serve(async (req) => {
       .eq('id', guideId)
       .maybeSingle();
     const guideName = guideProfile?.name || 'Your guide';
+    const pushResults: Array<PushDispatchResult & { target: string; userId: string }> = [];
 
     // ─── 6. Notify the USER that their guide accepted → time to pay
     if (updated.user_id) {
-      await fetch(`${supabaseUrl}/functions/v1/send-push`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${serviceKey}`,
-          apikey: serviceKey,
-          'Content-Type': 'application/json',
+      console.log(`[accept-booking-request] Sending acceptance notification to user ${updated.user_id} for booking ${bookingId}`);
+      const pushResult = await sendPush(supabaseUrl, serviceKey, {
+        userId: updated.user_id,
+        title: 'Guide accepted your request!',
+        body: `${guideName} accepted your booking. Tap to complete payment.`,
+        data: {
+          type: 'guide_accepted',
+          bookingId,
+          screen: 'bookings',
+          amount: updated.amount,
+          description: updated.item_name || 'Guide Booking',
         },
-        body: JSON.stringify({
-          userId: updated.user_id,
-          title: '🎉 Guide accepted your request!',
-          body: `${guideName} accepted your booking. Tap to complete payment.`,
-          data: {
-            type: 'guide_accepted',
-            bookingId,
-            screen: 'bookings',
-          },
-        }),
-      }).catch((e) => console.warn('User push failed:', e instanceof Error ? e.message : String(e)));
+      });
+      console.log(`[accept-booking-request] User push result: sent=${pushResult.sent}, success=${pushResult.success}, reason=${pushResult.reason || 'ok'}`);
+      pushResults.push({ target: 'user', userId: updated.user_id, ...pushResult });
     }
 
     // ─── 7. Notify other guides that this booking was taken
@@ -134,33 +133,21 @@ Deno.serve(async (req) => {
     const otherGuides = notifiedGuides.filter((id) => id !== guideId);
 
     if (otherGuides.length > 0) {
-      const { data: otherGuideProfiles } = await serviceClient
-        .from('users')
-        .select('id, fcm_tokens')
-        .in('id', otherGuides)
-        .not('fcm_tokens', 'is', null);
-
-      for (const g of (otherGuideProfiles || [])) {
-        for (const token of (g.fcm_tokens as string[] || [])) {
-          await fetch(`${supabaseUrl}/functions/v1/send-push`, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${serviceKey}`,
-              apikey: serviceKey,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              token,
-              title: 'Booking taken',
-              body: 'Another guide accepted this booking first.',
-              data: { type: 'booking_taken', bookingId },
-            }),
-          }).catch(() => {});
-        }
+      console.log(`[accept-booking-request] Notifying ${otherGuides.length} other guides that booking ${bookingId} was taken`);
+      for (const otherGuideId of otherGuides) {
+        const pushResult = await sendPush(supabaseUrl, serviceKey, {
+          userId: otherGuideId,
+          title: 'Booking taken',
+          body: 'Another guide accepted this booking first.',
+          data: { type: 'booking_taken', bookingId },
+        });
+        console.log(`[accept-booking-request] Other guide ${otherGuideId} push result: sent=${pushResult.sent}`);
+        pushResults.push({ target: 'other_guide', userId: otherGuideId, ...pushResult });
       }
     }
 
-    return json({ success: true, bookingId });
+    console.log(`[accept-booking-request] Completed. Push results:`, pushResults);
+    return json({ success: true, bookingId, pushResults });
   } catch (error) {
     return errorResponse(error);
   }

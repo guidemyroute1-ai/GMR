@@ -108,6 +108,7 @@ Deno.serve(async (req) => {
 
       // Notify guide that payment is done
       if (preBooking.partner_id) {
+        console.log(`[razorpay-verify-payment] Sending payment confirmation to partner ${preBooking.partner_id} for booking ${bookingId}`);
         auth.serviceClient.functions.invoke('send-push', {
           body: {
             userId: preBooking.partner_id,
@@ -115,7 +116,11 @@ Deno.serve(async (req) => {
             body: `${preBooking.guest_name || 'The traveler'} has paid. Your booking is confirmed!`,
             data: { type: 'payment_confirmed', bookingId, screen: 'bookings' },
           },
-        }).catch(() => {});
+        }).then((res: any) => {
+          console.log(`[razorpay-verify-payment] Partner push result:`, res);
+        }).catch((err: any) => {
+          console.error(`[razorpay-verify-payment] Partner push failed:`, err.message);
+        });
       }
 
       return json({ success: true, bookingId, paymentId });

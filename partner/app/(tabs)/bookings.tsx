@@ -63,6 +63,7 @@ export default function BookingsScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [filter, setFilter] = useState<BookingStatus | 'all'>('all');
   const [updating, setUpdating] = useState<string | null>(null);
+  const { setPendingRequestCount } = useAuthStore();
 
   const loadData = useCallback(async () => {
     if (!userUid) return;
@@ -73,6 +74,7 @@ export default function BookingsScreen() {
       ]);
       setBookings(b);
       setRequests(r);
+      setPendingRequestCount(r.filter((req) => req.status === 'pending').length);
     } catch (error) {
       console.warn('Failed to load data:', error);
     } finally {
@@ -96,14 +98,17 @@ export default function BookingsScreen() {
   useEffect(() => {
     if (!userUid) return undefined;
 
-    const unsubscribeRequests = listenToBookingRequests(userUid, setRequests);
+    const unsubscribeRequests = listenToBookingRequests(userUid, (rows) => {
+      setRequests(rows);
+      setPendingRequestCount(rows.filter((r) => r.status === 'pending').length);
+    });
     const unsubscribeBookings = listenToBookings(userUid, setBookings);
 
     return () => {
       unsubscribeRequests();
       unsubscribeBookings();
     };
-  }, [userUid]);
+  }, [userUid, setPendingRequestCount]);
 
   const handleAcceptRequest = async (bookingId: string) => {
     Alert.alert(
