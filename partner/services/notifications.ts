@@ -30,19 +30,23 @@ export async function initNotifications(userId: string): Promise<() => void> {
     console.warn('[FCM] Failed to request Expo notification permissions:', err);
   }
 
-  // 2. Request FCM permissions via Firebase
-  const authStatus = await messaging().requestPermission();
-  const enabled =
-    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-    authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+  // 3. Request FCM permissions via Firebase. Android token registration should
+  // still continue if this API is unavailable or returns a non-granted state.
+  try {
+    const authStatus = await messaging().requestPermission();
+    const enabled =
+      authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+      authStatus === messaging.AuthorizationStatus.PROVISIONAL;
 
-  if (!enabled) {
-    console.log('[FCM] Firebase permission not granted');
-    // We continue anyway as some systems might still allow token retrieval
+    if (!enabled) {
+      console.log('[FCM] Firebase permission not granted');
+    }
+  } catch (err) {
+    console.warn('[FCM] Firebase permission request failed, continuing token registration:', err);
   }
 
   try {
-    // 3. Register for remote notifications (essential for iOS)
+    // 4. Register for remote notifications (essential for iOS)
     if (Platform.OS === 'ios' && !messaging().isDeviceRegisteredForRemoteMessages) {
       await messaging().registerDeviceForRemoteMessages();
     }

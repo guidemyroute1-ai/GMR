@@ -45,8 +45,12 @@ export async function getBookingRequests(guideId: string): Promise<BookingReques
 
   for (const row of data || []) {
     const b = row.bookings || {};
+
+    if (b.status !== 'pending' || b.pre_payment_status !== 'awaiting_guide') {
+      continue;
+    }
     
-    if (b.status === 'pending' && b.pre_payment_status === 'awaiting_guide' && b.created_at) {
+    if (b.created_at) {
       const createdAt = new Date(b.created_at).getTime();
       const diffMins = (now - createdAt) / (1000 * 60);
       if (diffMins > 30) {
@@ -238,7 +242,7 @@ export async function updateBookingStatus(id: string, status: BookingStatus) {
         userId: booking.user_id,
         title: `Booking ${status}`,
         body: `Your booking for ${booking.item_name || 'your trip'} is now ${status}.`,
-        data: { type: `booking_${status}`, screen: 'bookings' },
+        data: { type: `booking_${status}`, bookingId: id, screen: 'bookings' },
       },
     }).then((res) => {
       console.log(`[updateBookingStatus] Push sent successfully:`, res);

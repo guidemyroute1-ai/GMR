@@ -303,6 +303,7 @@ export default function ListingsScreen() {
               refreshing={refreshing}
               onRefresh={onRefresh}
               tintColor={Colors.primary}
+              colors={[Colors.primary]}
             />
           }
           renderItem={({ item }) => (
@@ -675,7 +676,14 @@ function GuideSettingsView({ profile, user, refreshProfile }: {
       <ScrollView
         contentContainerStyle={gs.scroll}
         showsVerticalScrollIndicator={false}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
       >
         <View style={gs.headerSection}>
           <View style={gs.titleRow}>

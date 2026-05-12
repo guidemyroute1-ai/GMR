@@ -34,7 +34,8 @@ import {
   FileText, 
   Compass, 
   Hotel, 
-  Bike
+  Bike,
+  RefreshCw,
 } from 'lucide-react-native';
 import { Text } from '../../components/Text';
 
@@ -87,7 +88,7 @@ export default function BookingsScreen() {
     } finally {
       setLoading(false);
     }
-  }, [userUid]);
+  }, [userUid, setPendingRequestCount]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -186,8 +187,21 @@ export default function BookingsScreen() {
           <Text style={styles.title}>Bookings</Text>
           <Text style={styles.subtitle}>Manage your incoming requests</Text>
         </View>
-        <View style={styles.countBadge}>
-          <Text style={styles.countText}>{requests.length + bookings.length}</Text>
+        <View style={styles.headerActions}>
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={onRefresh}
+            disabled={refreshing}
+          >
+            {refreshing ? (
+              <ActivityIndicator size="small" color={Colors.primary} />
+            ) : (
+              <RefreshCw size={18} color={Colors.primary} />
+            )}
+          </TouchableOpacity>
+          <View style={styles.countBadge}>
+            <Text style={styles.countText}>{requests.length + bookings.length}</Text>
+          </View>
         </View>
       </View>
 
@@ -251,7 +265,14 @@ export default function BookingsScreen() {
             data={requests}
             keyExtractor={(r) => r.id}
             contentContainerStyle={styles.list}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                tintColor={Colors.primary}
+                colors={[Colors.primary]}
+              />
+            }
             renderItem={({ item }) => (
               <RequestItem
                 request={item}
@@ -629,6 +650,21 @@ const styles = StyleSheet.create({
     fontSize: FontSize.sm,
     color: Colors.textMuted,
     marginTop: 2,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  refreshButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: Colors.white,
   },
   countBadge: {
     backgroundColor: Colors.primary,

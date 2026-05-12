@@ -68,6 +68,7 @@ Deno.serve(async (req) => {
       })
       .eq('id', bookingId)
       .is('partner_id', null) // ← race condition guard: only one guide can win
+      .eq('status', 'pending')
       .eq('pre_payment_status', 'awaiting_guide')
       .select('id, user_id, item_name, amount, city, notified_guides, guest_name')
       .maybeSingle();

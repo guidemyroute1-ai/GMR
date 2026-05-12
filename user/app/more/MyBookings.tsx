@@ -16,6 +16,23 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
+async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
+  const result = await supabase.functions.invoke(name, { body: body as any });
+  if (result.error) {
+    let message = result.error.message || `${name} failed.`;
+    const context = (result.error as any).context;
+    if (context && typeof context.json === 'function') {
+      try {
+        const payload = await context.json();
+        message = payload?.error || payload?.message || message;
+      } catch {}
+    }
+    throw new Error(message);
+  }
+  if (!result.data) throw new Error(`${name} returned empty response.`);
+  return result.data as T;
+}
+
 // ─── Color Palette ─────────────────────────────────────────────────────────────
 const COLORS = {
   primary: '#16A34A', // Vibrant green
@@ -506,12 +523,7 @@ export default function MyBookingsScreen() {
 
   const handleCancelBooking = async (bookingId: string) => {
     try {
-      const { error } = await supabase
-        .from('bookings')
-        .update({ status: 'cancelled' })
-        .eq('id', bookingId);
-
-      if (error) throw error;
+      await invokeFunction('cancel-booking', { bookingId });
       
       Alert.alert('Success', 'Booking cancelled successfully');
       onRefresh();
