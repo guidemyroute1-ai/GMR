@@ -45,6 +45,14 @@ interface Hotel {
   cancellation?: string;
 }
 
+export interface ReviewItem {
+  id: string;
+  rating: number;
+  comment: string;
+  created_at?: string;
+  user_id?: string;
+}
+
 export default function HotelDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
@@ -52,14 +60,16 @@ export default function HotelDetailScreen() {
   
   const [isSaved, setIsSaved] = useState(false);
   const [hotel, setHotel] = useState<Hotel | null>(null);
+  const [reviewsList, setReviewsList] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [fullScreenIndex, setFullScreenIndex] = useState<number | null>(null);
 
   useEffect(() => {
     if (!id) return;
 
-    const fetchHotel = async () => {
+    const fetchHotelAndReviews = async () => {
       try {
+        // Fetch hotel details
         const { data: row, error } = await supabase
           .from('listings')
           .select('*')
@@ -90,14 +100,25 @@ export default function HotelDetailScreen() {
             cancellation: row.details?.cancellation || '',
           });
         }
+
+        // Fetch dynamic reviews for this item
+        const { data: revsData, error: revsError } = await supabase
+          .from('reviews')
+          .select('*')
+          .eq('item_id', id as string)
+          .order('created_at', { ascending: false });
+
+        if (!revsError && revsData) {
+          setReviewsList(revsData);
+        }
       } catch (error) {
-        console.error('Error fetching hotel details:', error);
+        console.error('Error fetching hotel details or reviews:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchHotel();
+    fetchHotelAndReviews();
   }, [id]);
 
   if (loading) {
@@ -298,6 +319,8 @@ export default function HotelDetailScreen() {
             </View>
           )}
 
+         
+
           {/* ── Photo Gallery ── */}
           {hotel.images && hotel.images.length > 0 && (
             <View style={styles.section}>
@@ -318,7 +341,41 @@ export default function HotelDetailScreen() {
                 ))}
               </ScrollView>
             </View>
-          )}
+          )} {/* ── Guest Reviews ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Guest Reviews</Text>
+            <View style={styles.reviewsList}>
+              {reviewsList.length > 0 ? (
+                reviewsList.map((item, index) => {
+                  const dateStr = item.created_at 
+                    ? new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : 'Recently';
+                  return (
+                    <View key={item.id || index} style={styles.reviewCard}>
+                      <View style={styles.reviewHeader}>
+                        <View style={styles.reviewerAvatar}>
+                          <Text style={styles.reviewerInitials}>G</Text>
+                        </View>
+                        <View style={styles.reviewerInfo}>
+                          <Text style={styles.reviewerName}>Guest</Text>
+                          <Text style={styles.reviewDate}>{dateStr}</Text>
+                        </View>
+                        <View style={styles.reviewRating}>
+                          <Ionicons name="star" size={14} color="#F59E0B" />
+                          <Text style={styles.reviewRatingText}>{item.rating?.toFixed(1) || '5.0'}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.reviewText}>
+                        "{item.comment || 'Great experience!'}"
+                      </Text>
+                    </View>
+                  );
+                })
+              ) : (
+                <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to leave one!</Text>
+              )}
+            </View>
+          </View>
           
           <View style={styles.bottomSpacer} />
         </View>
@@ -756,5 +813,75 @@ const styles = StyleSheet.create({
   fullScreenImage: {
     width: width,
     height: '100%',
+  },
+  
+  // Reviews
+  reviewsList: {
+    gap: 16,
+  },
+  reviewCard: {
+    backgroundColor: '#F9FAFB',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  reviewerAvatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  reviewerInitials: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  reviewerInfo: {
+    flex: 1,
+  },
+  reviewerName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  reviewRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  reviewRatingText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#92400E',
+    marginLeft: 4,
+  },
+  reviewText: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 22,
+  },
+  emptyReviewsText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 16,
   },
 });

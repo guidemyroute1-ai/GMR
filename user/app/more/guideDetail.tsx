@@ -49,6 +49,17 @@ interface Guide {
   isOnline: boolean;
   city: string;
   demoVideo: string;
+  maxGroupSize?: string;
+  certifications?: string;
+  availabilityDays?: string[];
+}
+
+export interface ReviewItem {
+  id: string;
+  rating: number;
+  comment: string;
+  created_at?: string;
+  user_id?: string;
 }
 
 export default function GuideDetailScreen() {
@@ -58,6 +69,7 @@ export default function GuideDetailScreen() {
   
   const [isSaved, setIsSaved] = useState(false);
   const [guide, setGuide] = useState<Guide | null>(null);
+  const [reviewsList, setReviewsList] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState<string>('');
   const [videoPlaying, setVideoPlaying] = useState(false);
@@ -70,7 +82,7 @@ export default function GuideDetailScreen() {
   useEffect(() => {
     if (!id) return;
 
-    const fetchGuide = async () => {
+    const fetchGuideAndReviews = async () => {
       try {
         const { data, error } = await supabase
           .from('users')
@@ -132,7 +144,8 @@ export default function GuideDetailScreen() {
           }
 
           const perHourRate = parseFloat(profileData.per_hour_rate) || 0;
-          const profilePrice = parseInt(profileData.price_per_day) || 0;
+          // Partner saves as camelCase "pricePerDay"; fall back to snake_case for legacy records
+          const profilePrice = parseInt(profileData.pricePerDay ?? profileData.price_per_day) || 0;
           const firstListingPrice = parsedListings.length > 0 ? (Number(parsedListings[0].price) || 0) : 0;
           const effectivePrice = perHourRate > 0 ? perHourRate : (profilePrice > 0 ? profilePrice : firstListingPrice);
           const effectiveAbout = profileData.bio || (parsedListings.length > 0 ? parsedListings[0].description : '') || '';
@@ -164,17 +177,31 @@ export default function GuideDetailScreen() {
             isOnline: data.is_online === true,
             city: guideCity,
             demoVideo: videoUrl,
+            maxGroupSize: profileData.maxGroupSize || profileData.max_group_size || '',
+            certifications: profileData.certifications || '',
+            availabilityDays: Array.isArray(profileData.availability) ? profileData.availability : (profileData.availability ? String(profileData.availability).split(',').map((s: string) => s.trim()) : []),
           });
         }
+
+        // Fetch dynamic reviews for this item
+        const { data: revsData, error: revsError } = await supabase
+          .from('reviews')
+          .select('*')
+          .eq('item_id', id as string)
+          .order('created_at', { ascending: false });
+
+        if (!revsError && revsData) {
+          setReviewsList(revsData);
+        }
       } catch (error: any) {
-        console.error('Error fetching guide details:', error);
+        console.error('Error fetching guide details or reviews:', error);
         setErrorMsg(error.message || 'Unknown error');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchGuide();
+    fetchGuideAndReviews();
   }, [id]);
 
   if (loading) {
@@ -339,6 +366,15 @@ export default function GuideDetailScreen() {
                   <Text style={styles.highlightValue}>₹{guide.perHourRate.toLocaleString('en-IN')}/hr</Text>
                 </View>
               )}
+              {!!guide.maxGroupSize && (
+                <View style={styles.highlightCard}>
+                  <View style={[styles.highlightIconBg, { backgroundColor: '#F3E8FF' }]}>
+                    <Ionicons name="people" size={22} color="#9333EA" />
+                  </View>
+                  <Text style={styles.highlightLabel}>Max Group</Text>
+                  <Text style={styles.highlightValue}>{guide.maxGroupSize} People</Text>
+                </View>
+              )}
               <View style={styles.highlightCard}>
                 <View style={[styles.highlightIconBg, { backgroundColor: guide.isAvailable ? '#DCFCE7' : '#FEE2E2' }]}>
                   <Ionicons name={guide.isAvailable ? 'checkmark-circle' : 'close-circle'} size={22} color={guide.isAvailable ? '#16A34A' : '#EF4444'} />
@@ -360,6 +396,29 @@ export default function GuideDetailScreen() {
                     <Text style={styles.chipText}>{item}</Text>
                   </View>
                 ))}
+              </View>
+            </View>
+          )}
+
+          {guide.availabilityDays && guide.availabilityDays.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Available Days</Text>
+              <View style={styles.chipsContainer}>
+                {guide.availabilityDays.map((item: string, index: number) => (
+                  <View key={index} style={[styles.chip, { backgroundColor: '#EFF6FF' }]}>
+                    <Text style={[styles.chipText, { color: '#1D4ED8' }]}>{item}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+          )}
+
+          {!!guide.certifications && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Certifications</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: '#F9FAFB', padding: 12, borderRadius: 12, borderWidth: 1, borderColor: '#F3F4F6' }}>
+                <Ionicons name="ribbon" size={20} color="#D97706" />
+                <Text style={{ fontSize: 14, color: '#4B5563', fontWeight: '600', flex: 1 }}>{guide.certifications}</Text>
               </View>
             </View>
           )}
@@ -477,6 +536,42 @@ export default function GuideDetailScreen() {
               ))}
             </View>
           )}
+
+          {/* ── Guest Reviews ── */}
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Guest Reviews</Text>
+            <View style={styles.reviewsList}>
+              {reviewsList.length > 0 ? (
+                reviewsList.map((item, index) => {
+                  const dateStr = item.created_at 
+                    ? new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : 'Recently';
+                  return (
+                    <View key={item.id || index} style={styles.reviewCard}>
+                      <View style={styles.reviewHeader}>
+                        <View style={styles.reviewerAvatar}>
+                          <Text style={styles.reviewerInitials}>G</Text>
+                        </View>
+                        <View style={styles.reviewerInfo}>
+                          <Text style={styles.reviewerName}>Guest</Text>
+                          <Text style={styles.reviewDate}>{dateStr}</Text>
+                        </View>
+                        <View style={styles.reviewRating}>
+                          <Ionicons name="star" size={14} color="#F59E0B" />
+                          <Text style={styles.reviewRatingText}>{item.rating?.toFixed(1) || '5.0'}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.reviewText}>
+                        "{item.comment || 'Great experience!'}"
+                      </Text>
+                    </View>
+                  );
+                })
+              ) : (
+                <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to leave one!</Text>
+              )}
+            </View>
+          </View>
           
           <View style={styles.bottomSpacer} />
         </View>
@@ -992,5 +1087,74 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     letterSpacing: 0.5,
+  },
+  reviewsList: {
+    marginTop: 12,
+  },
+  reviewCard: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+  },
+  reviewHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  reviewerAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  reviewerInitials: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  reviewerInfo: {
+    flex: 1,
+  },
+  reviewerName: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  reviewDate: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  reviewRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FEF3C7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  reviewRatingText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#92400E',
+    marginLeft: 4,
+  },
+  reviewText: {
+    fontSize: 14,
+    color: '#4B5563',
+    lineHeight: 22,
+  },
+  emptyReviewsText: {
+    fontSize: 14,
+    color: '#6B7280',
+    fontStyle: 'italic',
+    textAlign: 'center',
+    paddingVertical: 16,
   },
 });

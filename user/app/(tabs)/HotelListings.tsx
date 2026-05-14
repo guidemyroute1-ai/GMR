@@ -170,7 +170,6 @@ const HotelCard = ({ hotel }: { hotel: Hotel }) => {
                <Text style={styles.originalPrice}>₹{originalPrice.toLocaleString()}</Text>
                <Text style={styles.currentPrice}>₹{hotel.pricePerNight.toLocaleString()}</Text>
              </View>
-             <Text style={styles.taxesText}>+ ₹{taxes} taxes / night</Text>
            </View>
         </View>
       </View>

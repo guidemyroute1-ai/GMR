@@ -82,6 +82,10 @@ export default function ListingsScreen() {
   const detailRequired = (key: string) => !form.details[key]?.trim();
 
   const handleAdd = async () => {
+    if (!profile?.phone?.trim()) {
+      Alert.alert('Phone Number Required', 'Please update your phone number in the Profile tab before adding a listing.');
+      return;
+    }
     if (!form.title.trim() || !form.price.trim()) {
       Alert.alert('Missing Fields', 'Title and price are required.');
       return;

@@ -80,7 +80,7 @@ export default function RoleScreen() {
             {roles.map((role) => {
               const isSelected = selected === role.id;
               const Icon = role.Icon;
-              
+
               return (
                 <TouchableOpacity
                   key={role.id}
@@ -95,12 +95,12 @@ export default function RoleScreen() {
                     styles.iconBox,
                     { backgroundColor: isSelected ? role.color : '#F1F5F9' }
                   ]}>
-                    <Icon 
-                      color={isSelected ? Colors.white : Colors.textMuted} 
-                      size={24} 
+                    <Icon
+                      color={isSelected ? Colors.white : Colors.textMuted}
+                      size={24}
                     />
                   </View>
-                  
+
                   <View style={styles.roleInfo}>
                     <Text style={[
                       styles.roleTitle,

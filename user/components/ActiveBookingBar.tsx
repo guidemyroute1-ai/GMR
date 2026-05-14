@@ -13,6 +13,7 @@ interface ActiveBooking {
   pickup: string;
   amount: number;
   prePaymentStatus: string | null;
+  bookingType: string | null;
 }
 
 export default function ActiveBookingBar() {
@@ -26,7 +27,7 @@ export default function ActiveBookingBar() {
     if (!user) return;
     const { data, error } = await supabase
       .from('bookings')
-      .select('id, item_name, status, pickup_location, city, amount, price, pre_payment_status')
+      .select('id, item_name, status, pickup_location, city, amount, price, pre_payment_status, booking_type')
       .eq('user_id', user.id)
       .in('status', ['confirmed', 'pending'])
       .order('created_at', { ascending: false })
@@ -41,6 +42,7 @@ export default function ActiveBookingBar() {
         pickup: row.pickup_location || row.city || 'Location',
         amount: row.amount || row.price || 0,
         prePaymentStatus: row.pre_payment_status || null,
+        bookingType: row.booking_type || null,
       });
     } else {
       setBooking(null);
@@ -85,7 +87,8 @@ export default function ActiveBookingBar() {
 
   if (!booking) return null;
 
-  const isAwaitingGuide = booking.prePaymentStatus === 'awaiting_guide';
+  const isGuideBooking = booking.bookingType === 'guide';
+  const isAwaitingGuide = isGuideBooking && booking.prePaymentStatus === 'awaiting_guide';
   const isAwaitingPayment = booking.prePaymentStatus === 'awaiting_payment';
 
   let label = 'Active Booking';

@@ -46,8 +46,19 @@ export default function RegisterScreen() {
   const confirmRef = useRef<TextInput>(null);
 
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !phone.trim()) {
-      Alert.alert('Missing Fields', 'Please fill in all fields.');
+    if (!name.trim() || !email.trim()) {
+      Alert.alert('Missing Fields', 'Please fill in your name and email.');
+      return;
+    }
+
+    if (!phone.trim()) {
+      Alert.alert('Required Field', 'Phone number is required for listing partners.');
+      return;
+    }
+
+    const cleanedPhone = phone.replace(/\D/g, '');
+    if (cleanedPhone.length < 8) {
+      Alert.alert('Invalid Phone Number', 'Please enter a valid phone number.');
       return;
     }
 

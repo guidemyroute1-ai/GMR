@@ -103,7 +103,7 @@ export default function LoginScreen() {
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoRow}>
-            <MaterialCommunityIcons name="map-marker" size={32} color={COLORS.primary} />
+            <Image source={require('../../assets/images/gmr_logo.png')} style={styles.welcomeLogo} />
             <Text style={styles.brand}>
               Guide My <Text style={styles.brandGreen}>Route</Text>
             </Text>
@@ -215,7 +215,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: COLORS.bg },
   container: { flex: 1, backgroundColor: COLORS.bg },
-  content: { paddingHorizontal: 24, paddingBottom: 48, paddingTop: 16, flexGrow: 1 },
+  content: { paddingHorizontal: 24, paddingBottom: 48, paddingTop: 24, flexGrow: 1 },
 
   backBtn: {
     width: 40,
@@ -247,6 +247,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     borderRadius: 20,
     padding: 24,
+    marginTop: 20,
     borderWidth: 1,
     borderColor: COLORS.border,
     shadowColor: '#000',
@@ -254,6 +255,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
+  },
+  welcomeLogo: {
+    width: 40,
+    height: 40,
+    borderRadius: 15,
   },
 
   fieldGroup: { marginBottom: 18 },

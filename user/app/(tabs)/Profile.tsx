@@ -67,7 +67,7 @@ const MENU_SECTIONS: MenuSection[] = [
     items: [
       { id: '1', icon: '👤', label: 'Personal Information', type: 'navigate' },
       { id: '3', icon: '📋', iconSource: require('../../assets/svg/calender-svgrepo-com.svg'), label: 'My Bookings', type: 'navigate' },
-      { id: '4', icon: '❤️', label: 'Saved Places', type: 'navigate' },
+    
       { id: '10', icon: '❓', iconSource: require('../../assets/svg/phone-call-svgrepo-com.svg'), label: 'Help & Support', type: 'navigate' },
       { id: '11', icon: '📄', iconSource: require('../../assets/svg/license-svgrepo-com.svg'), label: 'Terms & Privacy', type: 'navigate' },
       { id: '12', icon: '🚪', iconSource: require('../../assets/svg/logout-2-svgrepo-com.svg'), label: 'Log Out', type: 'danger' },

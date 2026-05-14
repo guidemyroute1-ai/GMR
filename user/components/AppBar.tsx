@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal, Pressable } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Modal, Pressable, Image } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
@@ -64,11 +64,15 @@ export default function AppBar() {
            onPress={() => router.push('/(tabs)/Home')}>
         <View style={styles.brandRow}>
           <View style={styles.logo}>
-            <Ionicons name="navigate" size={18} color="#fff" />
+            <Image 
+              source={require('../assets/images/gmr_logo.png')} 
+              style={styles.logoImage} 
+              resizeMode="contain"
+            />
           </View>
           <View>
             <Text style={styles.eyebrow}>Explore with confidence</Text>
-            <Text style={styles.title}>Guide My Route</Text>
+            <Text style={styles.title}>Guide My <Text style={{ color: '#16A34A' }}>Route</Text></Text>
           </View>
         </View>
 </TouchableOpacity>
@@ -161,16 +165,12 @@ const styles = StyleSheet.create({
   logo: {
     width: 40,
     height: 40,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#16A34A',
     marginRight: 12,
-    shadowColor: '#16A34A',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    elevation: 4,
+  },
+  logoImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 14,
   },
   eyebrow: {
     fontSize: 11,

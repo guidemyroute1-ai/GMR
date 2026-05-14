@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, ImageBackground, StatusBar } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ImageBackground, StatusBar, Image } from 'react-native';
 import { Text } from '../../components/Text';
 import { useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -38,8 +38,11 @@ export default function WelcomeScreen() {
           {/* ── Header Section (Logo/Title) ── */}
           <View style={styles.headerContainer}>
             <View style={styles.logoPinContainer}>
-              <MaterialCommunityIcons name="map-marker" size={54} color={COLORS.white} />
-              <View style={styles.pinDot} />
+              <Image 
+                source={require('../../assets/images/gmr_logo.png')} 
+                style={styles.welcomeLogo}
+                resizeMode="contain"
+              />
             </View>
             <Text style={styles.logoText}>
               Guide My <Text style={styles.logoTextGreen}>Route</Text>
@@ -137,16 +140,12 @@ const styles = StyleSheet.create({
   logoPinContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
-    position: 'relative',
+    marginBottom: 10,
   },
-  pinDot: {
-    position: 'absolute',
-    width: 14,
-    height: 14,
-    backgroundColor: COLORS.primary,
-    borderRadius: 7,
-    top: 9,
+  welcomeLogo: {
+    width: 80,
+    height: 80,
+    borderRadius: 20,
   },
   logoText: {
     fontSize: 28,

@@ -38,7 +38,7 @@ export default function LoginScreen() {
     try {
       const user = await signInUser(email.trim(), password);
       setUser(user);
-      
+
       // The profile will be picked up by the listener in _layout.tsx,
       // but we fetch it once here for immediate navigation if possible.
       const profile = await getUserDoc(user.uid);
@@ -66,7 +66,7 @@ export default function LoginScreen() {
     try {
       const user = await signInWithGoogle();
       if (!user) return; // handles web redirect case
-      
+
       setUser(user);
       const profile = await getUserDoc(user.uid);
       setProfile(profile);

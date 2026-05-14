@@ -78,8 +78,8 @@ export default function ProfileScreen() {
     role === 'guide'
       ? Colors.roleGuide
       : role === 'hotel'
-      ? Colors.roleHotel
-      : Colors.roleRental;
+        ? Colors.roleHotel
+        : Colors.roleRental;
 
   const currentProfileData: Record<string, any> = profile?.profileData ?? {};
 
@@ -166,10 +166,28 @@ export default function ProfileScreen() {
   // ── Save basic info ────────────────────────────────────────────────────────
   const handleSave = async () => {
     if (!user) return;
+
+    const trimmedName = name.trim();
+    const trimmedPhone = phone.trim();
+
+    if (!trimmedName) {
+      Alert.alert('Required Field', 'Please enter your full name.');
+      return;
+    }
+
+    if (!trimmedPhone) {
+      Alert.alert('Required Field', 'Phone number is mandatory for listing partners.');
+      return;
+    }
+
+    const cleanedPhone = trimmedPhone.replace(/\D/g, '');
+    if (cleanedPhone.length < 8) {
+      Alert.alert('Invalid Phone Number', 'Please enter a valid phone number.');
+      return;
+    }
+
     setSaving(true);
     try {
-      const trimmedName = name.trim();
-      const trimmedPhone = phone.trim();
       await updateUserProfile(user.uid, { name: trimmedName, phone: trimmedPhone });
       setProfile({ ...profile!, name: trimmedName, phone: trimmedPhone });
       setEditing(false);
@@ -182,12 +200,17 @@ export default function ProfileScreen() {
   };
 
   // ── Save business profile ──────────────────────────────────────────────────
+  // Merges edits on top of the EXISTING profile_data so untouched fields
+  // (e.g. pricePerDay) are never accidentally erased.
   const handleSaveBusiness = async () => {
     if (!user) return;
     setSavingBusiness(true);
     try {
-      await updateUserProfile(user.uid, { profileData: businessData });
-      setProfile({ ...profile!, profileData: businessData });
+      // Start from the current persisted data so we never lose fields.
+      const existingData = profile?.profileData ?? {};
+      const mergedData = { ...existingData, ...businessData };
+      await updateUserProfile(user.uid, { profileData: mergedData });
+      setProfile({ ...profile!, profileData: mergedData });
       setEditingBusiness(false);
     } catch (err) {
       console.error('handleSaveBusiness error:', err);
@@ -373,27 +396,43 @@ export default function ProfileScreen() {
                     No fields to edit. Your business profile is empty.
                   </Text>
                 ) : (
-                  Object.entries(businessData).map(([key, value]) => (
-                    <View key={key} style={{ marginBottom: Spacing.md }}>
-                      <Text style={styles.label}>
-                        {key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
-                      </Text>
-                      <TextInput
-                        style={styles.input}
-                        value={Array.isArray(value) ? value.join(', ') : String(value ?? '')}
-                        onChangeText={(text) => {
-                          setBusinessData((prev) => ({
-                            ...prev,
-                            [key]: Array.isArray(prev[key])
-                              ? text.split(',').map((s) => s.trim())
-                              : text,
-                          }));
-                        }}
-                        placeholder={`Enter ${key}`}
-                        placeholderTextColor={Colors.textLight}
-                      />
-                    </View>
-                  ))
+                  Object.entries(businessData).map(([key, value]) => {
+                    const isArray = Array.isArray(value);
+                    const displayValue = isArray
+                      ? (value as string[]).join(', ')
+                      : String(value ?? '');
+                    // Keys that should never be editable as free text
+                    // (they're numeric prices/counts — guard against accidental wipe)
+                    const isNumeric = ['pricePerDay', 'pricePerNight', 'maxGroupSize', 'totalRooms', 'totalVehicles', 'securityDeposit'].includes(key);
+                    return (
+                      <View key={key} style={{ marginBottom: Spacing.md }}>
+                        <Text style={styles.label}>
+                          {LABELS[key] ?? key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())}
+                        </Text>
+                        <TextInput
+                          style={styles.input}
+                          value={displayValue}
+                          onChangeText={(text) => {
+                            setBusinessData((prev) => {
+                              if (isArray) {
+                                // Re-split comma list back into an array
+                                return { ...prev, [key]: text.split(',').map((s) => s.trim()).filter(Boolean) };
+                              }
+                              if (isNumeric) {
+                                // Only allow digits for numeric fields
+                                const cleaned = text.replace(/[^0-9]/g, '');
+                                return { ...prev, [key]: cleaned };
+                              }
+                              return { ...prev, [key]: text };
+                            });
+                          }}
+                          keyboardType={isNumeric ? 'numeric' : 'default'}
+                          placeholder={`Enter ${LABELS[key] ?? key}`}
+                          placeholderTextColor={Colors.textLight}
+                        />
+                      </View>
+                    );
+                  })
                 )}
 
                 <View style={styles.editActions}>
@@ -429,22 +468,17 @@ export default function ProfileScreen() {
           {/* ── Account ── */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
-            <TouchableOpacity style={styles.menuItem}>
-              <Bell color={Colors.text} size={18} />
-              <Text style={styles.menuLabel}>Notifications</Text>
-              <ChevronRight color={Colors.textLight} size={20} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/more/change-password')}>
               <Lock color={Colors.text} size={18} />
               <Text style={styles.menuLabel}>Change Password</Text>
               <ChevronRight color={Colors.textLight} size={20} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/more/help-support')}>
               <HelpCircle color={Colors.text} size={18} />
               <Text style={styles.menuLabel}>Help &amp; Support</Text>
               <ChevronRight color={Colors.textLight} size={20} />
             </TouchableOpacity>
-            <TouchableOpacity style={styles.menuItem}>
+            <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/more/terms-privacy')}>
               <FileText color={Colors.text} size={18} />
               <Text style={styles.menuLabel}>Terms &amp; Privacy</Text>
               <ChevronRight color={Colors.textLight} size={20} />

@@ -24,19 +24,19 @@ function GuideFormPart2({ data, onChange }: { data: any; onChange: (d: any) => v
   const [focused, setFocused] = useState<string | null>(null);
   return (
     <>
-      <MultiSelectDropdown 
-        label="Specialisations *" 
+      <MultiSelectDropdown
+        label="Specialisations *"
         placeholder="Select specialisations"
         options={['Trekking', 'Wildlife', 'Heritage', 'Photography', 'Culinary', 'Adventure', 'City Tour', 'Spiritual', 'Water Sports', 'Camping']}
-        selected={Array.isArray(data.specialisations) ? data.specialisations : (data.specialisations ? data.specialisations.split(',').map((s:string) => s.trim()) : [])}
+        selected={Array.isArray(data.specialisations) ? data.specialisations : (data.specialisations ? data.specialisations.split(',').map((s: string) => s.trim()) : [])}
         onChange={(v: string[]) => onChange({ ...data, specialisations: v })}
         focused={focused} name="specialisations" setFocused={setFocused}
       />
-      <MultiSelectDropdown 
-        label="Availability *" 
+      <MultiSelectDropdown
+        label="Availability *"
         placeholder="Select available days"
         options={['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']}
-        selected={Array.isArray(data.availability) ? data.availability : (data.availability ? data.availability.split(',').map((s:string) => s.trim()) : [])}
+        selected={Array.isArray(data.availability) ? data.availability : (data.availability ? data.availability.split(',').map((s: string) => s.trim()) : [])}
         onChange={(v: string[]) => onChange({ ...data, availability: v })}
         focused={focused} name="availability" setFocused={setFocused}
       />
@@ -61,11 +61,11 @@ function HotelFormPart2({ data, onChange }: { data: any; onChange: (d: any) => v
   const [focused, setFocused] = useState<string | null>(null);
   return (
     <>
-      <MultiSelectDropdown 
-        label="Room Types Available *" 
+      <MultiSelectDropdown
+        label="Room Types Available *"
         placeholder="Select room types"
         options={['Single', 'Double', 'Twin', 'Suite', 'Dormitory', 'Family', 'Deluxe']}
-        selected={Array.isArray(data.roomTypes) ? data.roomTypes : (data.roomTypes ? data.roomTypes.split(',').map((s:string) => s.trim()) : [])}
+        selected={Array.isArray(data.roomTypes) ? data.roomTypes : (data.roomTypes ? data.roomTypes.split(',').map((s: string) => s.trim()) : [])}
         onChange={(v: string[]) => onChange({ ...data, roomTypes: v })}
         focused={focused}
         name="roomTypes"
@@ -80,7 +80,7 @@ function HotelFormPart2({ data, onChange }: { data: any; onChange: (d: any) => v
       <SingleSelectDropdown
         label="Check-in Time *"
         placeholder="Select check-in time"
-        options={['8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM','3:00 PM','4:00 PM']}
+        options={['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM', '3:00 PM', '4:00 PM']}
         value={data.checkInTime ?? ''}
         onChange={(v: string) => onChange({ ...data, checkInTime: v })}
         focused={focused} name="checkInTime" setFocused={setFocused}
@@ -88,7 +88,7 @@ function HotelFormPart2({ data, onChange }: { data: any; onChange: (d: any) => v
       <SingleSelectDropdown
         label="Check-out Time *"
         placeholder="Select check-out time"
-        options={['8:00 AM','9:00 AM','10:00 AM','11:00 AM','12:00 PM','1:00 PM','2:00 PM']}
+        options={['8:00 AM', '9:00 AM', '10:00 AM', '11:00 AM', '12:00 PM', '1:00 PM', '2:00 PM']}
         value={data.checkOutTime ?? ''}
         onChange={(v: string) => onChange({ ...data, checkOutTime: v })}
         focused={focused} name="checkOutTime" setFocused={setFocused}
@@ -265,7 +265,7 @@ const styles = StyleSheet.create({
     paddingTop: Spacing.md,
     paddingBottom: Spacing.sm,
   },
-  backBtn: { 
+  backBtn: {
     padding: Spacing.sm,
     flexDirection: 'row',
     alignItems: 'center',
