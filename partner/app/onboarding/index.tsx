@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { Compass, CalendarDays, Wallet } from 'lucide-react-native';
@@ -46,6 +47,7 @@ const slides = [
 export default function WelcomeScreen() {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  const insets = useSafeAreaInsets();
 
   const handleNext = () => {
     if (activeIndex < slides.length - 1) {
@@ -61,7 +63,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <FlatList
         ref={flatListRef}
         data={slides}
@@ -93,7 +95,7 @@ export default function WelcomeScreen() {
       />
 
       {/* Bottom controls */}
-      <View style={styles.controls}>
+      <View style={[styles.controls, { paddingBottom: Math.max(insets.bottom, 24) }]}>
         {/* Dots */}
         <View style={styles.dotsRow}>
           {slides.map((_, i) => (

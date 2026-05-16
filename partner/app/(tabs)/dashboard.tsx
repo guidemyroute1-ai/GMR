@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   RefreshControl,
-
   TouchableOpacity,
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
@@ -126,7 +125,7 @@ export default function DashboardScreen() {
           <StatCard label="Pending" value={earnings.pendingBookings} Icon={Clock} color={Colors.warning} />
         </View>
 
-     
+
 
         {/* Recent bookings */}
         <View style={styles.section}>

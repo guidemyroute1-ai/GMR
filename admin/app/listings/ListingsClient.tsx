@@ -1,8 +1,8 @@
 'use client';
 
 import { useState, useMemo, useTransition } from 'react';
-import { Search, Eye, BookOpen, CheckCircle, FileText, Clock, Archive, X, Pencil, Loader2 } from 'lucide-react';
-import { updateListing } from '@/lib/actions';
+import { Search, Eye, BookOpen, CheckCircle, FileText, Clock, Archive, X, Pencil, Loader2, Trash2 } from 'lucide-react';
+import { updateListing, deleteListing } from '@/lib/actions';
 import StatCard from '@/components/ui/StatCard';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DataTable, { Column } from '@/components/ui/DataTable';
@@ -24,6 +24,20 @@ export default function ListingsClient({ listings }: ListingsClientProps) {
   const [editingListing, setEditingListing] = useState<Listing | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  const handleDelete = (listing: Listing) => {
+    if (window.confirm(`Are you sure you want to delete "${listing.name}"?`)) {
+      const previousListings = [...localListings];
+      setLocalListings(localListings.filter(l => l.id !== listing.id));
+      startTransition(async () => {
+        const result = await deleteListing(listing.id);
+        if (result.error) {
+          setLocalListings(previousListings);
+          alert(`Failed to delete listing: ${result.error}`);
+        }
+      });
+    }
+  };
 
   const stats = [
     { label: 'Active', value: localListings.filter(l => l.status === 'active').length, icon: CheckCircle, iconBg: 'bg-green-100', iconColor: 'text-green-600' },
@@ -127,6 +141,13 @@ export default function ListingsClient({ listings }: ListingsClientProps) {
             className="p-2 rounded-lg text-gray-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
           >
             <Pencil className="w-4 h-4" />
+          </button>
+          <button
+            title="Delete"
+            onClick={() => handleDelete(l)}
+            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
           </button>
           <button
             title="View"

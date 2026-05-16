@@ -75,7 +75,7 @@ interface Booking {
   vehicleName: string;
   vehicleNumber: string;
   vehicleType: VehicleType;
-  vehicleImage?: string | null;
+  listingImage?: string | null;
   date: string;
   time: string;
   duration: string;
@@ -108,62 +108,29 @@ const PRE_PAYMENT_CONFIG: Record<string, { color: string; bg: string; label: str
 };
 
 // ─── Vehicle Icon ──────────────────────────────────────────────────────────────
-const VehicleIcon = ({
+const ListingIcon = ({
   type,
+  bookingType,
   size = 28,
   color = COLORS.mediumGray,
 }: {
   type: VehicleType;
+  bookingType?: string | null;
   size?: number;
   color?: string;
 }) => {
+  if (bookingType === 'guide') {
+    return <Ionicons name="person-outline" size={size} color={color} />;
+  }
+  if (bookingType === 'hotel') {
+    return <Ionicons name="business-outline" size={size} color={color} />;
+  }
   if (type === 'Bike' || type === 'Scooty') {
     return <MaterialCommunityIcons name="motorbike" size={size} color={color} />;
   }
   return <Ionicons name="car-outline" size={size} color={color} />;
 };
 
-// ─── Bottom Tab Bar ────────────────────────────────────────────────────────────
-const TAB_ITEMS = [
-  { key: 'home', label: 'Home', icon: 'home-outline' },
-  { key: 'explore', label: 'Explore', icon: 'compass-outline' },
-  { key: 'bookings', label: 'Bookings', icon: 'calendar-outline' },
-  { key: 'chat', label: 'Chat', icon: 'chatbubble-outline' },
-  { key: 'profile', label: 'Profile', icon: 'person-outline' },
-] as const;
-
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const BottomTabBar = ({
-  active,
-  onSelect,
-}: {
-  active: string;
-  onSelect: (key: string) => void;
-}) => (
-  <View style={styles.tabBar}>
-    {TAB_ITEMS.map((tab) => {
-      const isActive = active === tab.key;
-      return (
-        <TouchableOpacity
-          key={tab.key}
-          style={styles.tabItem}
-          onPress={() => onSelect(tab.key)}
-          activeOpacity={0.7}
-        >
-          <Ionicons
-            name={tab.icon}
-            size={22}
-            color={isActive ? COLORS.primary : COLORS.mediumGray}
-          />
-          <Text style={[styles.tabLabel, isActive && styles.tabLabelActive]}>
-            {tab.label}
-          </Text>
-          {isActive && <View style={styles.tabActiveBar} />}
-        </TouchableOpacity>
-      );
-    })}
-  </View>
-);
 
 // ─── Booking Card ──────────────────────────────────────────────────────────────
 const BookingCard = ({ booking, onCancel }: { booking: Booking; onCancel?: (id: string) => void }) => {
@@ -197,16 +164,21 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking; onCancel?: (id: 
 
       {/* ── Card Header ── */}
       <View style={styles.cardHeader}>
-        {/* Vehicle Image */}
-        {booking.vehicleImage ? (
+        {/* Listing Image */}
+        {booking.listingImage ? (
           <ExpoImage
-            source={{ uri: booking.vehicleImage }}
+            source={{ uri: booking.listingImage }}
             style={styles.vehicleImage}
             contentFit="cover"
           />
         ) : (
           <View style={styles.vehicleImagePlaceholder}>
-            <VehicleIcon type={booking.vehicleType} size={30} color={COLORS.mediumGray} />
+            <ListingIcon
+              type={booking.vehicleType}
+              bookingType={booking.booking_type}
+              size={30}
+              color={COLORS.mediumGray}
+            />
           </View>
         )}
 
@@ -507,25 +479,34 @@ export default function MyBookingsScreen() {
           timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         }
 
-        // Fetch image: guide avatar from users table, vehicle image from rental_listings
-        let vehicleImage: string | null = null;
-        if (row.booking_type === 'guide' && row.item_id) {
-          // item_id for guide bookings is the guide's user ID
-          const { data: guideUser } = await supabase
-            .from('users')
-            .select('avatar_url')
-            .eq('id', row.item_id)
-            .maybeSingle();
-          vehicleImage = guideUser?.avatar_url ?? null;
+        // Fetch image: guide avatar from users table, vehicle/hotel image from listings
+        let listingImage: string | null = null;
+        if (row.booking_type === 'guide') {
+          // Priority: 1. Assigned partner, 2. item_id (if it's a guide ID)
+          const targetGuideId = row.partner_id || row.item_id;
+          if (targetGuideId && targetGuideId.length > 20) { // Simple UUID check
+            const { data: guideUser } = await supabase
+              .from('users')
+              .select('avatar_url, photo_url, profile_data')
+              .eq('id', targetGuideId)
+              .maybeSingle();
+            const profileData = guideUser?.profile_data || {};
+            listingImage =
+              guideUser?.avatar_url ||
+              guideUser?.photo_url ||
+              profileData.profileImage ||
+              profileData.profile_image ||
+              null;
+          }
         } else if (row.item_id) {
-          // Vehicle / hotel booking – look up rental_listings
+          // Vehicle / hotel booking – look up listings
           const { data: listing } = await supabase
-            .from('rental_listings')
+            .from('listings')
             .select('images')
             .eq('id', row.item_id)
             .maybeSingle();
           if (listing?.images && Array.isArray(listing.images) && listing.images.length > 0) {
-            vehicleImage = listing.images[0];
+            listingImage = listing.images[0];
           }
         }
 
@@ -534,7 +515,7 @@ export default function MyBookingsScreen() {
           vehicleName: row.item_name || 'Unknown Booking',
           vehicleNumber: row.vehicle_number || 'N/A',
           vehicleType: row.vehicle_type || (row.booking_type === 'vehicle' ? 'Bike' : 'Car'),
-          vehicleImage,
+          listingImage,
           date: dateStr,
           time: timeStr,
           duration: row.days ? `${row.days} Days` : 'N/A',

@@ -17,7 +17,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { registerUser, createUserDoc } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 
 export default function RegisterScreen() {
@@ -31,6 +31,7 @@ export default function RegisterScreen() {
 
   const { user, profile, setUser, setProfile } = useAuthStore();
   const role = profile?.role ?? 'guide';
+  const insets = useSafeAreaInsets();
 
   // If user is already authenticated (e.g. via Google), prefill their info
   React.useEffect(() => {
@@ -112,7 +113,7 @@ export default function RegisterScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -233,7 +234,7 @@ export default function RegisterScreen() {
                   onSubmitEditing={handleRegister}
                 />
               </View>
-            </  >
+            </>
           )}
 
           {/* Submit */}
@@ -267,7 +268,7 @@ export default function RegisterScreen() {
           )}
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 

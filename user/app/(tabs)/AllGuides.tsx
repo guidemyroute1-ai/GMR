@@ -10,14 +10,17 @@ import {
   RefreshControl,
   ScrollView,
   Dimensions,
+  Modal,
 } from 'react-native';
 import { Text } from '../../components/Text';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Image as ExpoImage } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { supabase } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
+import { useLocation } from '../../contexts/LocationContext';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 16 * 2 - 12) / 2; // 2-column grid
@@ -33,6 +36,14 @@ const COLORS = {
   skyBlue: '#0EA5E9',
   star: '#FBBF24',
   cardBg: '#FFFFFF',
+};
+
+const firstPositiveNumber = (...values: unknown[]) => {
+  for (const value of values) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return 0;
 };
 
 const SHADOWS = {
@@ -62,7 +73,54 @@ interface Guide {
   specialty?: string;
   profileImage?: string;
   hourlyRate?: number;
+  city?: string;
 }
+
+type GuideSortOption = 'recommended' | 'priceLow' | 'ratingHigh';
+
+interface GuideFilters {
+  onlineOnly: boolean;
+  verifiedOnly: boolean;
+  minRating: number;
+  maxRate: number;
+  sortBy: GuideSortOption;
+  city: string;
+}
+
+const DEFAULT_GUIDE_FILTERS: GuideFilters = {
+  onlineOnly: false,
+  verifiedOnly: false,
+  minRating: 0,
+  maxRate: 0,
+  sortBy: 'recommended',
+  city: '',
+};
+
+const GUIDE_RATING_FILTERS = [
+  { label: 'Any rating', value: 0 },
+  { label: '4+', value: 4 },
+  { label: '4.5+', value: 4.5 },
+];
+
+const GUIDE_RATE_FILTERS = [
+  { label: 'Any price', value: 0 },
+  { label: 'Under Rs 500', value: 500 },
+  { label: 'Under Rs 1000', value: 1000 },
+  { label: 'Under Rs 2000', value: 2000 },
+];
+
+const GUIDE_SORT_OPTIONS: { label: string; value: GuideSortOption }[] = [
+  { label: 'Recommended', value: 'recommended' },
+  { label: 'Price low', value: 'priceLow' },
+  { label: 'Rating high', value: 'ratingHigh' },
+];
+
+const getActiveGuideFilterCount = (filters: GuideFilters) =>
+  Number(filters.onlineOnly) +
+  Number(filters.verifiedOnly) +
+  Number(filters.minRating > 0) +
+  Number(filters.maxRate > 0) +
+  Number(filters.sortBy !== 'recommended');
 
 const StarRating = ({ rating }: { rating: number }) => (
   <View style={styles.starRow}>
@@ -166,13 +224,44 @@ const GuideCard = ({ item, onPress }: { item: Guide; onPress: () => void }) => {
 
 export default function AllGuidesScreen() {
   const router = useRouter();
+  const { city: cityParam } = useLocalSearchParams<{ city?: string }>();
   const { user } = useAuth();
+  const { selectedCity } = useLocation();
   const [searchText, setSearchText] = useState('');
+  const [showFilters, setShowFilters] = useState(false);
+  const [cityOptions, setCityOptions] = useState<string[]>(DEFAULT_CITIES);
+  const [guideFilters, setGuideFilters] = useState<GuideFilters>({
+    ...DEFAULT_GUIDE_FILTERS,
+    city: normalizeCity(cityParam) || DEFAULT_CITIES[0],
+  });
   const [guides, setGuides] = useState<Guide[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    let active = true;
+    fetchAvailableCities().then((cities) => {
+      if (!active) return;
+      setCityOptions(cities);
+      setGuideFilters((current) => ({
+        ...current,
+        city: cities.includes(current.city) ? current.city : cities[0] || '',
+      }));
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const city = normalizeCity(cityParam) || selectedCity;
+    if (!city) return;
+    setGuideFilters((current) => (
+      current.city === city ? current : { ...current, city }
+    ));
+  }, [cityParam, selectedCity]);
 
   useEffect(() => {
     if (!user) {
@@ -187,7 +276,7 @@ export default function AllGuidesScreen() {
       setFetchError(null);
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, rating, reviews, is_online, is_approved, profile_data, photo_url')
+        .select('id, name, city, rating, reviews, is_online, is_approved, profile_data, photo_url')
         .eq('role', 'guide')
         .eq('is_approved', true);
 
@@ -207,7 +296,14 @@ export default function AllGuidesScreen() {
             ? row.profile_data.specialisations.join(', ')
             : (row.profile_data?.specialisations || row.profile_data?.specialty || 'General Guide'),
           profileImage: row.profile_data?.profileImage || row.photo_url || null,
-          hourlyRate: row.profile_data?.hourlyRate || row.profile_data?.hourly_rate || null,
+          city: normalizeCity(row.city || row.profile_data?.city || row.profile_data?.location),
+          hourlyRate: firstPositiveNumber(
+            row.profile_data?.per_hour_rate,
+            row.profile_data?.hourlyRate,
+            row.profile_data?.hourly_rate,
+            row.profile_data?.pricePerDay,
+            row.profile_data?.price_per_day
+          ) || undefined,
         }));
         setGuides(guidesData);
       }
@@ -225,13 +321,34 @@ export default function AllGuidesScreen() {
     setRefreshKey((k) => k + 1);
   };
 
-  const filteredGuides = guides.filter((guide) => {
-    const q = searchText.toLowerCase();
-    const nameMatch = (guide.name || '').toLowerCase().includes(q);
-    const specialty = typeof guide.specialty === 'string' ? guide.specialty : '';
-    const specialtyMatch = specialty.toLowerCase().includes(q);
-    return nameMatch || specialtyMatch;
-  });
+  const activeFilterCount = getActiveGuideFilterCount(guideFilters);
+  const filteredGuides = guides
+    .filter((guide) => {
+      const q = searchText.trim().toLowerCase();
+      const specialty = typeof guide.specialty === 'string' ? guide.specialty : '';
+      const matchesSearch = !q
+        || (guide.name || '').toLowerCase().includes(q)
+        || specialty.toLowerCase().includes(q);
+
+      if (!matchesSearch) return false;
+      if (guideFilters.city && normalizeCity(guide.city) !== guideFilters.city) return false;
+      if (guideFilters.onlineOnly && !guide.isOnline) return false;
+      if (guideFilters.verifiedOnly && !guide.verified) return false;
+      if (guideFilters.minRating > 0 && guide.rating < guideFilters.minRating) return false;
+      if (guideFilters.maxRate > 0 && (!guide.hourlyRate || guide.hourlyRate > guideFilters.maxRate)) return false;
+      return true;
+    })
+    .sort((a, b) => {
+      if (guideFilters.sortBy === 'priceLow') {
+        return (a.hourlyRate || Number.MAX_SAFE_INTEGER) - (b.hourlyRate || Number.MAX_SAFE_INTEGER);
+      }
+      if (guideFilters.sortBy === 'ratingHigh') {
+        return b.rating - a.rating || b.reviews - a.reviews;
+      }
+      return Number(b.verified) - Number(a.verified)
+        || Number(b.isOnline) - Number(a.isOnline)
+        || b.rating - a.rating;
+    });
 
   const navigateToGuide = (id: string) =>
     router.push({ pathname: '/more/guideDetail', params: { id } });
@@ -257,8 +374,17 @@ export default function AllGuidesScreen() {
             </TouchableOpacity>
           )}
         </View>
-        <TouchableOpacity style={styles.filterBtn} activeOpacity={0.8}>
+        <TouchableOpacity
+          style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+          activeOpacity={0.8}
+          onPress={() => setShowFilters(true)}
+        >
           <Ionicons name="options-outline" size={21} color={COLORS.darkGray} />
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -266,6 +392,7 @@ export default function AllGuidesScreen() {
       {!loading && !fetchError && (
         <Text style={styles.resultsCount}>
           {filteredGuides.length} guide{filteredGuides.length !== 1 ? 's' : ''} available
+          {activeFilterCount > 0 ? ` - ${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''}` : ''}
         </Text>
       )}
 
@@ -314,6 +441,129 @@ export default function AllGuidesScreen() {
           }
         />
       )}
+
+      <Modal
+        visible={showFilters}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFilters(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.filterSheet}>
+            <View style={styles.filterSheetHeader}>
+              <Text style={styles.filterSheetTitle}>Guide filters</Text>
+              <TouchableOpacity onPress={() => setShowFilters(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close" size={22} color={COLORS.darkGray} />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>City</Text>
+              <View style={styles.filterChipRow}>
+                {cityOptions.map((city) => (
+                  <TouchableOpacity
+                    key={city}
+                    style={[styles.filterChipBtn, guideFilters.city === city && styles.filterChipBtnActive]}
+                    onPress={() => setGuideFilters((prev) => ({ ...prev, city }))}
+                  >
+                    <Text style={[styles.filterChipText, guideFilters.city === city && styles.filterChipTextActive]}>
+                      {city}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Availability</Text>
+              <View style={styles.filterChipRow}>
+                <TouchableOpacity
+                  style={[styles.filterChipBtn, guideFilters.onlineOnly && styles.filterChipBtnActive]}
+                  onPress={() => setGuideFilters((prev) => ({ ...prev, onlineOnly: !prev.onlineOnly }))}
+                >
+                  <Text style={[styles.filterChipText, guideFilters.onlineOnly && styles.filterChipTextActive]}>
+                    Online now
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.filterChipBtn, guideFilters.verifiedOnly && styles.filterChipBtnActive]}
+                  onPress={() => setGuideFilters((prev) => ({ ...prev, verifiedOnly: !prev.verifiedOnly }))}
+                >
+                  <Text style={[styles.filterChipText, guideFilters.verifiedOnly && styles.filterChipTextActive]}>
+                    Verified
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Rating</Text>
+              <View style={styles.filterChipRow}>
+                {GUIDE_RATING_FILTERS.map((ratingFilter) => (
+                  <TouchableOpacity
+                    key={ratingFilter.label}
+                    style={[styles.filterChipBtn, guideFilters.minRating === ratingFilter.value && styles.filterChipBtnActive]}
+                    onPress={() => setGuideFilters((prev) => ({ ...prev, minRating: ratingFilter.value }))}
+                  >
+                    <Text style={[styles.filterChipText, guideFilters.minRating === ratingFilter.value && styles.filterChipTextActive]}>
+                      {ratingFilter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Hourly rate</Text>
+              <View style={styles.filterChipRow}>
+                {GUIDE_RATE_FILTERS.map((rateFilter) => (
+                  <TouchableOpacity
+                    key={rateFilter.label}
+                    style={[styles.filterChipBtn, guideFilters.maxRate === rateFilter.value && styles.filterChipBtnActive]}
+                    onPress={() => setGuideFilters((prev) => ({ ...prev, maxRate: rateFilter.value }))}
+                  >
+                    <Text style={[styles.filterChipText, guideFilters.maxRate === rateFilter.value && styles.filterChipTextActive]}>
+                      {rateFilter.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.filterSection}>
+              <Text style={styles.filterSectionTitle}>Sort by</Text>
+              <View style={styles.filterChipRow}>
+                {GUIDE_SORT_OPTIONS.map((sortOption) => (
+                  <TouchableOpacity
+                    key={sortOption.value}
+                    style={[styles.filterChipBtn, guideFilters.sortBy === sortOption.value && styles.filterChipBtnActive]}
+                    onPress={() => setGuideFilters((prev) => ({ ...prev, sortBy: sortOption.value }))}
+                  >
+                    <Text style={[styles.filterChipText, guideFilters.sortBy === sortOption.value && styles.filterChipTextActive]}>
+                      {sortOption.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.filterActions}>
+              <TouchableOpacity
+                style={styles.resetFilterBtn}
+                onPress={() => setGuideFilters({ ...DEFAULT_GUIDE_FILTERS, city: cityOptions[0] || '' })}
+              >
+                <Text style={styles.resetFilterText}>Reset</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.applyFilterBtn}
+                onPress={() => setShowFilters(false)}
+              >
+                <Text style={styles.applyFilterText}>Show {filteredGuides.length} guides</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -361,6 +611,27 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 1,
     borderColor: COLORS.borderGray,
+  },
+  filterBtnActive: {
+    backgroundColor: COLORS.primaryLight,
+    borderColor: COLORS.primary,
+  },
+  filterBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -6,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: COLORS.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  filterBadgeText: {
+    color: COLORS.white,
+    fontSize: 10,
+    fontWeight: '800',
   },
 
   /* ── Results count ── */
@@ -561,5 +832,96 @@ const styles = StyleSheet.create({
     color: COLORS.mediumGray,
     textAlign: 'center',
     lineHeight: 19,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
+  },
+  filterSheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 22,
+  },
+  filterSheetHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  filterSheetTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+  },
+  filterSection: {
+    marginBottom: 16,
+  },
+  filterSectionTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    marginBottom: 8,
+  },
+  filterChipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  filterChipBtn: {
+    borderWidth: 1,
+    borderColor: COLORS.borderGray,
+    backgroundColor: '#F8FAFC',
+    borderRadius: 18,
+    paddingHorizontal: 13,
+    paddingVertical: 8,
+  },
+  filterChipBtnActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.primaryLight,
+  },
+  filterChipText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.mediumGray,
+  },
+  filterChipTextActive: {
+    color: COLORS.primary,
+  },
+  filterActions: {
+    flexDirection: 'row',
+    gap: 10,
+    marginTop: 4,
+  },
+  resetFilterBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.borderGray,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+  },
+  resetFilterText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+  },
+  applyFilterBtn: {
+    flex: 1.5,
+    height: 46,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  applyFilterText: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.white,
   },
 });

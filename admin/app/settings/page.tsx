@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getSettings, updateServiceFee } from '@/lib/actions';
-import { Percent, Save, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { getSettings, updateAvailableCities, updateServiceFee } from '@/lib/actions';
+import { Percent, Save, AlertCircle, CheckCircle2, MapPin } from 'lucide-react';
 
 export default function SettingsPage() {
   const [fee, setFee] = useState<number>(5);
+  const [cityText, setCityText] = useState('Rishikesh\nManali\nDelhi');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -15,6 +16,7 @@ export default function SettingsPage() {
       const res = await getSettings();
       if (res.success && res.serviceFee !== undefined) {
         setFee(res.serviceFee);
+        setCityText((res.cities || []).join('\n'));
       }
       setIsLoading(false);
     }
@@ -24,12 +26,18 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setIsSaving(true);
     setMessage(null);
-    const res = await updateServiceFee(fee);
+    const cities = cityText
+      .split(/[\n,]+/)
+      .map((city) => city.trim())
+      .filter(Boolean);
+    const feeRes = await updateServiceFee(fee);
+    const cityRes = await updateAvailableCities(cities);
     
-    if (res.success) {
-      setMessage({ type: 'success', text: 'Service fee updated successfully!' });
+    if (feeRes.success && cityRes.success) {
+      setCityText((cityRes.cities || cities).join('\n'));
+      setMessage({ type: 'success', text: 'Settings updated successfully!' });
     } else {
-      setMessage({ type: 'error', text: res.error || 'Failed to update service fee' });
+      setMessage({ type: 'error', text: feeRes.error || cityRes.error || 'Failed to update settings' });
     }
     setIsSaving(false);
   };
@@ -76,6 +84,24 @@ export default function SettingsPage() {
                 </div>
                 <p className="mt-2 text-sm text-gray-500">
                   This fee is applied to all new bookings immediately across the platform.
+                </p>
+              </div>
+
+              <div>
+                <label htmlFor="availableCities" className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-gray-500" />
+                  Service Cities
+                </label>
+                <textarea
+                  id="availableCities"
+                  value={cityText}
+                  onChange={(e) => setCityText(e.target.value)}
+                  rows={5}
+                  className="block w-full px-3 py-3 border-gray-200 rounded-lg focus:ring-emerald-500 focus:border-emerald-500 sm:text-sm border transition-shadow"
+                  placeholder="One city per line"
+                />
+                <p className="mt-2 text-sm text-gray-500">
+                  Partners select one of these cities during onboarding. Users can filter listings by these cities.
                 </p>
               </div>
 

@@ -31,9 +31,16 @@ import {
 import { Compass, Hotel, Bike, Plus, Trash2, X, FileText, Image as ImageIcon, Camera, Edit2, DollarSign, Clock, Play, Upload } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadToSupabase } from '../../services/storage';
-import { supabase } from '../../services/supabase';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { updateUserProfile } from '../../services/auth';
+
+const firstPositiveNumber = (...values: unknown[]) => {
+  for (const value of values) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return 0;
+};
 
 export default function ListingsScreen() {
   const { user, profile, refreshProfile } = useAuthStore();
@@ -604,21 +611,38 @@ function GuideSettingsView({ profile, user, refreshProfile }: {
   profile: any; user: any; refreshProfile: () => Promise<any>;
 }) {
   const pd = profile?.profileData || {};
-  const [rate, setRate] = useState(String(pd.per_hour_rate || ''));
+  const savedRate = firstPositiveNumber(
+    pd.per_hour_rate,
+    pd.hourlyRate,
+    pd.hourly_rate,
+    pd.pricePerDay,
+    pd.price_per_day
+  );
+  const [rate, setRate] = useState(savedRate ? String(savedRate) : '');
   const [avail, setAvail] = useState(pd.is_available !== false);
   const [videoUrl, setVideoUrl] = useState(profile?.kycVideoUrl || '');
   const [maxHours, setMaxHours] = useState(String(pd.max_booking_hours || '12'));
+  const [description, setDescription] = useState(String(pd.bio || pd.guide_description || pd.description || ''));
   const [saving, setSaving] = useState(false);
+  const [savingDescription, setSavingDescription] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     if (profile) {
       const p = profile.profileData || {};
-      setRate(String(p.per_hour_rate || ''));
+      const currentRate = firstPositiveNumber(
+        p.per_hour_rate,
+        p.hourlyRate,
+        p.hourly_rate,
+        p.pricePerDay,
+        p.price_per_day
+      );
+      setRate(currentRate ? String(currentRate) : '');
       setAvail(p.is_available !== false);
       setVideoUrl(profile.kycVideoUrl || '');
       setMaxHours(String(p.max_booking_hours || '12'));
+      setDescription(String(p.bio || p.guide_description || p.description || ''));
     }
   }, [profile]);
 
@@ -636,12 +660,42 @@ function GuideSettingsView({ profile, user, refreshProfile }: {
     if (!mh || mh < 3) { Alert.alert('Invalid', 'Max booking hours must be at least 3.'); return; }
     setSaving(true);
     try {
-      const updated = { ...(profile?.profileData || {}), per_hour_rate: n, max_booking_hours: mh };
+      const updated = {
+        ...(profile?.profileData || {}),
+        per_hour_rate: n,
+        hourlyRate: n,
+        hourly_rate: n,
+        pricePerDay: n,
+        price_per_day: n,
+        max_booking_hours: mh,
+      };
       await updateUserProfile(user.uid, { profileData: updated });
       await refreshProfile();
       Alert.alert('Saved', 'Settings updated.');
     } catch (e: any) { Alert.alert('Error', e.message || 'Failed to save.'); }
     finally { setSaving(false); }
+  };
+
+  const saveDescription = async () => {
+    if (!user) return;
+    const cleanDescription = description.trim();
+    if (cleanDescription.length < 20) {
+      Alert.alert('Add More Detail', 'Please write at least 20 characters about your guiding experience.');
+      return;
+    }
+    setSavingDescription(true);
+    try {
+      const updated = {
+        ...(profile?.profileData || {}),
+        bio: cleanDescription,
+        guide_description: cleanDescription,
+        description: cleanDescription,
+      };
+      await updateUserProfile(user.uid, { profileData: updated });
+      await refreshProfile();
+      Alert.alert('Saved', 'Guide description updated.');
+    } catch (e: any) { Alert.alert('Error', e.message || 'Failed to save description.'); }
+    finally { setSavingDescription(false); }
   };
 
   const toggleAvail = async (v: boolean) => {
@@ -701,6 +755,32 @@ function GuideSettingsView({ profile, user, refreshProfile }: {
             <Text style={gs.bannerText}>⏳ Your account is pending admin approval</Text>
           </View>
         )}
+
+        {/* Guide Description */}
+        <View style={gs.card}>
+          <View style={gs.cardHead}>
+            <View style={gs.iconCircle}><FileText color={Colors.primary} size={18} /></View>
+            <Text style={gs.cardTitle}>Guide Description</Text>
+          </View>
+          <Text style={gs.cardDesc}>Tell travellers about your experience, local knowledge, and the trips you lead.</Text>
+          <TextInput
+            style={[styles.input, styles.multiline, { minHeight: 100, marginBottom: 14 }]}
+            placeholder="Example: I am a local guide with 6 years of experience leading heritage walks, treks, and food tours..."
+            placeholderTextColor={Colors.textLight}
+            value={description}
+            onChangeText={setDescription}
+            multiline
+            numberOfLines={4}
+            textAlignVertical="top"
+          />
+          <TouchableOpacity
+            style={[gs.saveBtn, savingDescription && { opacity: 0.6 }]}
+            onPress={saveDescription} disabled={savingDescription} activeOpacity={0.85}
+          >
+            {savingDescription ? <ActivityIndicator color={Colors.white} size="small" /> :
+              <Text style={gs.saveBtnText}>Save Description</Text>}
+          </TouchableOpacity>
+        </View>
 
         {/* Hourly Rate */}
         <View style={gs.card}>

@@ -19,6 +19,14 @@ import { VideoView, useVideoPlayer } from 'expo-video';
 const { width } = Dimensions.get('window');
 const HEADER_IMAGE_HEIGHT = 380;
 
+const firstPositiveNumber = (...values: unknown[]) => {
+  for (const value of values) {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  }
+  return 0;
+};
+
 interface GuideListing {
   id: string;
   title: string;
@@ -143,12 +151,23 @@ export default function GuideDetailScreen() {
              try { profileData = JSON.parse(profileData); } catch (e) { profileData = {}; }
           }
 
-          const perHourRate = parseFloat(profileData.per_hour_rate) || 0;
-          // Partner saves as camelCase "pricePerDay"; fall back to snake_case for legacy records
-          const profilePrice = parseInt(profileData.pricePerDay ?? profileData.price_per_day) || 0;
+          const perHourRate = firstPositiveNumber(
+            profileData.per_hour_rate,
+            profileData.hourlyRate,
+            profileData.hourly_rate
+          );
+          const profilePrice = firstPositiveNumber(
+            profileData.pricePerDay,
+            profileData.price_per_day
+          );
           const firstListingPrice = parsedListings.length > 0 ? (Number(parsedListings[0].price) || 0) : 0;
           const effectivePrice = perHourRate > 0 ? perHourRate : (profilePrice > 0 ? profilePrice : firstListingPrice);
-          const effectiveAbout = profileData.bio || (parsedListings.length > 0 ? parsedListings[0].description : '') || '';
+          const effectiveAbout =
+            profileData.bio ||
+            profileData.guide_description ||
+            profileData.description ||
+            (parsedListings.length > 0 ? parsedListings[0].description : '') ||
+            '';
           const effectiveLocation = profileData.location || (parsedListings.length > 0 ? parsedListings[0].location : '') || '';
           const guideCity = (data.city || profileData.city || effectiveLocation || '').trim();
 
@@ -170,7 +189,7 @@ export default function GuideDetailScreen() {
             price: effectivePrice,
             perHourRate: perHourRate,
             isAvailable: profileData.is_available !== false,
-            image: profileData.profile_image || data.profile_image || data.photo_url || '',
+            image: profileData.profileImage || profileData.profile_image || data.profileImage || data.profile_image || data.photo_url || '',
             images: listingImages,
             listings: parsedListings,
             isApproved: data.is_approved === true,
@@ -333,6 +352,12 @@ export default function GuideDetailScreen() {
               ) : null}
             </View>
           </View>
+          {guide.about ? (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>About</Text>
+              <Text style={styles.aboutText}>{guide.about}</Text>
+            </View>
+          ) : null}
 
           <View style={styles.divider} />
 
@@ -422,13 +447,6 @@ export default function GuideDetailScreen() {
               </View>
             </View>
           )}
-
-          {guide.about ? (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>About</Text>
-              <Text style={styles.aboutText}>{guide.about}</Text>
-            </View>
-          ) : null}
 
           {guide.images && guide.images.length > 0 && (
             <View style={styles.section}>
@@ -811,7 +829,7 @@ const styles = StyleSheet.create({
     marginVertical: 24,
   },
   section: {
-    marginBottom: 32,
+    marginBottom: 24,
   },
   sectionTitle: {
     fontSize: 18,

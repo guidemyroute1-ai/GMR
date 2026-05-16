@@ -49,7 +49,7 @@ export async function getBookingRequests(guideId: string): Promise<BookingReques
     if (b.status !== 'pending' || b.pre_payment_status !== 'awaiting_guide') {
       continue;
     }
-    
+
     if (b.created_at) {
       const createdAt = new Date(b.created_at).getTime();
       const diffMins = (now - createdAt) / (1000 * 60);
@@ -60,10 +60,10 @@ export async function getBookingRequests(guideId: string): Promise<BookingReques
         continue;
       }
     }
-    
+
     validRequests.push(mapBookingRequest(row));
   }
-  
+
   return validRequests;
 }
 
@@ -193,7 +193,7 @@ export async function getBookings(partnerId: string): Promise<Booking[]> {
         rawStatus = 'cancelled';
       }
     }
-    
+
     validBookings.push(mapBooking({ ...row, status: rawStatus }));
   }
 
@@ -305,6 +305,12 @@ export async function createListing(listing: Omit<Listing, 'id'>) {
   // Ensure the user row exists and has a valid partner role
   await ensurePartnerCanManageListings(ownerId, resolvedType);
 
+  const { data: partnerProfile } = await supabase
+    .from('users')
+    .select('city, profile_data')
+    .eq('id', ownerId)
+    .maybeSingle();
+
   // Re-fetch the profile to get the definitive role after ensurePartner fixed it
   if (!validPartnerTypes.includes(listing.type as any)) {
     const { data: freshProfile } = await supabase
@@ -317,6 +323,17 @@ export async function createListing(listing: Omit<Listing, 'id'>) {
     }
   }
 
+  const partnerCity =
+    partnerProfile?.city ||
+    partnerProfile?.profile_data?.city ||
+    partnerProfile?.profile_data?.location ||
+    '';
+  const listingLocation = listing.location || listing.details?.city || listing.details?.location || listing.details?.address || partnerCity;
+  const listingDetails = {
+    ...(listing.details || {}),
+    ...(partnerCity ? { city: partnerCity } : {}),
+  };
+
   const { error } = await supabase.from('listings').insert({
     partner_id: ownerId,
     type: resolvedType,
@@ -325,8 +342,8 @@ export async function createListing(listing: Omit<Listing, 'id'>) {
     price: listing.price,
     images: listing.images || [],
     is_active: listing.isActive,
-    details: listing.details || {},
-    location: listing.location || listing.details?.location || listing.details?.address || '',
+    details: listingDetails,
+    location: listingLocation,
   });
   if (error) throw error;
 }
@@ -386,7 +403,6 @@ export async function updateListing(id: string, listing: Partial<Listing>) {
   const { error } = await supabase.from('listings').update(row).eq('id', id);
   if (error) throw error;
 }
-
 export async function deleteListing(id: string) {
   const { error } = await supabase.from('listings').delete().eq('id', id);
   if (error) throw error;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -12,21 +12,29 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { useAuthStore } from '../../store/useAuthStore';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { TextField, MultiSelectDropdown, SingleSelectDropdown } from '../../components/FormFields';
+import { DEFAULT_CITIES, fetchAvailableCities } from '../../services/cities';
 
 // ─── Guide fields (Part 1) ──────────────────────────────
-function GuideFormPart1({ data, onChange }: { data: any; onChange: (d: any) => void }) {
+function GuideFormPart1({ data, onChange, cityOptions }: { data: any; onChange: (d: any) => void; cityOptions: string[] }) {
   const [focused, setFocused] = useState<string | null>(null);
   return (
     <>
       <TextField label="Years of Experience *" placeholder="e.g. 5" value={data.experience}
         onChangeText={(v: string) => onChange({ ...data, experience: v })}
         keyboardType="numeric" focused={focused} name="experience" setFocused={setFocused} />
-      <TextField label="Location *" placeholder="e.g. Rishikesh, Uttarakhand" value={data.location}
-        onChangeText={(v: string) => onChange({ ...data, location: v })}
-        focused={focused} name="location" setFocused={setFocused} />
+      <SingleSelectDropdown
+        label="City *"
+        placeholder="Select city"
+        options={cityOptions}
+        value={data.city || data.location || ''}
+        onChange={(v: string) => onChange({ ...data, city: v, location: v })}
+        focused={focused}
+        name="city"
+        setFocused={setFocused}
+      />
       <MultiSelectDropdown 
         label="Languages Spoken *" 
         placeholder="Select languages"
@@ -42,16 +50,23 @@ function GuideFormPart1({ data, onChange }: { data: any; onChange: (d: any) => v
 }
 
 // ─── Hotel fields (Part 1) ──────────────────────────────
-function HotelFormPart1({ data, onChange }: { data: any; onChange: (d: any) => void }) {
+function HotelFormPart1({ data, onChange, cityOptions }: { data: any; onChange: (d: any) => void; cityOptions: string[] }) {
   const [focused, setFocused] = useState<string | null>(null);
   return (
     <>
       <TextField label="Hotel Name *" placeholder="e.g. Mountain View Resort" value={data.hotelName}
         onChangeText={(v: string) => onChange({ ...data, hotelName: v })}
         focused={focused} name="hotelName" setFocused={setFocused} />
-      <TextField label="Location / Address *" placeholder="e.g. Manali, Himachal Pradesh" value={data.location}
-        onChangeText={(v: string) => onChange({ ...data, location: v })}
-        focused={focused} name="location" setFocused={setFocused} />
+      <SingleSelectDropdown
+        label="City *"
+        placeholder="Select city"
+        options={cityOptions}
+        value={data.city || data.location || ''}
+        onChange={(v: string) => onChange({ ...data, city: v, location: v })}
+        focused={focused}
+        name="city"
+        setFocused={setFocused}
+      />
       <TextField label="Contact Number *" placeholder="e.g. +91 98765 43210" value={data.contactNumber}
         onChangeText={(v: string) => onChange({ ...data, contactNumber: v })}
         keyboardType="phone-pad" focused={focused} name="contactNumber" setFocused={setFocused} />
@@ -70,16 +85,23 @@ function HotelFormPart1({ data, onChange }: { data: any; onChange: (d: any) => v
 }
 
 // ─── Rental fields (Part 1) ─────────────────────────────
-function RentalFormPart1({ data, onChange }: { data: any; onChange: (d: any) => void }) {
+function RentalFormPart1({ data, onChange, cityOptions }: { data: any; onChange: (d: any) => void; cityOptions: string[] }) {
   const [focused, setFocused] = useState<string | null>(null);
   return (
     <>
       <TextField label="Shop / Business Name *" placeholder="e.g. Himalayan Rentals" value={data.shopName}
         onChangeText={(v: string) => onChange({ ...data, shopName: v })}
         focused={focused} name="shopName" setFocused={setFocused} />
-      <TextField label="Location *" placeholder="e.g. Mall Road, Manali" value={data.location}
-        onChangeText={(v: string) => onChange({ ...data, location: v })}
-        focused={focused} name="location" setFocused={setFocused} />
+      <SingleSelectDropdown
+        label="City *"
+        placeholder="Select city"
+        options={cityOptions}
+        value={data.city || data.location || ''}
+        onChange={(v: string) => onChange({ ...data, city: v, location: v })}
+        focused={focused}
+        name="city"
+        setFocused={setFocused}
+      />
       <TextField label="Contact Number *" placeholder="e.g. +91 98765 43210" value={data.contactNumber}
         onChangeText={(v: string) => onChange({ ...data, contactNumber: v })}
         keyboardType="phone-pad" focused={focused} name="contactNumber" setFocused={setFocused} />
@@ -103,15 +125,34 @@ export default function ProfileSetupScreen() {
   const params = useLocalSearchParams();
   const initialData = params.formData ? JSON.parse(params.formData as string) : {};
   const [formData, setFormData] = useState<Record<string, any>>(initialData);
+  const [cityOptions, setCityOptions] = useState<string[]>(DEFAULT_CITIES);
 
   const role = profile?.role ?? 'guide';
+  const insets = useSafeAreaInsets();
+
+  useEffect(() => {
+    let active = true;
+    fetchAvailableCities().then((cities) => {
+      if (!active) return;
+      setCityOptions(cities);
+      setFormData((current) => {
+        const currentCity = current.city || current.location;
+        if (currentCity && cities.includes(currentCity)) return current;
+        if (cities.length === 0) return current;
+        return { ...current, city: cities[0], location: cities[0] };
+      });
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const isFormValid = () => {
     if (role === 'guide') {
       const languagesCount = Array.isArray(formData.languages) ? formData.languages.length : (typeof formData.languages === 'string' && formData.languages.length > 0 ? 1 : 0);
       return !!(
         formData.experience?.toString().trim() &&
-        formData.location?.trim() &&
+        (formData.city?.trim() || formData.location?.trim()) &&
         languagesCount > 0
       );
     } else if (role === 'hotel') {
@@ -120,7 +161,7 @@ export default function ProfileSetupScreen() {
         : (Array.isArray(formData.propertyType) ? formData.propertyType[0] : '');
       return !!(
         formData.hotelName?.trim() &&
-        formData.location?.trim() &&
+        (formData.city?.trim() || formData.location?.trim()) &&
         formData.contactNumber?.trim() &&
         propType?.trim()
       );
@@ -128,7 +169,7 @@ export default function ProfileSetupScreen() {
       const vehiclesCount = Array.isArray(formData.vehicleTypes) ? formData.vehicleTypes.length : (typeof formData.vehicleTypes === 'string' && formData.vehicleTypes.trim().length > 0 ? 1 : 0);
       return !!(
         formData.shopName?.trim() &&
-        formData.location?.trim() &&
+        (formData.city?.trim() || formData.location?.trim()) &&
         formData.contactNumber?.trim() &&
         vehiclesCount > 0
       );
@@ -147,7 +188,7 @@ export default function ProfileSetupScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -174,13 +215,13 @@ export default function ProfileSetupScreen() {
           </Text>
 
           {role === 'guide' && (
-            <GuideFormPart1 data={formData} onChange={setFormData} />
+            <GuideFormPart1 data={formData} onChange={setFormData} cityOptions={cityOptions} />
           )}
           {role === 'hotel' && (
-            <HotelFormPart1 data={formData} onChange={setFormData} />
+            <HotelFormPart1 data={formData} onChange={setFormData} cityOptions={cityOptions} />
           )}
           {role === 'rental' && (
-            <RentalFormPart1 data={formData} onChange={setFormData} />
+            <RentalFormPart1 data={formData} onChange={setFormData} cityOptions={cityOptions} />
           )}
 
           <TouchableOpacity
@@ -196,7 +237,7 @@ export default function ProfileSetupScreen() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -277,5 +318,3 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 });
-
-

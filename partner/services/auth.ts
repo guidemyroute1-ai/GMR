@@ -53,7 +53,23 @@ export async function registerUser(email: string, password: string): Promise<Par
     email, 
     password,
   });
-  if (error) throw error;
+  
+  if (error) {
+    if (error.message.includes('User already registered') || error.message.includes('already exists')) {
+      // User already exists (possibly from the user app), try to sign them in instead
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) {
+        if (signInError.message.includes('Invalid login credentials')) {
+          throw new Error('Email already registered. If this is your account, please enter the correct password, or go to Sign In.');
+        }
+        throw signInError;
+      }
+      if (!signInData.user) throw new Error('Registration failed: No user data returned');
+      return toPartnerUser(signInData.user);
+    }
+    throw error;
+  }
+  
   if (!data.user) throw new Error('Registration failed: No user data returned');
   return toPartnerUser(data.user);
 }
@@ -90,16 +106,22 @@ export async function getUserDoc(uid: string): Promise<PartnerProfile | null> {
 }
 
 export async function createUserDoc(uid: string, name: string, email: string, phone: string, role: string) {
+  // First, check if the user already exists
+  const { data: existingUser } = await supabase.from('users').select('*').eq('id', uid).maybeSingle();
+
   const { error } = await supabase.from('users').upsert({
     id: uid,
     name,
     email,
     phone,
-    role,
-    is_onboarded: false,
-    is_approved: false,
-    has_uploaded_docs: false,
-    profile_data: {},
+    role, // Keep their role updated to partner role
+    is_onboarded: existingUser?.is_onboarded ?? false,
+    is_approved: existingUser?.is_approved ?? false,
+    has_uploaded_docs: existingUser?.has_uploaded_docs ?? false,
+    profile_data: existingUser?.profile_data || {},
+    documents: existingUser?.documents || [],
+    kyc_video_url: existingUser?.kyc_video_url || null,
+    photo_url: existingUser?.photo_url || null,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'id' });
   

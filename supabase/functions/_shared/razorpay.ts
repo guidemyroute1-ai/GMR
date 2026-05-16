@@ -357,7 +357,14 @@ async function resolveGuideBooking(serviceClient: SupabaseClient, input: Booking
   if (listingError) throw listingError;
 
   const profileData = parseProfileData(guide.profile_data);
-  const profilePrice = Number(profileData.price_per_day || profileData.pricePerDay || 0);
+  const profilePrice = Number(
+    profileData.per_hour_rate ||
+    profileData.hourlyRate ||
+    profileData.hourly_rate ||
+    profileData.price_per_day ||
+    profileData.pricePerDay ||
+    0
+  );
   const listingPrice = listing ? Number(listing.price || 0) : 0;
   const unitPrice = toPositiveNumber(profilePrice > 0 ? profilePrice : listingPrice, 'Guide price is invalid.');
   const quantity = input.days;

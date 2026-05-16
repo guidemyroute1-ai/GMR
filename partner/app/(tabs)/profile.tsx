@@ -209,6 +209,32 @@ export default function ProfileScreen() {
       // Start from the current persisted data so we never lose fields.
       const existingData = profile?.profileData ?? {};
       const mergedData = { ...existingData, ...businessData };
+      const numericKeys = ['pricePerDay', 'pricePerNight', 'maxGroupSize', 'totalRooms', 'totalVehicles', 'securityDeposit'];
+
+      for (const key of numericKeys) {
+        if (businessData[key] === '' || businessData[key] === null || businessData[key] === undefined) {
+          mergedData[key] = existingData[key];
+        }
+      }
+
+      if (role === 'guide') {
+        const guidePrice = Number(
+          mergedData.per_hour_rate ||
+          mergedData.hourlyRate ||
+          mergedData.hourly_rate ||
+          mergedData.pricePerDay ||
+          mergedData.price_per_day ||
+          0
+        );
+        if (Number.isFinite(guidePrice) && guidePrice > 0) {
+          mergedData.per_hour_rate = guidePrice;
+          mergedData.hourlyRate = guidePrice;
+          mergedData.hourly_rate = guidePrice;
+          mergedData.pricePerDay = guidePrice;
+          mergedData.price_per_day = guidePrice;
+        }
+      }
+
       await updateUserProfile(user.uid, { profileData: mergedData });
       setProfile({ ...profile!, profileData: mergedData });
       setEditingBusiness(false);

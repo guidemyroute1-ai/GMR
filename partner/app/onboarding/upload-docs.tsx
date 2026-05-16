@@ -12,7 +12,7 @@ import { router } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { useAuthStore } from '../../store/useAuthStore';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FileText, ArrowRight, UploadCloud, X, CheckCircle2, Camera, Image as ImageIcon, Video } from 'lucide-react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
@@ -21,6 +21,7 @@ import { updateUserProfile } from '../../services/auth';
 
 export default function DocumentUploadScreen() {
   const { user, profile, setProfile } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [files, setFiles] = useState<DocumentPicker.DocumentPickerAsset[]>([]);
   const [videoFile, setVideoFile] = useState<DocumentPicker.DocumentPickerAsset | null>(null);
   const [loading, setLoading] = useState(false);
@@ -241,7 +242,7 @@ export default function DocumentUploadScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
         <View style={styles.branding}>
           <FileText color={Colors.primary} size={24} />
@@ -356,7 +357,7 @@ export default function DocumentUploadScreen() {
           )}
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 }
 

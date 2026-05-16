@@ -5,7 +5,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../utils/supabase';
-// import * as Location from 'expo-location';
+import { normalizeCity } from '../../utils/cities';
+import { useLocation } from '../../contexts/LocationContext';
 import {
   FlatList,
   Image,
@@ -16,11 +17,10 @@ import {
   TextInput,
   TouchableOpacity,
   View,
-  Dimensions
-  
+  Dimensions,
+  Modal
 } from 'react-native';
 
-import * as Location from 'expo-location';
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const COLORS = {
   primary: '#16A34A',       // Forest Green
@@ -69,6 +69,7 @@ interface Guide {
   isOnline: boolean;
   verified: boolean;
   profileImage?: string;
+  city?: string;
 }
 
 interface Vehicle {
@@ -193,7 +194,7 @@ const GuideCard = ({ guide }: { guide: Guide }) => {
 };
 
 // ─── Vehicle Card ─────────────────────────────────────────────────────────────
-const VehicleCard = ({ vehicle }: { vehicle: Vehicle }) => {
+const VehicleCard = ({ vehicle, city }: { vehicle: Vehicle; city?: string }) => {
   const router = useRouter();
   return (
     <TouchableOpacity
@@ -202,7 +203,7 @@ const VehicleCard = ({ vehicle }: { vehicle: Vehicle }) => {
       onPress={() =>
         router.push({
           pathname: '/(tabs)/RentAVehicle',
-          params: { filter: vehicle.type },
+          params: { filter: vehicle.type, city },
         })
       }
     >
@@ -257,9 +258,10 @@ export default function HomeScreen() {
   const [loadingGuides, setLoadingGuides] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const [currentLocation, setCurrentLocation] = useState<string>('Fetching location...');
+  const [showCitySelector, setShowCitySelector] = useState(false);
   const [activeBanner, setActiveBanner] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  const { cityOptions, selectedCity, setSelectedCity } = useLocation();
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -275,56 +277,30 @@ export default function HomeScreen() {
   }, [activeBanner]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        let { status } = await Location.requestForegroundPermissionsAsync();
-        if (status !== 'granted') {
-          setCurrentLocation('Location permission denied');
-          return;
-        }
-
-        let location = await Location.getCurrentPositionAsync({});
-        let geocode = await Location.reverseGeocodeAsync({
-          latitude: location.coords.latitude,
-          longitude: location.coords.longitude
-        });
-
-        if (geocode && geocode.length > 0) {
-          const { city, region, country, district } = geocode[0];
-          const displayCity = city || district || region || 'Unknown';
-          setCurrentLocation(`${displayCity}, ${country || 'Unknown'}`);
-        } else {
-          setCurrentLocation('Location not found');
-        }
-      } catch (error) {
-        console.warn('Error fetching location:', error);
-        setCurrentLocation('Rishikesh, India'); // Fallback
-      }
-    })();
-  }, []);
-
-  useEffect(() => {
     setLoadingGuides(true);
 
     // Initial fetch
     const fetchGuides = async () => {
       const { data, error } = await supabase
         .from('users')
-        .select('id, name, rating, reviews, is_online, is_approved, profile_data, photo_url')
+        .select('id, name, city, rating, reviews, is_online, is_approved, profile_data, photo_url')
         .eq('role', 'guide')
-        .eq('is_approved', true)
-        .limit(5);
+        .eq('is_approved', true);
 
       if (!error && data) {
-        const guidesData: Guide[] = data.map((row) => ({
-          id: row.id,
-          name: row.name || 'Anonymous',
-          rating: row.rating || 4.5,
-          reviews: row.reviews || 0,
-          isOnline: row.is_online || false,
-          verified: row.is_approved || false,
-          profileImage: row.profile_data?.profileImage || row.photo_url || null,
-        }));
+        const guidesData: Guide[] = data
+          .map((row) => ({
+            id: row.id,
+            name: row.name || 'Anonymous',
+            rating: row.rating || 4.5,
+            reviews: row.reviews || 0,
+            isOnline: row.is_online || false,
+            verified: row.is_approved || false,
+            city: normalizeCity(row.city || row.profile_data?.city || row.profile_data?.location),
+            profileImage: row.profile_data?.profileImage || row.photo_url || null,
+          }))
+          .filter((guide) => !selectedCity || guide.city === selectedCity)
+          .slice(0, 5);
         setGuides(guidesData);
       } else if (error) {
         console.warn('Home fetch guides issue:', error.message);
@@ -335,7 +311,7 @@ export default function HomeScreen() {
     };
 
     fetchGuides();
-  }, [refreshKey]);
+  }, [refreshKey, selectedCity]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -347,12 +323,12 @@ export default function HomeScreen() {
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
-     
+
 
       {/* ── Location Selector ── */}
-      <TouchableOpacity style={styles.locationBar} activeOpacity={0.8}>
+      <TouchableOpacity style={styles.locationBar} activeOpacity={0.8} onPress={() => setShowCitySelector(true)}>
         <ExpoImage source={require('../../assets/svg/location-pin-svgrepo-com.svg')} style={{ width: 16, height: 16, marginRight: 6, tintColor: COLORS.darkGray }} contentFit="contain" />
-        <Text style={styles.locationText}>{currentLocation}</Text>
+        <Text style={styles.locationText}>{selectedCity || 'Select city'}</Text>
         <Text style={styles.locationChevron}>▾</Text>
       </TouchableOpacity>
 
@@ -431,7 +407,7 @@ export default function HomeScreen() {
         {/* Search Bar */}
 
         {/* ── Featured Guides ── */}
-        <SectionHeader title="Featured Guides" onSeeAll={() => router.push('/(tabs)/AllGuides')} />
+        <SectionHeader title="Featured Guides" onSeeAll={() => router.push({ pathname: '/(tabs)/AllGuides', params: { city: selectedCity } })} />
         <FlatList
           data={guides}
           keyExtractor={(item) => item.id}
@@ -447,14 +423,14 @@ export default function HomeScreen() {
         />
 
         {/* ── Rent a Vehicle ── */}
-        <SectionHeader title="Rent a Vehicle" onSeeAll={() => router.push('/(tabs)/RentAVehicle')} />
+        <SectionHeader title="Rent a Vehicle" onSeeAll={() => router.push({ pathname: '/(tabs)/RentAVehicle', params: { city: selectedCity } })} />
         <FlatList
           data={VEHICLES}
           keyExtractor={(item) => item.id}
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.horizontalList}
-          renderItem={({ item }) => <VehicleCard vehicle={item} />}
+          renderItem={({ item }) => <VehicleCard vehicle={item} city={selectedCity} />}
         />
 
         {/* ── Quick Categories ── */}
@@ -476,7 +452,7 @@ export default function HomeScreen() {
             <TouchableOpacity
               style={styles.promoBtn}
               activeOpacity={0.85}
-              onPress={() => router.push('/(tabs)/RentAVehicle')}
+              onPress={() => router.push({ pathname: '/(tabs)/RentAVehicle', params: { city: selectedCity } })}
             >
               <Text style={styles.promoBtnText}>Explore Rentals</Text>
             </TouchableOpacity>
@@ -493,6 +469,34 @@ export default function HomeScreen() {
         {/* Bottom padding for tab bar */}
         <View style={{ height: 20 }} />
       </ScrollView>
+
+      <Modal
+        visible={showCitySelector}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowCitySelector(false)}
+      >
+        <TouchableOpacity style={styles.cityOverlay} activeOpacity={1} onPress={() => setShowCitySelector(false)}>
+          <View style={styles.citySheet}>
+            <Text style={styles.citySheetTitle}>Select city</Text>
+            {cityOptions.map((city) => (
+              <TouchableOpacity
+                key={city}
+                style={styles.cityOption}
+                onPress={async () => {
+                  await setSelectedCity(city);
+                  setShowCitySelector(false);
+                }}
+              >
+                <Text style={[styles.cityOptionText, selectedCity === city && styles.cityOptionTextActive]}>
+                  {city}
+                </Text>
+                {selectedCity === city && <Ionicons name="checkmark" size={20} color={COLORS.primary} />}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -582,6 +586,41 @@ const styles = StyleSheet.create({
   locationChevron: {
     fontSize: 16,
     color: COLORS.mediumGray,
+  },
+  cityOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(15,23,42,0.35)',
+    justifyContent: 'flex-end',
+  },
+  citySheet: {
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    padding: 18,
+    paddingBottom: 28,
+  },
+  citySheetTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    marginBottom: 12,
+  },
+  cityOption: {
+    minHeight: 48,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: COLORS.borderGray,
+  },
+  cityOptionText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: COLORS.darkGray,
+  },
+  cityOptionTextActive: {
+    color: COLORS.primary,
+    fontWeight: '800',
   },
 
   // Scroll

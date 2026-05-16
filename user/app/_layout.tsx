@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { Alert } from 'react-native';
+import { useEffect } from 'react';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import { AuthProvider, useAuth } from '../contexts/AuthContext';
+import { LocationProvider } from '../contexts/LocationContext';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts } from 'expo-font';
 
@@ -99,7 +99,9 @@ export default function RootLayout() {
 
   return (
     <AuthProvider>
-      <RootLayoutNav />
+      <LocationProvider>
+        <RootLayoutNav />
+      </LocationProvider>
     </AuthProvider>
   );
 }

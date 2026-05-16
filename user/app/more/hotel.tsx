@@ -235,7 +235,6 @@ export default function HotelDetailScreen() {
               {hotel.rating > 0 && (
                 <Text style={styles.reviewCount}>({hotel.reviews} reviews)</Text>
               )}
-              
               {hotel.location ? (
                 <>
                   <View style={styles.metaDot} />
@@ -248,8 +247,8 @@ export default function HotelDetailScreen() {
             </View>
           </View>
 
-          {/* ── Highlights Grid ── */}
           <View style={styles.highlightsWrapper}>
+            {/* ── Highlights Grid ── */}
             <Text style={styles.sectionTitle}>What's included</Text>
             <View style={styles.highlightsGrid}>
               {!!hotel.maxOccupancy && (
@@ -289,22 +288,16 @@ export default function HotelDetailScreen() {
                 </View>
               )}
             </View>
-            
-            {/* Fallback if no highlights */}
             {(!hotel.maxOccupancy && !hotel.bedConfig && !hotel.floorView && !hotel.cancellation) && (
               <Text style={styles.emptyText}>Standard room configuration applies.</Text>
             )}
           </View>
-
-          {/* ── About Section ── */}
           {hotel.about ? (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>About this stay</Text>
               <Text style={styles.aboutText}>{hotel.about}</Text>
             </View>
           ) : null}
-
-          {/* ── Amenities ── */}
           {hotel.amenities && hotel.amenities.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Popular amenities</Text>
@@ -318,10 +311,6 @@ export default function HotelDetailScreen() {
               </View>
             </View>
           )}
-
-         
-
-          {/* ── Photo Gallery ── */}
           {hotel.images && hotel.images.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Photo Gallery</Text>
@@ -341,7 +330,8 @@ export default function HotelDetailScreen() {
                 ))}
               </ScrollView>
             </View>
-          )} {/* ── Guest Reviews ── */}
+          )}
+          {/* ── Guest Reviews ── */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Guest Reviews</Text>
             <View style={styles.reviewsList}>

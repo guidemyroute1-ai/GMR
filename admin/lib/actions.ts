@@ -3,6 +3,30 @@
 import { revalidatePath } from 'next/cache';
 import { supabaseAdmin } from './supabase-server';
 
+const DEFAULT_CITIES = ['Rishikesh', 'Manali', 'Delhi'];
+
+async function ensureSettingsRow() {
+  const { data, error } = await supabaseAdmin
+    .from('app_settings')
+    .select('service_fee_percentage, available_cities')
+    .eq('id', 1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (data) return data;
+
+  const { data: created, error: createError } = await supabaseAdmin
+    .from('app_settings')
+    .upsert(
+      { id: 1, service_fee_percentage: 5, available_cities: DEFAULT_CITIES },
+      { onConflict: 'id' }
+    )
+    .select('service_fee_percentage, available_cities')
+    .single();
+
+  if (createError) throw createError;
+  return created;
+}
 
 export async function deleteUser(uid: string) {
   try {
@@ -61,15 +85,13 @@ export async function deleteListing(id: string) {
 
 export async function getSettings() {
   try {
-    const { data, error } = await supabaseAdmin
-      .from('app_settings')
-      .select('service_fee_percentage')
-      .eq('id', 1)
-      .single();
-      
-    if (error && error.code !== 'PGRST116') throw error;
+    const data = await ensureSettingsRow();
     
-    return { success: true, serviceFee: data?.service_fee_percentage || 5 };
+    return {
+      success: true,
+      serviceFee: data?.service_fee_percentage || 5,
+      cities: Array.isArray(data?.available_cities) ? data.available_cities : DEFAULT_CITIES,
+    };
   } catch (error: any) {
     console.error('Error fetching settings:', error);
     return { error: error.message };
@@ -80,7 +102,7 @@ export async function updateServiceFee(fee: number) {
   try {
     const { error } = await supabaseAdmin
       .from('app_settings')
-      .upsert({ id: 1, service_fee_percentage: fee });
+      .upsert({ id: 1, service_fee_percentage: fee }, { onConflict: 'id' });
 
     if (error) throw error;
 
@@ -88,6 +110,26 @@ export async function updateServiceFee(fee: number) {
     return { success: true };
   } catch (error: any) {
     console.error('Error updating service fee:', error);
+    return { error: error.message };
+  }
+}
+
+export async function updateAvailableCities(cities: string[]) {
+  try {
+    const cleanCities = Array.from(
+      new Set(cities.map((city) => city.trim()).filter(Boolean))
+    );
+
+    const { error } = await supabaseAdmin
+      .from('app_settings')
+      .upsert({ id: 1, available_cities: cleanCities }, { onConflict: 'id' });
+
+    if (error) throw error;
+
+    revalidatePath('/settings');
+    return { success: true, cities: cleanCities };
+  } catch (error: any) {
+    console.error('Error updating available cities:', error);
     return { error: error.message };
   }
 }

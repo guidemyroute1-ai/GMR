@@ -13,7 +13,6 @@ import {
   View
 } from 'react-native';
 // import { SafeAreaView } from 'react-native-safe-area-context';
-import AppBar from '../../components/AppBar';
 import { Text } from '../../components/Text';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
@@ -55,11 +54,7 @@ interface MenuSection {
 }
 
 // ─── Data ──────────────────────────────────────────────────────────────────────
-const STATS: StatItem[] = [
-  { label: 'Trips', value: 12 },
-  { label: 'Rating', value: 4.9 },
-  { label: 'Reviews', value: 28 },
-];
+// Removed static STATS data
 
 const MENU_SECTIONS: MenuSection[] = [
   {
@@ -176,15 +171,70 @@ export default function ProfileScreen() {
   const [notifEnabled, setNotifEnabled] = useState<boolean>(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [tripsCount, setTripsCount] = useState<number>(0);
+  const [reviewsCount, setReviewsCount] = useState<number>(0);
+  const [userRating, setUserRating] = useState<number>(0);
+
+  const fetchStats = React.useCallback(async () => {
+    if (!user?.uid) return;
+
+    try {
+      // 1. Fetch total trips (bookings)
+      const { count: bookingsCount, error: bError } = await supabase
+        .from('bookings')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.uid);
+      
+      if (!bError && bookingsCount !== null) {
+        setTripsCount(bookingsCount);
+      }
+
+      // 2. Fetch user's reviews count
+      const { count: revsCount, error: rError } = await supabase
+        .from('reviews')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.uid);
+
+      if (!rError && revsCount !== null) {
+        setReviewsCount(revsCount);
+      }
+
+      // 3. Fetch user rating from users table (if available)
+      const { data: userData, error: uError } = await supabase
+        .from('users')
+        .select('rating')
+        .eq('id', user.uid)
+        .maybeSingle();
+      
+      if (!uError && userData) {
+        setUserRating(userData.rating || 0);
+      }
+    } catch (err) {
+      console.warn('Error fetching profile stats:', err);
+    }
+  }, [user?.uid]);
 
   const onRefresh = React.useCallback(async () => {
     setRefreshing(true);
     try {
-      await supabase.auth.getUser();
+      await Promise.all([
+        supabase.auth.getUser(),
+        fetchStats()
+      ]);
     } finally {
       setRefreshing(false);
     }
-  }, []);
+  }, [fetchStats]);
+
+  React.useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  const STATS: StatItem[] = [
+    { label: 'Trips', value: tripsCount },
+    { label: 'Rating', value: userRating > 0 ? userRating.toFixed(1) : 'New' },
+    { label: 'Reviews', value: reviewsCount },
+  ];
 
   const displayName = user?.displayName || 'Traveller';
   const email = user?.email || '';

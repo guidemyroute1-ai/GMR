@@ -173,7 +173,7 @@ export default function NotificationsPage() {
                   <h3 className="font-medium text-gray-900">Partner Approved</h3>
                   <p className="text-sm text-gray-600 mt-1">
                     <span className="font-medium text-gray-800">Target:</span> Partner (Guide)<br />
-                    <span className="font-medium text-gray-800">Trigger:</span> When an admin approves a partner's profile from the Partners dashboard.<br />
+                    <span className="font-medium text-gray-800">Trigger:</span> When an admin approves a partner&apos;s profile from the Partners dashboard.<br />
                     <span className="text-xs text-gray-400 block mt-1">Managed by Server Action: approvePartner</span>
                   </p>
                 </div>

@@ -12,10 +12,12 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
 
 import { supabase } from '../../utils/supabase';
+import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
+import { useLocation } from '../../contexts/LocationContext';
 
 // ─── Color Palette ─────────────────────────────────────────────────────────────
 const COLORS = {
@@ -72,15 +74,34 @@ interface Hotel {
   roomType?: string;
   cancellationPolicy?: string;
   paymentPolicy?: string;
+  city?: string;
 }
 
 const FILTER_TABS = ['All', 'Hotel', 'Resort', 'Villa', 'Homestay'];
+const PRICE_FILTERS = [
+  { label: 'Any price', min: 0, max: Infinity },
+  { label: 'Under Rs 1k', min: 0, max: 1000 },
+  { label: 'Rs 1k-3k', min: 1000, max: 3000 },
+  { label: 'Rs 3k+', min: 3000, max: Infinity },
+];
+
+const normalizeHotelType = (...values: unknown[]) => {
+  const text = values
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (text.includes('resort')) return 'Resort';
+  if (text.includes('villa')) return 'Villa';
+  if (text.includes('home stay') || text.includes('homestay')) return 'Homestay';
+  return 'Hotel';
+};
 
 const HotelCard = ({ hotel }: { hotel: Hotel }) => {
   const router = useRouter();
 
   // Mock data for missing fields to match the image
-  const distance = hotel.distance || '1.3 km from centre';
+  const distance = hotel.distance || '';
   const originalPrice = hotel.originalPrice || hotel.pricePerNight + 1000;
   const taxes = hotel.taxes || 93;
   const isGenius = hotel.isGenius !== undefined ? hotel.isGenius : true;
@@ -143,7 +164,7 @@ const HotelCard = ({ hotel }: { hotel: Hotel }) => {
         <View style={styles.locationRow}>
           <Ionicons name="location-outline" size={14} color={COLORS.mediumGray} />
           <Text style={styles.locationText} numberOfLines={1}>
-            {hotel.location || 'New Delhi'} <Text style={styles.bullet}>•</Text> {distance}
+            {hotel.location || 'Location not listed'}{distance ? <Text style={styles.bullet}> • {distance}</Text> : null}
           </Text>
         </View>
 
@@ -179,24 +200,36 @@ const HotelCard = ({ hotel }: { hotel: Hotel }) => {
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 export default function HotelListingsScreen() {
+  const { selectedCity, setSelectedCity } = useLocation();
   const [hotels, setHotels] = useState<Hotel[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('All');
+  const [activePrice, setActivePrice] = useState(0);
+  const [cityOptions, setCityOptions] = useState<string[]>(DEFAULT_CITIES);
+  const [activeCity, setActiveCity] = useState(selectedCity || DEFAULT_CITIES[0]);
   const [refreshing, setRefreshing] = useState(false);
 
   const mapRow = useCallback((doc: any): Hotel => {
-    const propertyType = doc.details?.propertyType || 'Hotel';
+    const details = doc.details || {};
+    const propertyType = normalizeHotelType(
+      details.propertyType,
+      details.stayType,
+      details.category,
+      details.roomType,
+      doc.title
+    );
     return {
       id: doc.id,
       name: doc.title,
       type: propertyType,
-      rating: doc.details?.rating || 4.5,
-      reviews: doc.details?.reviews || 0,
+      rating: details.rating || 4.5,
+      reviews: details.reviews || 0,
       pricePerNight: doc.price,
       emoji: doc.details?.emoji || (propertyType === 'Resort' ? '🌴' : propertyType === 'Villa' ? '🏡' : '🏨'),
       image: doc.images?.[0],
-      tags: doc.details?.tags || [{ label: 'Verified', color: '#10B981' }],
-      location: doc.location?.address || doc.details?.address || '',
+      tags: details.tags || [{ label: 'Verified', color: '#10B981' }],
+      location: (typeof doc.location === 'string' ? doc.location : doc.location?.address) || details.address || '',
+      city: normalizeCity(details.city || (typeof doc.location === 'string' ? doc.location : doc.location?.address) || details.address),
     };
   }, []);
 
@@ -225,12 +258,35 @@ export default function HotelListingsScreen() {
     fetchHotels();
   }, [fetchHotels]);
 
+  useEffect(() => {
+    let active = true;
+    fetchAvailableCities().then((cities) => {
+      if (!active) return;
+      setCityOptions(cities);
+      setActiveCity((current) => cities.includes(current) ? current : cities[0] || '');
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (selectedCity) setActiveCity(selectedCity);
+  }, [selectedCity]);
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchHotels();
   };
 
-  const filtered = hotels.filter((h) => activeTab === 'All' || h.type === activeTab);
+  const selectedPrice = PRICE_FILTERS[activePrice] || PRICE_FILTERS[0];
+  const filtered = hotels.filter((h) => {
+    if (activeCity && normalizeCity(h.city || h.location) !== activeCity) return false;
+    if (activeTab !== 'All' && h.type !== activeTab) return false;
+    const price = Number(h.pricePerNight);
+    if (!Number.isFinite(price)) return false;
+    return price >= selectedPrice.min && price <= selectedPrice.max;
+  });
 
   return (
     <View style={styles.safeArea}>
@@ -238,6 +294,23 @@ export default function HotelListingsScreen() {
     
 
       <View style={styles.filterTabsContainer}>
+        <View style={styles.cityFilterRow}>
+          <MaterialCommunityIcons name="map-marker" size={14} color={COLORS.mediumGray} style={{ marginRight: 4 }} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.priceFilterScroll}>
+            {cityOptions.map((city) => (
+              <TouchableOpacity
+                key={city}
+                style={[styles.cityTab, activeCity === city && styles.cityTabActive]}
+                onPress={() => {
+                  setActiveCity(city);
+                  setSelectedCity(city);
+                }}
+              >
+                <Text style={[styles.cityTabText, activeCity === city && styles.cityTabTextActive]}>{city}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsScroll}>
           {FILTER_TABS.map((tab) => (
             <TouchableOpacity
@@ -249,6 +322,7 @@ export default function HotelListingsScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+      
       </View>
 
       {loading ? (
@@ -314,6 +388,32 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderGray,
   },
+  cityFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 16,
+    paddingTop: 10,
+  },
+  cityTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 50,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  cityTabActive: {
+    backgroundColor: '#DCFCE7',
+    borderColor: COLORS.primary,
+  },
+  cityTabText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.mediumGray,
+  },
+  cityTabTextActive: {
+    color: COLORS.primary,
+  },
   filterTabsScroll: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -339,6 +439,39 @@ const styles = StyleSheet.create({
   },
   filterTabTextActive: {
     color: COLORS.white,
+  },
+  secondaryFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 16,
+    paddingBottom: 10,
+    borderTopWidth: 1,
+    borderTopColor: '#F1F5F9',
+  },
+  priceFilterScroll: {
+    flexDirection: 'row',
+    gap: 6,
+    paddingRight: 16,
+  },
+  priceTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 5,
+    borderRadius: 50,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  priceTabActive: {
+    backgroundColor: '#EFF6FF',
+    borderColor: COLORS.skyBlue,
+  },
+  priceTabText: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.mediumGray,
+  },
+  priceTabTextActive: {
+    color: COLORS.skyBlue,
   },
   loaderContainer: {
     flex: 1,

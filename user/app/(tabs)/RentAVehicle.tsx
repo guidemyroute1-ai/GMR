@@ -16,6 +16,8 @@ import {
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AppBar from '../../components/AppBar';
 import { supabase } from '../../utils/supabase';
+import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
+import { useLocation } from '../../contexts/LocationContext';
 
 // ─── Color Palette ─────────────────────────────────────────────────────────────
 const COLORS = {
@@ -68,9 +70,21 @@ interface Vehicle {
   minDuration?: string;
   deposit?: string;
   vehicleMake?: string;
+  city?: string;
 }
 
 const FILTER_TABS = ['All', 'Scooty', 'Bike', 'Car'];
+
+const normalizeVehicleType = (...values: unknown[]) => {
+  const text = values
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase();
+
+  if (text.includes('car') || text.includes('cab') || text.includes('taxi')) return 'Car';
+  if (text.includes('scoot') || text.includes('activa') || text.includes('moped')) return 'Scooty';
+  return 'Bike';
+};
 
 // ─── Vehicle Card ──────────────────────────────────────────────────────────────
 const VehicleCard = ({ vehicle }: { vehicle: Vehicle }) => {
@@ -120,13 +134,17 @@ const VehicleCard = ({ vehicle }: { vehicle: Vehicle }) => {
 
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 export default function RentAVehicleScreen() {
-  const { filter } = useLocalSearchParams<{ filter?: string }>();
+  const { filter, city } = useLocalSearchParams<{ filter?: string; city?: string }>();
+  const { selectedCity, setSelectedCity } = useLocation();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState(
     FILTER_TABS.includes(filter ?? '') ? (filter as string) : 'All'
   );
   const [activeMake, setActiveMake] = useState('All');
+  const [activeFuel, setActiveFuel] = useState('All');
+  const [cityOptions, setCityOptions] = useState<string[]>(DEFAULT_CITIES);
+  const [activeCity, setActiveCity] = useState(normalizeCity(city) || selectedCity || DEFAULT_CITIES[0]);
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchVehicles = async () => {
@@ -141,22 +159,29 @@ export default function RentAVehicleScreen() {
         console.error('Supabase Fetch Error:', error);
       } else {
         const mapRow = (doc: any): Vehicle => {
-        const vehicleType = doc.details?.vehicleType || 'Bike';
+        const details = doc.details || {};
+        const vehicleType = normalizeVehicleType(
+          details.vehicleType,
+          details.vehicleTypes,
+          details.category,
+          doc.title
+        );
         return {
           id: doc.id,
           name: doc.title,
           type: vehicleType,
-          rating: doc.details?.rating || 4.5,
-          reviews: doc.details?.reviews || Math.floor(Math.random() * 50) + 10,
+          rating: details.rating || 4.5,
+          reviews: details.reviews || Math.floor(Math.random() * 50) + 10,
           pricePerDay: doc.price,
           emoji: doc.details?.emoji || (vehicleType === 'Car' ? '🚗' : vehicleType === 'Scooty' ? '🛵' : '🏍️'),
           image: doc.images?.[0],
-          tags: doc.details?.tags || [{ label: 'Verified', color: '#10B981' }],
-          fuelType: doc.details?.fuelType,
-          helmet: doc.details?.helmet,
-          minDuration: doc.details?.minDuration,
-          deposit: doc.details?.deposit,
-          vehicleMake: doc.details?.vehicleMake,
+          tags: details.tags || [{ label: 'Verified', color: '#10B981' }],
+          fuelType: details.fuelType,
+          helmet: details.helmet,
+          minDuration: details.minDuration,
+          deposit: details.deposit,
+          vehicleMake: details.vehicleMake,
+          city: normalizeCity(details.city || doc.location?.address || doc.location || details.address),
         };
         };
         setVehicles((data || []).map(mapRow));
@@ -173,6 +198,23 @@ export default function RentAVehicleScreen() {
     fetchVehicles();
   }, []);
 
+  useEffect(() => {
+    let active = true;
+    fetchAvailableCities().then((cities) => {
+      if (!active) return;
+      setCityOptions(cities);
+      setActiveCity((current) => cities.includes(current) ? current : cities[0] || '');
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const nextCity = normalizeCity(city) || selectedCity;
+    if (nextCity) setActiveCity(nextCity);
+  }, [city, selectedCity]);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchVehicles();
@@ -182,9 +224,15 @@ export default function RentAVehicleScreen() {
     vehicles.map(v => v.vehicleMake).filter(Boolean) as string[]
   )).sort()];
 
+  const uniqueFuelTypes = ['All', ...Array.from(new Set(
+    vehicles.map(v => v.fuelType).filter(Boolean) as string[]
+  )).sort()];
+
   const filtered = vehicles.filter((v) => {
+    if (activeCity && normalizeCity(v.city) !== activeCity) return false;
     if (activeTab !== 'All' && v.type !== activeTab) return false;
     if (activeMake !== 'All' && v.vehicleMake !== activeMake) return false;
+    if (activeFuel !== 'All' && v.fuelType !== activeFuel) return false;
     return true;
   });
 
@@ -194,6 +242,23 @@ export default function RentAVehicleScreen() {
       
 
       <View style={styles.filterTabsContainer}>
+        <View style={styles.cityFilterRow}>
+          <MaterialCommunityIcons name="map-marker" size={14} color={COLORS.mediumGray} style={{ marginRight: 4 }} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.makeFilterScroll}>
+            {cityOptions.map((city) => (
+              <TouchableOpacity
+                key={city}
+                style={[styles.cityTab, activeCity === city && styles.cityTabActive]}
+                onPress={() => {
+                  setActiveCity(city);
+                  setSelectedCity(city);
+                }}
+              >
+                <Text style={[styles.cityTabText, activeCity === city && styles.cityTabTextActive]}>{city}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
         {/* Vehicle type filter */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsScroll}>
           {FILTER_TABS.map((tab) => (
@@ -290,6 +355,32 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderGray,
+  },
+  cityFilterRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 16,
+    paddingTop: 10,
+  },
+  cityTab: {
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 50,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  cityTabActive: {
+    backgroundColor: '#DCFCE7',
+    borderColor: COLORS.primary,
+  },
+  cityTabText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.mediumGray,
+  },
+  cityTabTextActive: {
+    color: COLORS.primary,
   },
   makeFilterRow: {
     flexDirection: 'row',

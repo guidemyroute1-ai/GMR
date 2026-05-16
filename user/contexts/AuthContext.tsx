@@ -43,7 +43,7 @@ async function upsertUserProfile(user: User) {
   // Check if user already has a profile with a partner role
   const { data: existing } = await supabase
     .from('users')
-    .select('id, role, is_approved')
+    .select('id, role, is_approved, is_onboarded, profile_data, documents, kyc_video_url')
     .eq('id', user.id)
     .maybeSingle();
 
@@ -51,21 +51,25 @@ async function upsertUserProfile(user: User) {
   const partnerRoles = ['guide', 'hotel', 'rental'];
   const isExistingPartner = existing && partnerRoles.includes(existing.role);
 
+
   const profileData: Record<string, any> = {
     id: user.id,
     email: user.email,
     name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0],
     phone: user.user_metadata?.phone || user.phone || null,
     role: isExistingPartner ? existing.role : (existing?.role || 'user'),
-    is_onboarded: true,
-    profile_data: user.user_metadata || {},
+    is_onboarded: existing?.is_onboarded ?? true,
+    profile_data: existing?.profile_data || user.user_metadata || {},
     photo_url: user.user_metadata?.avatar_url || null,
     updated_at: new Date().toISOString(),
   };
 
+  if (existing?.documents) profileData.documents = existing.documents;
+  if (existing?.kyc_video_url) profileData.kyc_video_url = existing.kyc_video_url;
+
   // Only set is_approved for new users (not existing partners)
   if (!isExistingPartner) {
-    profileData.is_approved = true;
+    profileData.is_approved = existing?.is_approved ?? true;
   }
 
   await supabase.from('users').upsert(profileData, { onConflict: 'id' });
@@ -108,7 +112,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password,
         options: { data: { full_name: displayName } },
       });
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('User already registered') || error.message.includes('already exists')) {
+          // Attempt sign in instead
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+          if (signInError) {
+            if (signInError.message.includes('Invalid login credentials')) {
+              throw new Error('Email already registered. If this is your account, please enter the correct password, or go to Sign In.');
+            }
+            throw signInError;
+          }
+          if (signInData.user) {
+            await upsertUserProfile(signInData.user);
+            return;
+          }
+        }
+        throw error;
+      }
       if (data.user) await upsertUserProfile(data.user);
     },
     signInWithGoogle: async () => {

@@ -6,7 +6,7 @@ import {
   ScrollView,
   Dimensions,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
@@ -45,6 +45,7 @@ const roles = [
 export default function RoleScreen() {
   const [selected, setSelected] = useState<UserRole | null>(null);
   const { setProfile } = useAuthStore();
+  const insets = useSafeAreaInsets();
 
   const handleContinue = () => {
     if (!selected) return;
@@ -53,7 +54,7 @@ export default function RoleScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <ArrowLeft color={Colors.text} size={22} />
@@ -149,7 +150,7 @@ export default function RoleScreen() {
           </LinearGradient>
         </TouchableOpacity>
       </View>
-    </SafeAreaView>
+    </View>
   );
 }
 

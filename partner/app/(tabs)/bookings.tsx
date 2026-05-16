@@ -23,7 +23,7 @@ import {
   type BookingRequest,
   type BookingStatus,
 } from '../../services/firestore';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { 
   Clock, 
   CheckCircle2, 
@@ -420,7 +420,24 @@ function BookingItem({
   });
 
   return (
-    <View style={biStyles.card}>
+    <TouchableOpacity 
+      style={biStyles.card}
+      activeOpacity={0.7}
+      onPress={() => {
+        router.push({
+          pathname: '/more/costumerDetails',
+          params: { 
+            bookingId: booking.id, 
+            guestName: booking.guestName, 
+            date: booking.date, 
+            note: booking.note, 
+            type: booking.type, 
+            status: booking.status, 
+            price: booking.price 
+          }
+        });
+      }}
+    >
       <View style={biStyles.cardHeader}>
         <View style={biStyles.typeInfo}>
           {booking.type === 'guide' && <Compass size={14} color={Colors.textMuted} />}
@@ -490,7 +507,7 @@ function BookingItem({
           </View>
         )}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

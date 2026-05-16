@@ -15,7 +15,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { updateUserProfile } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { TextField, MultiSelectDropdown, SingleSelectDropdown } from '../../components/FormFields';
 
@@ -130,6 +130,7 @@ export default function ProfileSetupScreen2() {
   const { user, profile, setProfile } = useAuthStore();
   const params = useLocalSearchParams();
   const [formData, setFormData] = useState<Record<string, any>>(params.formData ? JSON.parse(params.formData as string) : {});
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
 
   const role = profile?.role ?? 'guide';
@@ -195,7 +196,7 @@ export default function ProfileSetupScreen2() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <View style={[styles.safe, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -248,7 +249,7 @@ export default function ProfileSetupScreen2() {
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
-    </SafeAreaView>
+    </View>
   );
 }
 
