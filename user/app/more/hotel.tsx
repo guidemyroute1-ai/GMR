@@ -43,6 +43,8 @@ interface Hotel {
   maxOccupancy?: string;
   floorView?: string;
   cancellation?: string;
+  partnerName?: string;
+  partnerDesc?: string;
 }
 
 export interface ReviewItem {
@@ -63,6 +65,7 @@ export default function HotelDetailScreen() {
   const [reviewsList, setReviewsList] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [fullScreenIndex, setFullScreenIndex] = useState<number | null>(null);
+  const [partnerListings, setPartnerListings] = useState<{ id: string; name: string; type: string; price: number; image: string; rating: number }[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -78,6 +81,40 @@ export default function HotelDetailScreen() {
 
         if (!error && row) {
           const propertyType = row.details?.roomType || row.details?.propertyType || 'Hotel Room';
+
+          // Fetch partner name from users table via partner_id
+          let partnerName: string | undefined;
+          if (row.partner_id) {
+            const { data: partnerRow } = await supabase
+              .from('users')
+              .select('name')
+              .eq('id', row.partner_id)
+              .single();
+            partnerName = partnerRow?.name || undefined;
+
+            // Fetch other listings by the same partner
+            const { data: moreRows } = await supabase
+              .from('listings')
+              .select('id, title, details, price, images')
+              .eq('partner_id', row.partner_id)
+              .eq('is_active', true)
+              .neq('id', row.id)
+              .limit(10);
+
+            if (moreRows && moreRows.length > 0) {
+              setPartnerListings(
+                moreRows.map((r: any) => ({
+                  id: r.id,
+                  name: r.title || 'Unnamed Stay',
+                  type: r.details?.roomType || r.details?.propertyType || 'Stay',
+                  price: r.price || 0,
+                  image: r.images?.[0] || '',
+                  rating: r.details?.rating || 4.5,
+                }))
+              );
+            }
+          }
+
           setHotel({
             id: row.id,
             name: row.title || 'Unknown Stay',
@@ -98,6 +135,8 @@ export default function HotelDetailScreen() {
             maxOccupancy: row.details?.maxOccupancy || '',
             floorView: row.details?.floorView || '',
             cancellation: row.details?.cancellation || '',
+            partnerName: partnerName || row.details?.partnerName || row.details?.provider,
+            partnerDesc: row.details?.partnerDesc || 'This stay is managed and verified by our premium booking partner, ensuring a seamless experience.',
           });
         }
 
@@ -304,13 +343,15 @@ export default function HotelDetailScreen() {
               <View style={styles.amenitiesList}>
                 {hotel.amenities.map((item: string, index: number) => (
                   <View key={index} style={styles.amenityItem}>
-                    <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
+                    <Ionicons name="checkmark-circle" size={24} color="#16A34A" />
                     <Text style={styles.amenityText}>{item}</Text>
                   </View>
                 ))}
               </View>
             </View>
           )}
+
+      
           {hotel.images && hotel.images.length > 0 && (
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>Photo Gallery</Text>
@@ -331,6 +372,64 @@ export default function HotelDetailScreen() {
               </ScrollView>
             </View>
           )}
+
+
+
+
+              {/* Partner Info */}
+          {hotel.partnerName && (
+            <View style={[styles.section, styles.partnerSection]}>
+              <Text style={styles.sectionTitle}>Booking Partner</Text>
+              <View style={styles.partnerCard}>
+                <View style={styles.partnerIconBg}>
+                  <Ionicons name="business" size={24} color="#3B82F6" />
+                </View>
+                <View style={styles.partnerInfo}>
+                  <Text style={styles.partnerName}>{hotel.partnerName}</Text>
+                  <Text style={styles.partnerDesc}>
+                    {hotel.partnerDesc}
+                  </Text>
+                </View>
+                <Ionicons name="shield-checkmark" size={24} color="#10B981" style={styles.partnerBadge} />
+              </View>
+            </View>
+          )}
+
+          {/* ── More from Partner ── */}
+          {partnerListings.length > 0 && hotel?.partnerName && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>More from {hotel.partnerName}</Text>
+              {partnerListings.map((item) => (
+                <TouchableOpacity
+                  key={item.id}
+                  style={styles.partnerListingCard}
+                  activeOpacity={0.85}
+                  onPress={() => router.push({ pathname: '/more/hotel', params: { id: item.id } })}
+                >
+                  <ExpoImage
+                    source={{ uri: item.image }}
+                    style={styles.partnerListingImage}
+                    contentFit="cover"
+                  />
+                  <View style={styles.partnerListingInfo}>
+                    <Text style={styles.partnerListingName} numberOfLines={1}>{item.name}</Text>
+                    <Text style={styles.partnerListingType}>{item.type}</Text>
+                    <View style={styles.partnerListingMeta}>
+                      <View style={styles.partnerListingRating}>
+                        <Ionicons name="star" size={12} color="#F59E0B" />
+                        <Text style={styles.partnerListingRatingText}>{item.rating.toFixed(1)}</Text>
+                      </View>
+                      {item.price > 0 && (
+                        <Text style={styles.partnerListingPrice}>₹{item.price.toLocaleString('en-IN')}/night</Text>
+                      )}
+                    </View>
+                  </View>
+                  <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
           {/* ── Guest Reviews ── */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Guest Reviews</Text>
@@ -689,19 +788,76 @@ const styles = StyleSheet.create({
 
   // Amenities
   amenitiesList: {
-    gap: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    justifyContent: 'space-between',
   },
   amenityItem: {
-    flexDirection: 'row',
+    width: '23%',
+    flexDirection: 'column',
     alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F9FAFB',
+    paddingVertical: 12,
+    paddingHorizontal: 8,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
+    borderColor: '#E5E7EB',
   },
   amenityText: {
-    fontSize: 15,
+    fontSize: 11,
     color: '#374151',
-    fontWeight: '500',
-    marginLeft: 12,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   
+  // Partner Info
+  partnerSection: {
+    marginTop: 4,
+  },
+  partnerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F0F9FF',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E0F2FE',
+  },
+  partnerIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  partnerInfo: {
+    flex: 1,
+  },
+  partnerName: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E3A8A',
+    marginBottom: 4,
+  },
+  partnerDesc: {
+    fontSize: 13,
+    color: '#3B82F6',
+    lineHeight: 18,
+  },
+  partnerBadge: {
+    marginLeft: 12,
+  },
+
   // Gallery
   galleryContainer: {
     gap: 12,
@@ -873,5 +1029,59 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 16,
+  },
+
+  // Partner Listings
+  partnerListingCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  partnerListingImage: {
+    width: 80,
+    height: 80,
+    backgroundColor: '#E5E7EB',
+  },
+  partnerListingInfo: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  partnerListingName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  partnerListingType: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '500',
+    marginBottom: 6,
+  },
+  partnerListingMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  partnerListingRating: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  partnerListingRatingText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#92400E',
+  },
+  partnerListingPrice: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#16A34A',
   },
 });

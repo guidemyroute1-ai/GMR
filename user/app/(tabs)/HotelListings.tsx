@@ -1,23 +1,23 @@
-import { Text } from '../../components/Text';
 import { useRouter } from 'expo-router';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  FlatList,
-  RefreshControl,
   ActivityIndicator,
+  FlatList,
   Image,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from 'react-native';
+import { Text } from '../../components/Text';
 
-import { MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-import { supabase } from '../../utils/supabase';
-import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
 import { useLocation } from '../../contexts/LocationContext';
+import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
+import { supabase } from '../../utils/supabase';
 
 // ─── Color Palette ─────────────────────────────────────────────────────────────
 const COLORS = {
@@ -124,7 +124,7 @@ const HotelCard = ({ hotel }: { hotel: Hotel }) => {
             <Text style={styles.hotelEmoji}>{hotel.emoji}</Text>
           </View>
         )}
-        
+
         {/* Gradient Overlay for text readability if we add anything at the bottom of the image, and subtle dark overlay on top */}
         <View style={styles.imageGradientTop} />
         <View style={styles.imageGradientBottom} />
@@ -132,16 +132,16 @@ const HotelCard = ({ hotel }: { hotel: Hotel }) => {
         {/* Top Overlay: Badges and Heart */}
         <View style={styles.imageOverlayTop}>
           {isGenius ? (
-             <View style={styles.geniusBadge}>
-                <Ionicons name="sparkles" size={12} color="#FBBF24" style={{ marginRight: 4 }} />
-                <Text style={styles.geniusText}>Premium</Text>
-             </View>
-          ) : <View/>}
+            <View style={styles.geniusBadge}>
+              <Ionicons name="sparkles" size={12} color="#FBBF24" style={{ marginRight: 4 }} />
+              <Text style={styles.geniusText}>Premium</Text>
+            </View>
+          ) : <View />}
           <TouchableOpacity style={styles.heartButton} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
             <Ionicons name="heart-outline" size={22} color="#FFFFFF" />
           </TouchableOpacity>
         </View>
-        
+
         {/* Bottom Overlay: Rating and Deal */}
         <View style={styles.imageOverlayBottom}>
           <View style={styles.dealBadge}>
@@ -182,16 +182,16 @@ const HotelCard = ({ hotel }: { hotel: Hotel }) => {
 
         {/* Footer: Reviews and Price */}
         <View style={styles.footerRow}>
-           <View style={styles.reviewsContainer}>
-             <Text style={styles.scoreText}>{scoreText}</Text>
-             <Text style={styles.reviewCountText}>{hotel.reviews} verified reviews</Text>
-           </View>
-           <View style={styles.priceContainer}>
-             <View style={styles.priceRow}>
-               <Text style={styles.originalPrice}>₹{originalPrice.toLocaleString()}</Text>
-               <Text style={styles.currentPrice}>₹{hotel.pricePerNight.toLocaleString()}</Text>
-             </View>
-           </View>
+          <View style={styles.reviewsContainer}>
+            <Text style={styles.scoreText}>{scoreText}</Text>
+            <Text style={styles.reviewCountText}>{hotel.reviews} verified reviews</Text>
+          </View>
+          <View style={styles.priceContainer}>
+            <View style={styles.priceRow}>
+              <Text style={styles.originalPrice}>₹{originalPrice.toLocaleString()}</Text>
+              <Text style={styles.currentPrice}>₹{hotel.pricePerNight.toLocaleString()}</Text>
+            </View>
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -291,7 +291,7 @@ export default function HotelListingsScreen() {
   return (
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-    
+
 
       <View style={styles.filterTabsContainer}>
         <View style={styles.cityFilterRow}>
@@ -322,7 +322,7 @@ export default function HotelListingsScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      
+
       </View>
 
       {loading ? (
@@ -543,7 +543,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 80,
-   // backgroundColor: 'rgba(0,0,0,0.4)',
+    // backgroundColor: 'rgba(0,0,0,0.4)',
   },
   hotelEmoji: {
     fontSize: 80,

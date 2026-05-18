@@ -109,13 +109,20 @@ export async function createUserDoc(uid: string, name: string, email: string, ph
   // First, check if the user already exists
   const { data: existingUser } = await supabase.from('users').select('*').eq('id', uid).maybeSingle();
 
+  // If the user existed with a non-partner role (e.g. 'user') and is now
+  // registering as a partner, reset is_onboarded to false so they complete
+  // the full partner onboarding flow.
+  const partnerRoles = ['guide', 'hotel', 'rental'];
+  const wasNonPartner = existingUser && !partnerRoles.includes(existingUser.role);
+  const isUpgradingToPartner = partnerRoles.includes(role);
+
   const { error } = await supabase.from('users').upsert({
     id: uid,
     name,
     email,
     phone,
     role, // Keep their role updated to partner role
-    is_onboarded: existingUser?.is_onboarded ?? false,
+    is_onboarded: (wasNonPartner && isUpgradingToPartner) ? false : (existingUser?.is_onboarded ?? false),
     is_approved: existingUser?.is_approved ?? false,
     has_uploaded_docs: existingUser?.has_uploaded_docs ?? false,
     profile_data: existingUser?.profile_data || {},

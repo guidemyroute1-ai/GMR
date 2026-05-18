@@ -158,6 +158,14 @@ export default function RootLayout() {
     const isAtDashboard = inTabsGroup && routeSegments[1] === 'dashboard';
     const isUploadDocs = inOnboardingGroup && routeSegments[1] === 'upload-docs';
 
+    // A user is "partner-ready" only when they have completed partner onboarding
+    // AND have a valid partner role (guide/hotel/rental). Users coming from the
+    // user app will have is_onboarded=true but role='user' — they still need
+    // to go through the partner onboarding flow.
+    const partnerRoles = ['guide', 'hotel', 'rental'];
+    const hasPartnerRole = !!profile?.role && partnerRoles.includes(profile.role);
+    const isPartnerReady = !!profile?.isOnboarded && hasPartnerRole;
+
     let target: string | null = null;
 
     if (!userUid) {
@@ -165,13 +173,13 @@ export default function RootLayout() {
       if (!inAuthGroup && !inOnboardingGroup) {
         target = '/auth/login';
       }
-    } else if (!profile?.isOnboarded) {
-      // Logged in but not onboarded: force to onboarding
+    } else if (!isPartnerReady) {
+      // Logged in but not partner-onboarded: force to onboarding
       if (!inOnboardingGroup) {
         target = '/onboarding';
       }
     } else {
-      // User is logged in and onboarded: force to tabs
+      // User is logged in and partner-onboarded: force to tabs
       if (!inTabsGroup && !isUploadDocs) {
         target = '/(tabs)/dashboard';
       }
@@ -187,12 +195,12 @@ export default function RootLayout() {
         router.replace(target as any);
       }, 0);
     }
-  }, [isInitialized, isProfileLoading, navigationState?.key, userUid, profile?.isOnboarded, segments]);
+  }, [isInitialized, isProfileLoading, navigationState?.key, userUid, profile?.isOnboarded, profile?.role, segments]);
 
   // Reset redirect tracking only when auth state changes (not on tab switches)
   useEffect(() => {
     lastRedirect.current = null;
-  }, [userUid, profile?.isOnboarded]);
+  }, [userUid, profile?.isOnboarded, profile?.role]);
 
   useEffect(() => {
     if (!userUid || !isInitialized) return;

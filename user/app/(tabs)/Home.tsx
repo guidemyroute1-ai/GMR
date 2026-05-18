@@ -56,7 +56,7 @@ const SHADOWS = {
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.12,
     shadowRadius: 16,
-    elevation: 8,
+    elevation: 10,
   },
 };
 
@@ -82,7 +82,7 @@ interface Vehicle {
 interface Category {
   id: string;
   label: string;
-  emoji: string;
+  icon: React.ComponentProps<typeof Ionicons>['name'];
   color: string;
 }
 
@@ -90,9 +90,9 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Mock Data for fallback or other categories
 const BANNERS = [
-  { id: '1', source: require('../../assets/images/banner1.jpeg') },
-  { id: '2', source: require('../../assets/images/banner2.jpeg') },
-  { id: '3', source: require('../../assets/images/banner3.jpeg') },
+  { id: '1', source: require('../../assets/images/banner.png') },
+  { id: '2', source: require('../../assets/images/banner2.png') },
+  { id: '3', source: require('../../assets/images/banner3.png') },
 ];
 
 const VEHICLES: Vehicle[] = [
@@ -102,10 +102,45 @@ const VEHICLES: Vehicle[] = [
 ];
 
 const CATEGORIES: Category[] = [
-  { id: '1', label: 'Food Tours', emoji: '🍽️', color: '#FEF3C7' },
-  { id: '2', label: 'City Walks', emoji: '🚶', color: '#DBEAFE' },
-  { id: '3', label: 'Adventure', emoji: '⛰️', color: '#DCFCE7' },
-  { id: '4', label: 'Hidden Gems', emoji: '💎', color: '#F3E8FF' },
+  { id: '1', label: 'Food Tours', icon: 'restaurant-outline', color: '#FEF3C7' },
+  { id: '2', label: 'City Walks', icon: 'walk-outline', color: '#DBEAFE' },
+  { id: '3', label: 'Adventure', icon: 'trail-sign-outline', color: '#DCFCE7' },
+  { id: '4', label: 'Hidden Gems', icon: 'diamond-outline', color: '#F3E8FF' },
+  { id: '5', label: 'Night Life', icon: 'moon-outline', color: '#FEE2E2' },
+  { id: '6', label: 'Photography', icon: 'camera-outline', color: '#E0F2FE' },
+];
+
+const TRUST_POINTS = [
+  { id: '1', value: 'Verified', label: 'local partners' },
+  { id: '2', value: 'Fast', label: 'booking flow' },
+  { id: '3', value: 'City', label: 'based picks' },
+];
+
+const SERVICE_SHORTCUTS = [
+  {
+    id: 'guides',
+    title: 'Find a guide',
+    subtitle: 'Local experts nearby',
+    icon: 'people-outline' as const,
+    color: '#DCFCE7',
+    iconColor: '#15803D',
+  },
+  {
+    id: 'rentals',
+    title: 'Rent a ride',
+    subtitle: 'Scooty, bike or car',
+    icon: 'bicycle-outline' as const,
+    color: '#E0F2FE',
+    iconColor: '#0284C7',
+  },
+  {
+    id: 'hotels',
+    title: 'Book stays',
+    subtitle: 'Comfortable city stays',
+    icon: 'bed-outline' as const,
+    color: '#FFF7ED',
+    iconColor: '#EA580C',
+  },
 ];
 
 // ─── Reusable Star Rating ─────────────────────────────────────────────────────
@@ -219,32 +254,69 @@ const VehicleCard = ({ vehicle, city }: { vehicle: Vehicle; city?: string }) => 
   );
 };
 
-// ─── Category Pill ────────────────────────────────────────────────────────────
-const CategoryPill = ({ category }: { category: Category }) => (
+// ─── Category Card ───────────────────────────────────────────────────────────
+const CATEGORY_SUBTITLES: Record<string, string> = {
+  'Food Tours':   'Taste the culture',
+  'City Walks':   'Explore on foot',
+  'Adventure':    'Thrill awaits',
+  'Hidden Gems':  'Off the beaten path',
+  'Night Life':   'After dark fun',
+  'Photography':  'Capture memories',
+};
+
+const CategoryCard = ({ category }: { category: Category }) => (
   <TouchableOpacity
-    style={[styles.categoryPill, { backgroundColor: category.color }]}
-    activeOpacity={0.8}
+    style={[styles.categoryCard, { backgroundColor: category.color }]}
+    activeOpacity={0.82}
   >
-    <Text style={styles.categoryEmoji}>{category.emoji}</Text>
-    <Text style={styles.categoryLabel}>{category.label}</Text>
+    <View style={styles.categoryIconWrap}>
+      <Ionicons name={category.icon} size={22} color={COLORS.darkGray} />
+    </View>
+    <Text style={styles.categoryCardLabel}>{category.label}</Text>
+    <Text style={styles.categoryCardSub}>{CATEGORY_SUBTITLES[category.label] ?? ''}</Text>
   </TouchableOpacity>
 );
 
+const ServiceShortcut = ({
+  item,
+  onPress,
+}: {
+  item: typeof SERVICE_SHORTCUTS[number];
+  onPress: () => void;
+}) => (
+  <TouchableOpacity style={styles.serviceShortcut} activeOpacity={0.86} onPress={onPress}>
+    <View style={[styles.serviceIconWrap, { backgroundColor: item.color }]}>
+      <Ionicons name={item.icon} size={22} color={item.iconColor} />
+    </View>
+    <View style={styles.serviceTextWrap}>
+      <Text style={styles.serviceTitle} numberOfLines={1}>{item.title}</Text>
+        <Ionicons name="chevron-forward" size={17} color={COLORS.mediumGray} />
+    </View>
 
+  </TouchableOpacity>
+);
 
 // ─── Section Header ───────────────────────────────────────────────────────────
 const SectionHeader = ({
   title,
+  subtitle,
   onSeeAll,
 }: {
   title: string;
+  subtitle?: string;
   onSeeAll?: () => void;
 }) => (
   <View style={styles.sectionHeader}>
-    <Text style={styles.sectionTitle}>{title}</Text>
+    <View>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {subtitle ? <Text style={styles.sectionSubtitle}>{subtitle}</Text> : null}
+    </View>
     {onSeeAll && (
       <TouchableOpacity onPress={onSeeAll} activeOpacity={0.7}>
-        <Text style={styles.seeAllText}>See All &gt;</Text>
+        <View style={styles.seeAllPill}>
+          <Text style={styles.seeAllText}>See all</Text>
+          <Ionicons name="arrow-forward" size={13} color={COLORS.primary} />
+        </View>
       </TouchableOpacity>
     )}
   </View>
@@ -323,17 +395,7 @@ export default function HomeScreen() {
     <View style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
-
-
-      {/* ── Location Selector ── */}
-      <TouchableOpacity style={styles.locationBar} activeOpacity={0.8} onPress={() => setShowCitySelector(true)}>
-        <ExpoImage source={require('../../assets/svg/location-pin-svgrepo-com.svg')} style={{ width: 16, height: 16, marginRight: 6, tintColor: COLORS.darkGray }} contentFit="contain" />
-        <Text style={styles.locationText}>{selectedCity || 'Select city'}</Text>
-        <Text style={styles.locationChevron}>▾</Text>
-      </TouchableOpacity>
-
-
-
+     
 
 
       {/* ── Scrollable Content ── */}
@@ -350,6 +412,16 @@ export default function HomeScreen() {
           />
         }
       >
+       {/* ── Location Selector ── */}
+      <View style={styles.locationBar}>
+        <TouchableOpacity style={styles.loc} activeOpacity={0.8} onPress={() => setShowCitySelector(true)}>
+          <ExpoImage source={require('../../assets/svg/location-pin-svgrepo-com.svg')} style={{ width: 16, height: 16, marginRight: 6, tintColor: COLORS.darkGray }} contentFit="contain" />
+          <Text style={styles.locationText}>{selectedCity || 'Select city'}</Text>
+          <Ionicons name="chevron-down" size={16} color={COLORS.mediumGray} />
+        </TouchableOpacity>
+      </View>
+      {/* <View style={styles.divider} /> */}
+
         <View style={styles.searchContainer}>
           <TextInput
             style={styles.searchInput}
@@ -362,6 +434,8 @@ export default function HomeScreen() {
             <ExpoImage source={require('../../assets/svg/search-svgrepo-com.svg')} style={{ width: 20, height: 20, tintColor: COLORS.white }} contentFit="contain" />
           </TouchableOpacity>
         </View>
+
+ 
 
         <View style={styles.heroPanel}>
           <FlatList
@@ -385,9 +459,10 @@ export default function HomeScreen() {
                 <ExpoImage
                   source={item.source}
                   style={styles.heroImage}
-                  contentFit="contain"
+                  contentFit="cover"
                   transition={300}
                 />
+             
               </View>
             )}
           />
@@ -404,10 +479,29 @@ export default function HomeScreen() {
           </View>
         </View>
 
-        {/* Search Bar */}
+
+               <View style={styles.serviceGrid}>
+          {SERVICE_SHORTCUTS.map((item) => (
+            <ServiceShortcut
+              key={item.id}
+              item={item}
+              onPress={() => {
+                if (item.id === 'guides') {
+                  router.push({ pathname: '/(tabs)/AllGuides', params: { city: selectedCity } });
+                } else if (item.id === 'rentals') {
+                  router.push({ pathname: '/(tabs)/RentAVehicle', params: { city: selectedCity } });
+                } else {
+                  router.push({ pathname: '/(tabs)/HotelListings', params: { city: selectedCity } });
+                }
+              }}
+            />
+          ))}
+        </View>
+
+     
 
         {/* ── Featured Guides ── */}
-        <SectionHeader title="Featured Guides" onSeeAll={() => router.push({ pathname: '/(tabs)/AllGuides', params: { city: selectedCity } })} />
+        <SectionHeader title="Featured Guides" subtitle="Book trusted local help" onSeeAll={() => router.push({ pathname: '/(tabs)/AllGuides', params: { city: selectedCity } })} />
         <FlatList
           data={guides}
           keyExtractor={(item) => item.id}
@@ -417,13 +511,25 @@ export default function HomeScreen() {
           renderItem={({ item }) => <GuideCard guide={item} />}
           ListEmptyComponent={
             !loadingGuides ? (
-              <Text style={{ marginLeft: 16, color: COLORS.mediumGray }}>No guides available</Text>
+              <View style={styles.emptyGuidesCard}>
+                <Ionicons name="people-outline" size={24} color={COLORS.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.emptyGuidesTitle}>No featured guides yet</Text>
+                  <Text style={styles.emptyGuidesText}>Check all guides or try another city.</Text>
+                </View>
+                <TouchableOpacity
+                  style={styles.emptyGuidesButton}
+                  onPress={() => router.push({ pathname: '/(tabs)/AllGuides', params: { city: selectedCity } })}
+                >
+                  <Text style={styles.emptyGuidesButtonText}>View</Text>
+                </TouchableOpacity>
+              </View>
             ) : null
           }
         />
 
         {/* ── Rent a Vehicle ── */}
-        <SectionHeader title="Rent a Vehicle" onSeeAll={() => router.push({ pathname: '/(tabs)/RentAVehicle', params: { city: selectedCity } })} />
+        <SectionHeader title="Rent a Vehicle" subtitle="Flexible rides for city travel" onSeeAll={() => router.push({ pathname: '/(tabs)/RentAVehicle', params: { city: selectedCity } })} />
         <FlatList
           data={VEHICLES}
           keyExtractor={(item) => item.id}
@@ -434,27 +540,45 @@ export default function HomeScreen() {
         />
 
         {/* ── Quick Categories ── */}
-        <SectionHeader title="Quick Categories" />
+        <SectionHeader title="Quick Categories" subtitle="Jump into high intent travel plans" />
         <View style={styles.categoriesGrid}>
           {CATEGORIES.map((cat) => (
-            <CategoryPill key={cat.id} category={cat} />
+            <CategoryCard key={cat.id} category={cat} />
           ))}
         </View>
 
         {/* ── Promo Banner ── */}
-        <View style={styles.promoBanner}>
+        <LinearGradient
+          colors={['#14532D', '#16A34A']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.promoBanner}
+        >
+          {/* Decorative circles */}
+          <View style={styles.promoCircle1} />
+          <View style={styles.promoCircle2} />
+
           <View style={styles.promoContent}>
-            <Text style={styles.promoTag}>Limited offer</Text>
-            <Text style={styles.promoTitle}>Free delivery</Text>
+            <View style={styles.promoTagPill}
+            >
+              <Ionicons name="sparkles-outline" size={13} color={COLORS.white} />
+              <Text style={styles.promoTag}>Limited Offer</Text>
+            </View>
+            <Text style={styles.promoTitle}>Free Delivery</Text>
             <Text style={styles.promoSubtitle}>
-              We'll deliver your rented vehicle to your location!
+              We'll bring the vehicle straight to your door.
             </Text>
+            <View style={styles.promoTrustRow}>
+              <Ionicons name="time-outline" size={13} color="rgba(255,255,255,0.82)" />
+              <Text style={styles.promoTrustText}>Reserve now, ride when ready</Text>
+            </View>
             <TouchableOpacity
               style={styles.promoBtn}
               activeOpacity={0.85}
               onPress={() => router.push({ pathname: '/(tabs)/RentAVehicle', params: { city: selectedCity } })}
             >
               <Text style={styles.promoBtnText}>Explore Rentals</Text>
+              <Ionicons name="arrow-forward" size={14} color="#14532D" />
             </TouchableOpacity>
           </View>
           <View style={styles.promoImageWrap}>
@@ -464,7 +588,7 @@ export default function HomeScreen() {
               resizeMode="contain"
             />
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Bottom padding for tab bar */}
         <View style={{ height: 20 }} />
@@ -564,28 +688,41 @@ const styles = StyleSheet.create({
   },
 
   // Location Bar
-  locationBar: {
+locationBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 10,
-    backgroundColor: COLORS.lightGray,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
+   backgroundColor: COLORS.lightGray,
   },
   locationPin: {
     fontSize: 16,
     marginRight: 6,
   },
   locationText: {
-    flex: 1,
     fontSize: 14,
     fontWeight: '600',
     color: COLORS.darkGray,
+    marginRight: 6,
   },
   locationChevron: {
     fontSize: 16,
     color: COLORS.mediumGray,
+  },
+  loc: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.borderGray,
+    ...SHADOWS.small,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.borderGray,
   },
   cityOverlay: {
     flex: 1,
@@ -632,24 +769,88 @@ const styles = StyleSheet.create({
     paddingBottom: 20,
   },
 
+  introPanel: {
+    marginHorizontal: 16,
+    marginTop: 14,
+    padding: 18,
+    borderRadius: 22,
+    backgroundColor: COLORS.white,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    ...SHADOWS.small,
+  },
+  introKicker: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.primary,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+  },
+  introTitle: {
+    fontSize: 24,
+    lineHeight: 30,
+    fontWeight: '900',
+    color: COLORS.darkGray,
+    marginBottom: 8,
+  },
+  introSubtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    fontWeight: '500',
+    color: COLORS.mediumGray,
+  },
+  trustRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 16,
+  },
+  trustItem: {
+    flex: 1,
+    minHeight: 58,
+    borderRadius: 14,
+    backgroundColor: '#F8FAFC',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    paddingHorizontal: 10,
+    paddingVertical: 10,
+    justifyContent: 'center',
+  },
+  trustValue: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: COLORS.darkGray,
+    marginBottom: 3,
+  },
+  trustLabel: {
+    fontSize: 10,
+    lineHeight: 13,
+    fontWeight: '600',
+    color: COLORS.mediumGray,
+  },
+
   heroPanel: {
     marginHorizontal: 16,
-    marginTop: 16,
+    marginTop: 14,
     marginBottom: 16,
     borderRadius: 22,
     overflow: 'hidden',
-    height: 180,
-    ...SHADOWS.medium,
+    height: 190,
+    ...SHADOWS.large,
     backgroundColor: COLORS.white,
     position: 'relative',
+    borderWidth: 2,
+    borderColor: COLORS.borderGray,
   },
   heroSlide: {
     width: SCREEN_WIDTH - 32,
-    height: 180,
+    height: 190,
   },
   heroImage: {
     width: '100%',
     height: '100%',
+  },
+  heroOverlay: {
+    ...StyleSheet.absoluteFillObject,
   },
   paginationDots: {
     flexDirection: 'row',
@@ -669,11 +870,11 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primary,
   },
   heroCopy: {
-    position: 'relative',
-    zIndex: 1,
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     padding: 18,
-    paddingRight: 96,
-    minHeight: 170,
     justifyContent: 'flex-end',
   },
   heroKicker: {
@@ -684,9 +885,10 @@ const styles = StyleSheet.create({
   },
   heroTitle: {
     color: COLORS.white,
-    fontSize: 25,
-    lineHeight: 31,
+    fontSize: 22,
+    lineHeight: 28,
     fontWeight: '900',
+    maxWidth: 260,
   },
   heroMetaRow: {
     flexDirection: 'row',
@@ -694,6 +896,9 @@ const styles = StyleSheet.create({
     marginTop: 14,
   },
   heroMetaChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 999,
@@ -717,7 +922,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: '#E2E8F0',
-    marginTop: 12,
+    marginTop: 4,
     ...SHADOWS.small,
   },
   searchInput: {
@@ -743,13 +948,57 @@ const styles = StyleSheet.create({
     fontSize: 18,
   },
 
+  serviceGrid: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    gap: 8,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  serviceShortcut: {
+    minHeight: 75,
+    flexDirection: 'column',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 13,
+    gap: 5,
+    ...SHADOWS.small,
+  },
+  serviceIconWrap: {
+    width: 44,
+    height: 44,
+    borderRadius: 13,
+    alignItems: 'center',
+    justifyContent: 'center',
+
+  },
+  serviceTextWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  serviceTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    color: COLORS.darkGray,
+
+  },
+  serviceSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.mediumGray,
+  },
+
   // Section Header
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingTop: 0,
+    paddingTop: 20,
     paddingBottom: 12,
   },
   sectionTitle: {
@@ -758,9 +1007,33 @@ const styles = StyleSheet.create({
     color: COLORS.darkGray,
     letterSpacing: -0.2,
   },
+  sectionSubtitle: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.mediumGray,
+    marginTop: 4,
+  },
+  seeAllPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+
+    backgroundColor: '#DCFCE7',
+    borderWidth: 1,
+    borderRadius: 12,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+
+    borderColor: COLORS.primary,
+  },
   seeAllText: {
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: '800',
     color: COLORS.primary,
   },
 
@@ -769,6 +1042,44 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingRight: 8,
     paddingBottom: 12,
+  },
+
+  emptyGuidesCard: {
+    width: SCREEN_WIDTH - 32,
+    minHeight: 76,
+    marginLeft: 16,
+    marginRight: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    padding: 14,
+    ...SHADOWS.small,
+  },
+  emptyGuidesTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    marginBottom: 4,
+  },
+  emptyGuidesText: {
+    fontSize: 12,
+    fontWeight: '500',
+    color: COLORS.mediumGray,
+  },
+  emptyGuidesButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+  },
+  emptyGuidesButtonText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '800',
   },
 
   // Guide Card
@@ -929,7 +1240,7 @@ const styles = StyleSheet.create({
     color: COLORS.mediumGray,
   },
 
-  // Quick Categories
+  // Quick Categories — Card Grid
   categoriesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -937,6 +1248,35 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 8,
   },
+  categoryCard: {
+    width: '47.5%',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(31,41,55,0.07)',
+  },
+  categoryIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.62)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  categoryCardLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: COLORS.darkGray,
+    marginBottom: 2,
+  },
+  categoryCardSub: {
+    fontSize: 11,
+    color: COLORS.mediumGray,
+    fontWeight: '500',
+  },
+  // kept for any legacy refs
   categoryPill: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -956,67 +1296,108 @@ const styles = StyleSheet.create({
     color: COLORS.darkGray,
   },
 
-  // Promo Banner
+  // Promo Banner — upgraded
   promoBanner: {
     flexDirection: 'row',
-    backgroundColor: COLORS.primary,
-    borderRadius: 22,
+    borderRadius: 24,
     marginHorizontal: 16,
     marginTop: 16,
-    padding: 18,
+    padding: 20,
     overflow: 'hidden',
-    borderWidth: 0,
     ...SHADOWS.medium,
-    shadowColor: COLORS.primary, // Custom colored shadow for promo
+    shadowColor: '#14532D',
+  },
+  promoCircle1: {
+    position: 'absolute',
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    top: -50,
+    right: -30,
+  },
+  promoCircle2: {
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: 'rgba(255,255,255,0.05)',
+    bottom: -30,
+    left: 60,
   },
   promoContent: {
     flex: 1,
     justifyContent: 'center',
   },
+  promoTagPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 20,
+    marginBottom: 8,
+  },
   promoTag: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-    color: 'rgba(255,255,255,0.8)',
-    marginBottom: 4,
+    color: 'rgba(255,255,255,0.95)',
   },
   promoTitle: {
     fontSize: 22,
     fontWeight: '800',
     color: COLORS.white,
     letterSpacing: -0.5,
-    marginBottom: 4,
+    marginBottom: 5,
   },
   promoSubtitle: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.78)',
-    lineHeight: 17,
+    color: 'rgba(255,255,255,0.75)',
+    lineHeight: 18,
+    marginBottom: 8,
+  },
+  promoTrustRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
     marginBottom: 14,
   },
+  promoTrustText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: 'rgba(255,255,255,0.82)',
+  },
   promoBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
     backgroundColor: COLORS.white,
     paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    paddingHorizontal: 18,
+    borderRadius: 10,
     alignSelf: 'flex-start',
   },
   promoBtnText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
+    fontWeight: '800',
+    color: '#14532D',
+    letterSpacing: 0.2,
   },
   promoImageWrap: {
-    width: 100,
-    height: 100,
-    backgroundColor: 'rgba(255,255,255,0.15)',
-    borderRadius: 18,
+    width: 105,
+    height: 105,
+    backgroundColor: 'rgba(255,255,255,0.12)',
+    borderRadius: 20,
     alignItems: 'center',
     justifyContent: 'center',
     marginLeft: 12,
     alignSelf: 'center',
   },
   promoImage: {
-    width: 94,
-    height: 82,
+    width: 96,
+    height: 86,
   },
 
   // Bottom Tab Bar

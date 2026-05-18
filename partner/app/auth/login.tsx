@@ -46,7 +46,9 @@ export default function LoginScreen() {
 
       // _layout.tsx handles the actual redirection logic, but we can
       // trigger an initial push here to speed up the UX.
-      if (!profile?.isOnboarded) {
+      const partnerRoles = ['guide', 'hotel', 'rental'];
+      const isPartnerReady = profile?.isOnboarded && profile?.role && partnerRoles.includes(profile.role);
+      if (!isPartnerReady) {
         router.replace('/onboarding');
       } else {
         router.replace('/(tabs)/dashboard');
@@ -71,7 +73,9 @@ export default function LoginScreen() {
       const profile = await getUserDoc(user.uid);
       setProfile(profile);
 
-      if (!profile?.isOnboarded) {
+      const partnerRoles = ['guide', 'hotel', 'rental'];
+      const isPartnerReady = profile?.isOnboarded && profile?.role && partnerRoles.includes(profile.role);
+      if (!isPartnerReady) {
         router.replace('/onboarding');
       } else {
         router.replace('/(tabs)/dashboard');

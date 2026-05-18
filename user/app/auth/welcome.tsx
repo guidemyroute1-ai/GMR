@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { View, StyleSheet, TouchableOpacity, ImageBackground, StatusBar, Image } from 'react-native';
 import { Text } from '../../components/Text';
 import { useRouter } from 'expo-router';
@@ -15,16 +15,32 @@ const COLORS = {
   glassBg: 'rgba(30, 30, 30, 0.65)',
 };
 
+const SPLASH_IMAGES = [
+  require('../../assets/sp/sp1_1_11zon.png'),
+  require('../../assets/sp/sp2_2_11zon.png'),
+  require('../../assets/sp/sp3_3_11zon.png'),
+  require('../../assets/sp/sp4_4_11zon.png'),
+  require('../../assets/sp/sp5_5_11zon.png'),
+  require('../../assets/sp/sp6_6_11zon.png'),
+  require('../../assets/sp/sp7_7_11zon.png'),
+];
+
 export default function WelcomeScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  // Pick a random image once per mount
+  const backgroundImage = useMemo(
+    () => SPLASH_IMAGES[Math.floor(Math.random() * SPLASH_IMAGES.length)],
+    []
+  );
 
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
 
       <ImageBackground
-        source={require('../../assets/images/slash.png')}
+        source={backgroundImage}
         style={styles.backgroundImage}
         resizeMode="cover"
       >
@@ -37,6 +53,10 @@ export default function WelcomeScreen() {
         >
           {/* ── Header Section (Logo/Title) ── */}
           <View style={styles.headerContainer}>
+            <View style={styles.welcomeBadge}>
+              <MaterialCommunityIcons name="shield-check-outline" size={14} color={COLORS.primaryLight} />
+              <Text style={styles.welcomeBadgeText}>Verified travel partners</Text>
+            </View>
             <View style={styles.logoPinContainer}>
               <Image 
                 source={require('../../assets/images/gmr_logo.png')} 
@@ -48,8 +68,7 @@ export default function WelcomeScreen() {
               Guide My <Text style={styles.logoTextGreen}>Route</Text>
             </Text>
             <Text style={styles.subtitle}>
-              Travel Smarter. Ride Better.{'\n'}
-              With Local Guides & Rentals.
+              Book local guides, rentals and stays with a travel flow built for faster decisions.
             </Text>
           </View>
 
@@ -58,11 +77,11 @@ export default function WelcomeScreen() {
             {/* Feature 1 */}
             <View style={styles.featureItem}>
               <View style={styles.iconBox}>
-                <MaterialCommunityIcons name="account-outline" size={24} color={COLORS.primaryLight} />
+                <MaterialCommunityIcons name="account-check-outline" size={24} color={COLORS.primaryLight} />
               </View>
               <View style={styles.featureTextContainer}>
-                <Text style={styles.featureTitle}>Local Guides</Text>
-                <Text style={styles.featureDesc}>Real People. Real Stories.</Text>
+                <Text style={styles.featureTitle}>Verified local guides</Text>
+                <Text style={styles.featureDesc}>Find trusted people who know the city.</Text>
               </View>
             </View>
 
@@ -72,8 +91,8 @@ export default function WelcomeScreen() {
                 <MaterialCommunityIcons name="moped" size={24} color={COLORS.primaryLight} />
               </View>
               <View style={styles.featureTextContainer}>
-                <Text style={styles.featureTitle}>Bike, Scooty & Car Rentals</Text>
-                <Text style={styles.featureDesc}>Ride Your Way.</Text>
+                <Text style={styles.featureTitle}>Bike, scooty and car rentals</Text>
+                <Text style={styles.featureDesc}>Compare travel options without extra calls.</Text>
               </View>
             </View>
 
@@ -83,8 +102,25 @@ export default function WelcomeScreen() {
                 <MaterialCommunityIcons name="map-marker-path" size={24} color={COLORS.primaryLight} />
               </View>
               <View style={styles.featureTextContainer}>
-                <Text style={styles.featureTitle}>Custom Routes</Text>
-                <Text style={styles.featureDesc}>Plan, Explore & Enjoy.</Text>
+                <Text style={styles.featureTitle}>Plans that match your route</Text>
+                <Text style={styles.featureDesc}>Move from exploring to booking quickly.</Text>
+              </View>
+            </View>
+
+            <View style={styles.assuranceRow}>
+              <View style={styles.assuranceItem}>
+                <Text style={styles.assuranceValue}>Fast</Text>
+                <Text style={styles.assuranceLabel}>booking</Text>
+              </View>
+              <View style={styles.assuranceDivider} />
+              <View style={styles.assuranceItem}>
+                <Text style={styles.assuranceValue}>Local</Text>
+                <Text style={styles.assuranceLabel}>support</Text>
+              </View>
+              <View style={styles.assuranceDivider} />
+              <View style={styles.assuranceItem}>
+                <Text style={styles.assuranceValue}>Secure</Text>
+                <Text style={styles.assuranceLabel}>checkout</Text>
               </View>
             </View>
           </View>
@@ -96,6 +132,7 @@ export default function WelcomeScreen() {
             onPress={() => router.push('/auth/login')}
           >
             <Text style={styles.getStartedText}>Get Started</Text>
+            <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.white} />
           </TouchableOpacity>
 
           {/* ── Login Link ── */}
@@ -132,10 +169,28 @@ const styles = StyleSheet.create({
   // Header
   headerContainer: {
     position: 'absolute',
-    top: 80,
+    top: 64,
     left: 0,
     right: 0,
     alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  welcomeBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(10, 34, 24, 0.68)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.18)',
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    marginBottom: 14,
+  },
+  welcomeBadgeText: {
+    color: '#E5E7EB',
+    fontSize: 12,
+    fontWeight: '800',
   },
   logoPinContainer: {
     alignItems: 'center',
@@ -163,15 +218,19 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 22,
     fontWeight: '500',
+    maxWidth: 310,
   },
 
   // Features Card
   featuresCard: {
     backgroundColor: COLORS.glassBg,
     borderRadius: 20,
-    paddingVertical: 20,
+    paddingTop: 18,
+    paddingBottom: 16,
     paddingHorizontal: 16,
-    marginBottom: 30,
+    marginBottom: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   featureItem: {
     flexDirection: 'row',
@@ -201,16 +260,52 @@ const styles = StyleSheet.create({
     color: COLORS.textSecondary,
     fontSize: 13,
     fontWeight: '400',
+    lineHeight: 18,
+  },
+  assuranceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 16,
+    marginTop: 10,
+    paddingVertical: 12,
+  },
+  assuranceItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  assuranceValue: {
+    color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '900',
+    marginBottom: 3,
+  },
+  assuranceLabel: {
+    color: '#A7F3D0',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  assuranceDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: 'rgba(255,255,255,0.14)',
   },
 
   // Button
   getStartedButton: {
+    flexDirection: 'row',
+    gap: 8,
     backgroundColor: COLORS.primary,
     borderRadius: 16,
     height: 56,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 16,
+    elevation: 8,
   },
   getStartedText: {
     color: COLORS.white,

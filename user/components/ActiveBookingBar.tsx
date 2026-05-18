@@ -20,6 +20,8 @@ export default function ActiveBookingBar() {
   const { user } = useAuth();
   const router = useRouter();
   const [booking, setBooking] = useState<ActiveBooking | null>(null);
+  const [visible, setVisible] = useState(false);
+  const lastBookingRef = useRef<ActiveBooking | null>(null);
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(60)).current;
 
@@ -76,23 +78,32 @@ export default function ActiveBookingBar() {
       ])
     );
     if (booking) {
+      lastBookingRef.current = booking; // cache before animating in
+      setVisible(true);
       pulse.start();
       Animated.spring(slideAnim, { toValue: 0, useNativeDriver: true, tension: 80, friction: 12 }).start();
     } else {
       pulse.stop();
-      Animated.timing(slideAnim, { toValue: 60, duration: 200, useNativeDriver: true }).start();
+      // Slide out first, THEN unmount
+      Animated.timing(slideAnim, { toValue: 60, duration: 220, useNativeDriver: true }).start(() => {
+        setVisible(false);
+      });
     }
     return () => pulse.stop();
   }, [booking]);
 
-  if (!booking) return null;
+  if (!visible) return null;
 
-  const isGuideBooking = booking.bookingType === 'guide';
-  const isAwaitingGuide = isGuideBooking && booking.prePaymentStatus === 'awaiting_guide';
-  const isAwaitingPayment = booking.prePaymentStatus === 'awaiting_payment';
+  // Use cached ref so render always has data even while sliding out (booking may be null)
+  const display = booking ?? lastBookingRef.current;
+  if (!display) return null;
+
+  const isGuideBooking = display.bookingType === 'guide';
+  const isAwaitingGuide = isGuideBooking && display.prePaymentStatus === 'awaiting_guide';
+  const isAwaitingPayment = display.prePaymentStatus === 'awaiting_payment';
 
   let label = 'Active Booking';
-  let sub = `${booking.name} · ${booking.pickup}`;
+  let sub = `${display.name} · ${display.pickup}`;
   let barColor = '#16A34A';
   let dotColor = '#86EFAC';
 
@@ -104,7 +115,7 @@ export default function ActiveBookingBar() {
     label = 'Pay Now to Confirm';
     barColor = '#0D9488';
     dotColor = '#5EEAD4';
-  } else if (booking.status === 'pending') {
+  } else if (display.status === 'pending') {
     label = 'Booking Pending';
     barColor = '#D97706';
     dotColor = '#FCD34D';
@@ -130,9 +141,9 @@ export default function ActiveBookingBar() {
 
         {/* Right: amount + chevron */}
         <View style={styles.right}>
-          {booking.amount > 0 && (
+          {display.amount > 0 && (
             <View style={styles.amountPill}>
-              <Text style={styles.amount}>₹{booking.amount.toLocaleString()}</Text>
+              <Text style={styles.amount}>₹{display.amount.toLocaleString()}</Text>
             </View>
           )}
           <Ionicons name="chevron-forward" size={16} color="rgba(255,255,255,0.75)" />
