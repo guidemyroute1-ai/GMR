@@ -63,6 +63,13 @@ const SHADOWS = {
   },
 };
 
+interface Destination {
+  id: string;
+  name: string;
+  state: string;
+  image_url: string;
+}
+
 interface Guide {
   id: string;
   name: string;
@@ -222,6 +229,65 @@ const GuideCard = ({ item, onPress }: { item: Guide; onPress: () => void }) => {
   );
 };
 
+const DestinationCard = ({
+  dest,
+  guideCount,
+  onPress,
+}: {
+  dest: Destination;
+  guideCount: number;
+  onPress: () => void;
+}) => (
+  <TouchableOpacity style={styles.destinationCard} activeOpacity={0.8} onPress={onPress}>
+    <ExpoImage
+      source={{ uri: dest.image_url }}
+      style={styles.destinationImg}
+      contentFit="cover"
+      transition={200}
+    />
+    <LinearGradient
+      colors={['transparent', 'rgba(0,0,0,0.8)']}
+      style={styles.destinationGradient}
+    />
+    <View style={styles.destinationOverlay}>
+      <Text style={styles.destinationName}>{dest.name}</Text>
+      <View style={styles.destinationMeta}>
+        <Ionicons name="location" size={12} color={COLORS.white} style={{ marginRight: 2 }} />
+        <Text style={styles.destinationState}>{dest.state}</Text>
+      </View>
+      <View style={styles.destinationGuideCount}>
+        <Text style={styles.destinationGuideCountText}>{guideCount} Guides</Text>
+      </View>
+    </View>
+  </TouchableOpacity>
+);
+
+const SupportBanner = () => (
+  <View style={styles.supportBanner}>
+    <View style={styles.supportBannerGridItem}>
+      <View style={styles.supportBannerIconBox}>
+        <Ionicons name="shield-checkmark-outline" size={28} color={COLORS.primary} />
+      </View>
+      <View style={styles.supportBannerTexts}>
+        <Text style={styles.supportBannerTitle}>Verified & Trusted Guides</Text>
+        <Text style={styles.supportBannerSubtitle}>All guides are verified and background checked.</Text>
+      </View>
+    </View>
+    
+    <View style={styles.supportBannerDivider} />
+    
+    <View style={styles.supportBannerGridItem}>
+      <View style={styles.supportBannerIconBox}>
+        <Ionicons name="headset-outline" size={28} color={COLORS.primary} />
+      </View>
+      <View style={styles.supportBannerTexts}>
+        <Text style={styles.supportBannerTitle}>24/7 Support</Text>
+        <Text style={styles.supportBannerSubtitle}>We're here to help you at every step.</Text>
+      </View>
+    </View>
+  </View>
+);
+
 export default function AllGuidesScreen() {
   const router = useRouter();
   const { city: cityParam } = useLocalSearchParams<{ city?: string }>();
@@ -235,6 +301,7 @@ export default function AllGuidesScreen() {
     city: normalizeCity(cityParam) || DEFAULT_CITIES[0],
   });
   const [guides, setGuides] = useState<Guide[]>([]);
+  const [popularDestinations, setPopularDestinations] = useState<Destination[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -308,6 +375,15 @@ export default function AllGuidesScreen() {
         setGuides(guidesData);
       }
 
+      const { data: destData, error: destError } = await supabase
+        .from('popular_destinations')
+        .select('*')
+        .eq('is_popular', true);
+
+      if (!destError && destData) {
+        setPopularDestinations(destData);
+      }
+
       setLoading(false);
       setRefreshing(false);
     };
@@ -352,6 +428,40 @@ export default function AllGuidesScreen() {
 
   const navigateToGuide = (id: string) =>
     router.push({ pathname: '/more/guideDetail', params: { id } });
+
+  const handleDestinationPress = (cityName: string) => {
+    setGuideFilters((prev) => ({ ...prev, city: normalizeCity(cityName) || cityName }));
+  };
+
+  const renderHeader = () => {
+    return (
+      <View style={styles.listHeaderContainer}>
+        {popularDestinations.length > 0 && (
+          <View style={styles.popularSection}>
+            <View style={styles.popularSectionHeader}>
+              <Text style={styles.popularSectionTitle}>Popular Destinations</Text>
+            </View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.popularScrollContent}>
+              {popularDestinations.map(dest => {
+                const count = guides.filter(g => normalizeCity(g.city) === normalizeCity(dest.name)).length;
+                return (
+                  <DestinationCard 
+                    key={dest.id} 
+                    dest={dest} 
+                    guideCount={count} 
+                    onPress={() => handleDestinationPress(dest.name)} 
+                  />
+                );
+              })}
+            </ScrollView>
+          </View>
+        )}
+        <View style={styles.allGuidesHeader}>
+          <Text style={styles.allGuidesTitle}>All Guides</Text>
+        </View>
+      </View>
+    );
+  };
 
   return (
     <View style={styles.safeArea}>
@@ -429,6 +539,8 @@ export default function AllGuidesScreen() {
           )}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
+          ListHeaderComponent={renderHeader}
+          ListFooterComponent={<SupportBanner />}
           refreshControl={
             <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
           }
@@ -441,6 +553,8 @@ export default function AllGuidesScreen() {
           }
         />
       )}
+
+    
 
       <Modal
         visible={showFilters}
@@ -642,6 +756,163 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 4,
+  },
+
+  /* ── Popular Destinations & Header Section ── */
+  listHeaderContainer: {
+    paddingBottom: 8,
+  },
+  allGuidesHeader: {
+    paddingHorizontal: 8,
+    paddingTop: 12,
+  },
+  allGuidesTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    letterSpacing: -0.3,
+  },
+  popularSection: {
+    paddingTop: 6,
+    paddingBottom: 10,
+  },
+  popularSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 8,
+    marginBottom: 12,
+  },
+  popularSectionTitle: {
+    fontSize: 17,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    letterSpacing: -0.3,
+  },
+  popularSectionSeeAll: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  popularScrollContent: {
+    paddingHorizontal: 6,
+    paddingBottom: 4,
+    gap: 10,
+  },
+
+  /* ── Destination Card ── */
+  destinationCard: {
+    width: 100,
+    height: 120,
+    borderRadius: 18,
+    overflow: 'hidden',
+    backgroundColor: '#D1D5DB',
+  },
+  destinationImg: {
+    width: '100%',
+    height: '100%',
+    position: 'absolute',
+  },
+  destinationImgPlaceholder: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: '#CBD5E1',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  destinationGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: '65%',
+    borderRadius: 18,
+  },
+  destinationOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 10,
+  },
+  destinationName: {
+    fontSize: 13,
+    fontWeight: '800',
+    color: COLORS.white,
+    letterSpacing: -0.2,
+    textShadowColor: 'rgba(0,0,0,0.4)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  destinationMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+  },
+  destinationState: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.85)',
+  },
+  destinationGuideCount: {
+    marginTop: 6,
+    alignSelf: 'flex-start',
+    backgroundColor: 'rgba(255,255,255,0.22)',
+    borderRadius: 20,
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.35)',
+  },
+  destinationGuideCountText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: COLORS.white,
+    letterSpacing: 0.2,
+  },
+
+  /* ── Support Banner ── */
+  supportBanner: {
+    marginHorizontal: 16,
+    marginTop: 20,
+    marginBottom: 10,
+    backgroundColor: '#F3F8F5',
+    borderRadius: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  supportBannerGridItem: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  supportBannerIconBox: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  supportBannerTexts: {
+    flex: 1,
+  },
+  supportBannerTitle: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginBottom: 2,
+  },
+  supportBannerSubtitle: {
+    fontSize: 10,
+    color: COLORS.darkGray,
+    lineHeight: 13,
+  },
+  supportBannerDivider: {
+    width: 1,
+    height: '100%',
+    backgroundColor: 'rgba(0,0,0,0.06)',
+    marginHorizontal: 12,
   },
 
   /* ── List ── */

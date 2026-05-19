@@ -374,6 +374,9 @@ export default function HotelListingsScreen() {
           }
         />
       )}
+
+
+      
     </View>
   );
 }

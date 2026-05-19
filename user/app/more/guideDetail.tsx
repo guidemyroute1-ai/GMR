@@ -580,7 +580,7 @@ export default function GuideDetailScreen() {
                         </View>
                       </View>
                       <Text style={styles.reviewText}>
-                        "{item.comment || 'Great experience!'}"
+                        {item.comment || 'Great experience!'}
                       </Text>
                     </View>
                   );

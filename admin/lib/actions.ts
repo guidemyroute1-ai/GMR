@@ -200,3 +200,54 @@ export async function cancelBooking(id: string) {
     return { error: error.message };
   }
 }
+
+// ───────────────────────── Destinations ──────────────────────────
+
+export async function addDestination(data: {
+  name: string;
+  state: string;
+  image_url: string;
+  is_popular: boolean;
+}) {
+  try {
+    const { error } = await supabaseAdmin
+      .from('popular_destinations')
+      .insert([data]);
+    if (error) throw error;
+    revalidatePath('/destinations');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error adding destination:', error);
+    return { error: error.message };
+  }
+}
+
+export async function deleteDestination(id: string) {
+  try {
+    const { error } = await supabaseAdmin
+      .from('popular_destinations')
+      .delete()
+      .eq('id', id);
+    if (error) throw error;
+    revalidatePath('/destinations');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error deleting destination:', error);
+    return { error: error.message };
+  }
+}
+
+export async function toggleDestinationPopular(id: string, is_popular: boolean) {
+  try {
+    const { error } = await supabaseAdmin
+      .from('popular_destinations')
+      .update({ is_popular })
+      .eq('id', id);
+    if (error) throw error;
+    revalidatePath('/destinations');
+    return { success: true };
+  } catch (error: any) {
+    console.error('Error toggling destination:', error);
+    return { error: error.message };
+  }
+}

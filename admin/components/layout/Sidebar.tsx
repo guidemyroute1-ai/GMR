@@ -9,7 +9,8 @@ import {
   BookOpen,
   CalendarCheck,
   Bell,
-  Settings
+  Settings,
+  MapPin
 } from 'lucide-react';
 
 const navItems = [
@@ -18,9 +19,9 @@ const navItems = [
   { name: 'Partners', href: '/partners', icon: Briefcase },
   { name: 'Listings', href: '/listings', icon: BookOpen },
   { name: 'Bookings', href: '/bookings', icon: CalendarCheck },
+  { name: 'Destinations', href: '/destinations', icon: MapPin },
   { name: 'Notifications', href: '/notifications', icon: Bell },
-  {name: 'Settings', href: '/settings', icon: Settings },
-  
+  { name: 'Settings', href: '/settings', icon: Settings },
 ];
 
 export default function Sidebar() {

@@ -12,7 +12,6 @@ import {
   ActivityIndicator,
   Image,
 } from 'react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import AppBar from '../../components/AppBar';
 import { supabase } from '../../utils/supabase';
@@ -47,6 +46,13 @@ const SHADOWS = {
     shadowRadius: 10,
     elevation: 4,
   },
+  large: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 8,
+  }
 };
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -112,8 +118,35 @@ const VehicleCard = ({ vehicle }: { vehicle: Vehicle }) => {
 
           <View style={styles.ratingChip}>
             <Text style={styles.starIcon}>⭐</Text>
-            <Text style={styles.ratingValue}>{vehicle.rating.toFixed(1)}</Text>
-            <Text style={styles.ratingCount}>({vehicle.reviews})</Text>
+            <Text style={styles.ratingValue}>{Number(vehicle.rating || 0).toFixed(1)}</Text>
+            <Text style={styles.ratingCount}>({vehicle.reviews || 0})</Text>
+          </View>
+
+          <View style={styles.detailsGrid}>
+            {vehicle.fuelType && (
+              <View style={styles.detailItem}>
+                <MaterialCommunityIcons name="gas-station" size={14} color={COLORS.mediumGray} />
+                <Text style={styles.detailText}>{vehicle.fuelType}</Text>
+              </View>
+            )}
+            {vehicle.helmet && (
+              <View style={styles.detailItem}>
+                <MaterialCommunityIcons name="racing-helmet" size={14} color={COLORS.mediumGray} />
+                <Text style={styles.detailText}>{vehicle.helmet}</Text>
+              </View>
+            )}
+            {vehicle.minDuration && (
+              <View style={styles.detailItem}>
+                <MaterialCommunityIcons name="clock-outline" size={14} color={COLORS.mediumGray} />
+                <Text style={styles.detailText}>{vehicle.minDuration}</Text>
+              </View>
+            )}
+            {vehicle.deposit && (
+              <View style={styles.detailItem}>
+                <MaterialCommunityIcons name="shield-check-outline" size={14} color={COLORS.mediumGray} />
+                <Text style={styles.detailText}>{vehicle.deposit}</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.cardFooter}>
@@ -349,7 +382,7 @@ export default function RentAVehicleScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#F1F5F9',
   },
   filterTabsContainer: {
     backgroundColor: COLORS.white,
@@ -479,7 +512,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F1F5F9',
     overflow: 'hidden',
-    ...SHADOWS.small,
+    ...SHADOWS.large,
   },
   cardContent: {
     flexDirection: 'row',
@@ -558,5 +591,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.white,
+  },
+  detailsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginTop: 8,
+  },
+  detailItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.lightGray,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 4,
+  },
+  detailText: {
+    fontSize: 11,
+    color: COLORS.darkGray,
+    fontWeight: '500',
   },
 });

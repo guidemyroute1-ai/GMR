@@ -55,6 +55,7 @@ export default function VehicleDetailScreen() {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [reviewsList, setReviewsList] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [moreListings, setMoreListings] = useState<{ id: string; name: string; price: number; image: string; type: string }[]>([]);
 
   useEffect(() => {
     if (!id) return;
@@ -107,6 +108,28 @@ export default function VehicleDetailScreen() {
 
         if (!revsError && revsData) {
           setReviewsList(revsData);
+        }
+
+        // Fetch more listings by same partner
+        if (!error && row?.partner_id) {
+          const { data: partnerListings } = await supabase
+            .from('listings')
+            .select('id, title, price, images, details, category')
+            .eq('partner_id', row.partner_id)
+            .eq('type', 'rental')
+            .eq('is_active', true)
+            .neq('id', id as string)
+            .limit(6);
+
+          if (partnerListings) {
+            setMoreListings(partnerListings.map((l: any) => ({
+              id: l.id,
+              name: l.title || 'Vehicle',
+              price: l.price || 0,
+              image: l.images?.[0] || '',
+              type: l.category || l.details?.vehicleType || 'Vehicle',
+            })));
+          }
         }
       } catch (error) {
         console.error('Error fetching vehicle details or reviews:', error);
@@ -334,6 +357,43 @@ export default function VehicleDetailScreen() {
               </ScrollView>
             </View>
           )}
+             
+          {/* ── More from this Partner ── */}
+          {moreListings.length > 0 && (
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>More from this partner</Text>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.moreListingsScroll}
+              >
+                {moreListings.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.moreCard}
+                    activeOpacity={0.85}
+                    onPress={() => router.push({ pathname: '/more/vehicle', params: { id: item.id } })}
+                  >
+                    {item.image ? (
+                      <ExpoImage
+                        source={{ uri: item.image }}
+                        style={styles.moreCardImage}
+                        contentFit="cover"
+                      />
+                    ) : (
+                      <View style={[styles.moreCardImage, styles.moreCardImagePlaceholder]}>
+                        <Text style={styles.moreCardEmoji}>{item.type === 'Car' ? '🚗' : item.type === 'Scooty' ? '🛵' : '🏍️'}</Text>
+                      </View>
+                    )}
+                    <View style={styles.moreCardBody}>
+                      <Text style={styles.moreCardName} numberOfLines={2}>{item.name}</Text>
+                      <Text style={styles.moreCardPrice}>₹{item.price}<Text style={styles.moreCardPerDay}>/day</Text></Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {/* ── Guest Reviews ── */}
           <View style={styles.section}>
@@ -360,7 +420,7 @@ export default function VehicleDetailScreen() {
                         </View>
                       </View>
                       <Text style={styles.reviewText}>
-                        "{item.comment || 'Great experience!'}"
+                        {item.comment || 'Great experience!'}
                       </Text>
                     </View>
                   );
@@ -370,7 +430,8 @@ export default function VehicleDetailScreen() {
               )}
             </View>
           </View>
-          
+       
+
           <View style={styles.bottomSpacer} />
         </View>
       </ScrollView>
@@ -813,5 +874,56 @@ const styles = StyleSheet.create({
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 16,
+  },
+  moreListingsScroll: {
+    gap: 12,
+    paddingRight: 4,
+  },
+  moreCard: {
+    width: 150,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F1F5F9',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  moreCardImage: {
+    width: '100%',
+    height: 100,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  moreCardImagePlaceholder: {
+    backgroundColor: '#F8FAFC',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  moreCardEmoji: {
+    fontSize: 36,
+  },
+  moreCardBody: {
+    padding: 10,
+    gap: 4,
+  },
+  moreCardName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#111827',
+    lineHeight: 18,
+  },
+  moreCardPrice: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#16A34A',
+  },
+  moreCardPerDay: {
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#6B7280',
   },
 });
