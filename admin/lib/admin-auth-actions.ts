@@ -10,11 +10,6 @@ export async function loginAdmin(_prevState: { error?: string } | undefined, for
 
   if (!email || !password) return { error: 'Email and password are required.' };
 
-  if (email === 'admin' && password === 'admin123') {
-    await setAdminCookies('dummy_admin_access_token', 'dummy_admin_refresh_token');
-    redirect('/dashboard');
-  }
-
   const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
   if (error || !data.session || !data.user) {
     return { error: error?.message || 'Unable to sign in.' };

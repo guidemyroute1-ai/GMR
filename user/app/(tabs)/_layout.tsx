@@ -4,7 +4,7 @@ import { Tabs, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ActiveBookingBar from '../../components/ActiveBookingBar';
-import AppBar from '../../components/AppBar';
+
 
 // ─── Custom Tab Bar with Active Booking Strip ──────────────────────────────────
 function CustomTabBar(props: React.ComponentProps<typeof BottomTabBar>) {
@@ -26,8 +26,7 @@ export default function TabLayout() {
     <Tabs
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
-        headerShown: true,
-        header: () => <AppBar />,
+        headerShown: false,
         animation: 'shift',
         tabBarActiveTintColor: '#16A34A',
         tabBarInactiveTintColor: '#6B7280',

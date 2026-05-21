@@ -1,22 +1,23 @@
-import { Text } from '../../components/Text';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import React, { useState, useEffect } from 'react';
-import {
-  View,
-  StyleSheet,
-  ScrollView,
-  TouchableOpacity,
-  StatusBar,
-  FlatList,
-  RefreshControl,
-  ActivityIndicator,
-  Image,
-} from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
+import {
+  ActivityIndicator,
+  FlatList,
+  Image,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
 import AppBar from '../../components/AppBar';
-import { supabase } from '../../utils/supabase';
-import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
+import { Text } from '../../components/Text';
 import { useLocation } from '../../contexts/LocationContext';
+import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
+import { supabase } from '../../utils/supabase';
 
 // ─── Color Palette ─────────────────────────────────────────────────────────────
 const COLORS = {
@@ -95,7 +96,7 @@ const normalizeVehicleType = (...values: unknown[]) => {
 // ─── Vehicle Card ──────────────────────────────────────────────────────────────
 const VehicleCard = ({ vehicle }: { vehicle: Vehicle }) => {
   const router = useRouter();
-  
+
   return (
     <TouchableOpacity
       style={styles.card}
@@ -154,7 +155,7 @@ const VehicleCard = ({ vehicle }: { vehicle: Vehicle }) => {
               <Text style={styles.priceValue}>₹{vehicle.pricePerDay}</Text>
               <Text style={styles.perDay}>per day</Text>
             </View>
-            
+
             <View style={styles.bookNowBtn}>
               <Text style={styles.bookNowText}>View Details</Text>
             </View>
@@ -165,6 +166,26 @@ const VehicleCard = ({ vehicle }: { vehicle: Vehicle }) => {
   );
 };
 
+
+const DeliveryBanner = () => {
+  return (
+    <TouchableOpacity style={styles.bannerContainer} activeOpacity={0.9}>
+      <View style={styles.bannerTextContainer}>
+        <Text style={styles.bannerTitle}>Free delivery to your location</Text>
+        <Text style={styles.bannerSubtitle}>We'll deliver your vehicle{'\n'}wherever you are!</Text>
+      </View>
+
+      <View style={styles.bannerRightContent}>
+        <Image
+          source={require('../../assets/images/delivery_scooter_1779357500492.png')}
+          style={styles.bannerImage}
+          resizeMode="contain"
+        />
+      
+      </View>
+    </TouchableOpacity>
+  );
+};
 // ─── Main Screen ───────────────────────────────────────────────────────────────
 export default function RentAVehicleScreen() {
   const { filter, city } = useLocalSearchParams<{ filter?: string; city?: string }>();
@@ -192,30 +213,30 @@ export default function RentAVehicleScreen() {
         console.error('Supabase Fetch Error:', error);
       } else {
         const mapRow = (doc: any): Vehicle => {
-        const details = doc.details || {};
-        const vehicleType = normalizeVehicleType(
-          details.vehicleType,
-          details.vehicleTypes,
-          details.category,
-          doc.title
-        );
-        return {
-          id: doc.id,
-          name: doc.title,
-          type: vehicleType,
-          rating: details.rating || 4.5,
-          reviews: details.reviews || Math.floor(Math.random() * 50) + 10,
-          pricePerDay: doc.price,
-          emoji: doc.details?.emoji || (vehicleType === 'Car' ? '🚗' : vehicleType === 'Scooty' ? '🛵' : '🏍️'),
-          image: doc.images?.[0],
-          tags: details.tags || [{ label: 'Verified', color: '#10B981' }],
-          fuelType: details.fuelType,
-          helmet: details.helmet,
-          minDuration: details.minDuration,
-          deposit: details.deposit,
-          vehicleMake: details.vehicleMake,
-          city: normalizeCity(details.city || doc.location?.address || doc.location || details.address),
-        };
+          const details = doc.details || {};
+          const vehicleType = normalizeVehicleType(
+            details.vehicleType,
+            details.vehicleTypes,
+            details.category,
+            doc.title
+          );
+          return {
+            id: doc.id,
+            name: doc.title,
+            type: vehicleType,
+            rating: details.rating || 4.5,
+            reviews: details.reviews || Math.floor(Math.random() * 50) + 10,
+            pricePerDay: doc.price,
+            emoji: doc.details?.emoji || (vehicleType === 'Car' ? '🚗' : vehicleType === 'Scooty' ? '🛵' : '🏍️'),
+            image: doc.images?.[0],
+            tags: details.tags || [{ label: 'Verified', color: '#10B981' }],
+            fuelType: details.fuelType,
+            helmet: details.helmet,
+            minDuration: details.minDuration,
+            deposit: details.deposit,
+            vehicleMake: details.vehicleMake,
+            city: normalizeCity(details.city || doc.location?.address || doc.location || details.address),
+          };
         };
         setVehicles((data || []).map(mapRow));
       }
@@ -270,10 +291,9 @@ export default function RentAVehicleScreen() {
   });
 
   return (
-    <View style={styles.safeArea}>
+    <SafeAreaContextView edges={['top']} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-      
-
+      <AppBar />
       <View style={styles.filterTabsContainer}>
         <View style={styles.cityFilterRow}>
           <MaterialCommunityIcons name="map-marker" size={14} color={COLORS.mediumGray} style={{ marginRight: 4 }} />
@@ -361,21 +381,27 @@ export default function RentAVehicleScreen() {
         </ScrollView>
       ) : (
         <FlatList
+          style={{ flex: 1 }}
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <VehicleCard vehicle={item} />}
           contentContainerStyle={styles.listContent}
           refreshControl={
-            <RefreshControl 
-              refreshing={refreshing} 
-              onRefresh={onRefresh} 
-              tintColor={COLORS.primary} 
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={COLORS.primary}
               colors={[COLORS.primary]}
             />
           }
         />
       )}
-    </View>
+
+      {/* STICKY BANNER AT BOTTOM */}
+      <View style={styles.bannerWrapper}>
+        <DeliveryBanner />
+      </View>
+    </SafeAreaContextView>
   );
 }
 
@@ -474,6 +500,73 @@ const styles = StyleSheet.create({
   filterTabTextActive: {
     color: COLORS.primary,
   },
+
+  bannerWrapper: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 16,
+    paddingBottom: 16,
+    backgroundColor: 'transparent',
+  },
+  bannerContainer: {
+    backgroundColor: '#d2faa5ff',
+    borderRadius: 16,
+    padding: 16,
+    height: 120,
+  
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    overflow: 'visible',
+  },
+  bannerTextContainer: {
+    flex: 1,
+    zIndex: 2,
+  },
+  bannerTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#16A34A',
+    marginBottom: 6,
+  },
+  bannerSubtitle: {
+    fontSize: 12,
+    color: '#475569',
+    lineHeight: 18,
+  },
+  bannerRightContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: 110,
+    justifyContent: 'flex-end',
+  },
+  bannerImage: {
+    width: 100,
+    height: 100,
+    position: 'absolute',
+    
+    bottom: -50,
+    zIndex: 1,
+    borderRadius: 20,
+
+
+  },
+  bannerArrowBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 3,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -504,6 +597,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 16,
+    paddingBottom: 160,
     gap: 16,
   },
   card: {

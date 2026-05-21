@@ -2,7 +2,7 @@ import { Text } from '../../components/Text';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   ScrollView,
   RefreshControl,
@@ -11,12 +11,15 @@ import {
   TouchableOpacity,
   View,
   ActivityIndicator,
-  Alert
+  Alert,
+  Animated,
+  Linking,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
 
+// ─── Invoke Helper ─────────────────────────────────────────────────────────────
 async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
   const result = await supabase.functions.invoke(name, { body: body as any });
   if (result.error) {
@@ -36,16 +39,26 @@ async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
 
 // ─── Color Palette ─────────────────────────────────────────────────────────────
 const COLORS = {
-  primary: '#16A34A', // Vibrant green
+  primary: '#16A34A',
+  primaryLight: '#DCFCE7',
+  primarySurface: '#F0FDF4',
   teal: '#14B8A6',
+  tealLight: '#F0FDFA',
   skyBlue: '#0EA5E9',
+  skyBlueLight: '#E0F2FE',
   orange: '#F97316',
+  orangeLight: '#FFF7ED',
+  orangeBorder: '#FED7AA',
   white: '#FFFFFF',
-  lightGray: '#F8FAFC', // Softer background
-  darkGray: '#0F172A',  // Deeper text
-  mediumGray: '#64748B', // Slate gray
-  borderGray: '#E2E8F0', // Subtle border
+  background: '#F8FAFC',
+  darkGray: '#0F172A',
+  mediumGray: '#64748B',
+  borderGray: '#E2E8F0',
+  surfaceGray: '#F1F5F9',
   danger: '#EF4444',
+  dangerLight: '#FEE2E2',
+  dangerBorder: '#FECACA',
+  dangerSurface: '#FEF2F2',
 };
 
 const SHADOWS = {
@@ -69,6 +82,7 @@ const SHADOWS = {
 type TabType = 'Upcoming' | 'Completed' | 'Cancelled';
 type StatusType = 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
 type VehicleType = 'Scooty' | 'Bike' | 'Car';
+type BookingType = 'guide' | 'hotel' | 'vehicle' | 'rental' | string;
 
 interface Booking {
   id: string;
@@ -84,30 +98,106 @@ interface Booking {
   status: StatusType;
   tab: TabType;
   item_id?: string;
-  pre_payment_status?: string | null; // guide-first flow states
-  booking_type?: string;
+  pre_payment_status?: string | null;
+  booking_type?: BookingType;
   _createdAt?: number;
 }
 
-// ─── Mock Data Removed ─────────────────────────────────────────────────────────
+// ─── Centralized Configs ───────────────────────────────────────────────────────
 const FILTER_TABS: TabType[] = ['Upcoming', 'Completed', 'Cancelled'];
 
-// ─── Status Config ─────────────────────────────────────────────────────────────
-const STATUS_CONFIG: Record<StatusType, { color: string; bg: string }> = {
-  Confirmed: { color: COLORS.primary, bg: '#DCFCE7' },
-  Pending: { color: COLORS.orange, bg: '#FFF7ED' },
-  Completed: { color: COLORS.skyBlue, bg: '#E0F2FE' },
-  Cancelled: { color: COLORS.danger, bg: '#FEE2E2' },
+const STATUS_CONFIG: Record<StatusType, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
+  Confirmed: { color: COLORS.primary, bg: COLORS.primaryLight, icon: 'checkmark-circle' },
+  Pending: { color: COLORS.orange, bg: COLORS.orangeLight, icon: 'time-outline' },
+  Completed: { color: COLORS.skyBlue, bg: COLORS.skyBlueLight, icon: 'checkbox-outline' },
+  Cancelled: { color: COLORS.danger, bg: COLORS.dangerLight, icon: 'close-circle-outline' },
 };
 
-// Guide-first booking sub-state display config
 const PRE_PAYMENT_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  awaiting_guide: { color: COLORS.orange, bg: '#FFF7ED', label: '🔍 Finding Guide…' },
-  awaiting_payment: { color: COLORS.teal, bg: '#F0FDFA', label: '✅ Guide Accepted – Pay Now' },
-  confirmed: { color: COLORS.primary, bg: '#DCFCE7', label: '✔ Confirmed' },
+  awaiting_guide: { color: COLORS.orange, bg: COLORS.orangeLight, label: '🔍 Finding Guide…' },
+  awaiting_payment: { color: COLORS.teal, bg: COLORS.tealLight, label: '✅ Guide Accepted – Pay Now' },
+  confirmed: { color: COLORS.primary, bg: COLORS.primaryLight, label: '✔ Confirmed' },
 };
 
-// ─── Vehicle Icon ──────────────────────────────────────────────────────────────
+// Booking type → icon config
+const BOOKING_TYPE_ICONS: Record<string, { library: 'ionicons' | 'mci'; name: string }> = {
+  guide: { library: 'ionicons', name: 'person-outline' },
+  hotel: { library: 'ionicons', name: 'business-outline' },
+};
+
+const VEHICLE_TYPE_ICONS: Record<string, { library: 'ionicons' | 'mci'; name: string }> = {
+  Bike: { library: 'mci', name: 'motorbike' },
+  Scooty: { library: 'mci', name: 'motorbike' },
+  Car: { library: 'ionicons', name: 'car-outline' },
+};
+
+// Tab empty state config
+const EMPTY_STATE_CONFIG: Record<TabType, {
+  icon: keyof typeof Ionicons.glyphMap;
+  color: string;
+  bg: string;
+  subtitle: string;
+  ctaLabel?: string;
+  ctaRoute?: string;
+}> = {
+  Upcoming: {
+    icon: 'calendar-outline',
+    color: COLORS.primary,
+    bg: COLORS.primaryLight,
+    subtitle: 'Plan your next adventure and book a vehicle!',
+    ctaLabel: 'Browse Listings',
+    ctaRoute: '/(tabs)/Home',
+  },
+  Completed: {
+    icon: 'checkmark-circle-outline',
+    color: COLORS.skyBlue,
+    bg: COLORS.skyBlueLight,
+    subtitle: 'Your completed trips will appear here.',
+    ctaLabel: 'Book a Trip',
+    ctaRoute: '/(tabs)/Home',
+  },
+  Cancelled: {
+    icon: 'close-circle-outline',
+    color: COLORS.danger,
+    bg: COLORS.dangerLight,
+    subtitle: 'Any cancelled bookings will appear here.',
+  },
+};
+
+// Pre-payment states that should be hidden for non-guide bookings
+const HIDE_AWAITING_GUIDE_TYPES: BookingType[] = ['hotel', 'vehicle', 'rental'];
+
+// ─── Animated Card Wrapper ─────────────────────────────────────────────────────
+const AnimatedCard = ({ children, index }: { children: React.ReactNode; index: number }) => {
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const slideAnim = useRef(new Animated.Value(18)).current;
+
+  useEffect(() => {
+    const delay = Math.min(index * 80, 400);
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 350,
+        delay,
+        useNativeDriver: true,
+      }),
+      Animated.timing(slideAnim, {
+        toValue: 0,
+        duration: 350,
+        delay,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [fadeAnim, slideAnim, index]);
+
+  return (
+    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
+      {children}
+    </Animated.View>
+  );
+};
+
+// ─── Listing Icon ──────────────────────────────────────────────────────────────
 const ListingIcon = ({
   type,
   bookingType,
@@ -115,22 +205,45 @@ const ListingIcon = ({
   color = COLORS.mediumGray,
 }: {
   type: VehicleType;
-  bookingType?: string | null;
+  bookingType?: BookingType | null;
   size?: number;
   color?: string;
 }) => {
-  if (bookingType === 'guide') {
-    return <Ionicons name="person-outline" size={size} color={color} />;
+  // Check booking type first
+  if (bookingType && BOOKING_TYPE_ICONS[bookingType]) {
+    const cfg = BOOKING_TYPE_ICONS[bookingType];
+    if (cfg.library === 'mci') {
+      return <MaterialCommunityIcons name={cfg.name as any} size={size} color={color} />;
+    }
+    return <Ionicons name={cfg.name as any} size={size} color={color} />;
   }
-  if (bookingType === 'hotel') {
-    return <Ionicons name="business-outline" size={size} color={color} />;
+
+  // Fallback to vehicle type
+  const vehicleCfg = VEHICLE_TYPE_ICONS[type] || VEHICLE_TYPE_ICONS.Car;
+  if (vehicleCfg.library === 'mci') {
+    return <MaterialCommunityIcons name={vehicleCfg.name as any} size={size} color={color} />;
   }
-  if (type === 'Bike' || type === 'Scooty') {
-    return <MaterialCommunityIcons name="motorbike" size={size} color={color} />;
-  }
-  return <Ionicons name="car-outline" size={size} color={color} />;
+  return <Ionicons name={vehicleCfg.name as any} size={size} color={color} />;
 };
 
+// ─── Action Button Helpers ─────────────────────────────────────────────────────
+const ViewDetailsButton = ({ bookingId }: { bookingId: string }) => (
+  <TouchableOpacity
+    style={styles.secondaryBtn}
+    activeOpacity={0.8}
+    onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: bookingId } })}
+  >
+    <Feather name="file-text" size={14} color={COLORS.darkGray} />
+    <Text style={styles.secondaryBtnText}>View Details</Text>
+  </TouchableOpacity>
+);
+
+const CancelButton = ({ onPress }: { onPress: () => void }) => (
+  <TouchableOpacity style={styles.dangerBtn} activeOpacity={0.85} onPress={onPress}>
+    <Ionicons name="close-circle-outline" size={14} color={COLORS.danger} />
+    <Text style={styles.dangerBtnText}>Cancel</Text>
+  </TouchableOpacity>
+);
 
 // ─── Booking Card ──────────────────────────────────────────────────────────────
 const BookingCard = ({ booking, onCancel }: { booking: Booking; onCancel?: (id: string) => void }) => {
@@ -139,20 +252,152 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking; onCancel?: (id: 
   const isCancelled = booking.tab === 'Cancelled';
   const isCompleted = booking.tab === 'Completed';
 
+  // Determine effective pre-payment status
   let prePayStatus = booking.pre_payment_status;
-  // Hide finding guide state for hotel or vehicle/rental bookings
-  if ((booking.booking_type === 'hotel' || booking.booking_type === 'vehicle' || booking.booking_type === 'rental') && prePayStatus === 'awaiting_guide') {
+  if (
+    booking.booking_type &&
+    HIDE_AWAITING_GUIDE_TYPES.includes(booking.booking_type) &&
+    prePayStatus === 'awaiting_guide'
+  ) {
     prePayStatus = null;
   }
 
   const isAwaitingGuide = prePayStatus === 'awaiting_guide';
   const isAwaitingPayment = prePayStatus === 'awaiting_payment';
-
   const prePayConfig = prePayStatus ? PRE_PAYMENT_CONFIG[prePayStatus] : null;
+
+  const confirmCancel = useCallback(
+    (title: string, message: string) => {
+      if (!onCancel) return;
+      Alert.alert(title, message, [
+        { text: 'No', style: 'cancel' },
+        { text: 'Yes, Cancel', style: 'destructive', onPress: () => onCancel(booking.id) },
+      ]);
+    },
+    [onCancel, booking.id]
+  );
+
+  const handleDirections = useCallback(() => {
+    if (booking.pickup && booking.pickup !== 'Not specified') {
+      Linking.openURL(
+        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.pickup)}`
+      );
+    }
+  }, [booking.pickup]);
+
+  const handleRebook = useCallback(() => {
+    if (booking.booking_type === 'hotel' || booking.booking_type === 'guide') {
+      router.push('/(tabs)/Home');
+    } else {
+      router.push('/more/vehicle');
+    }
+  }, [booking.booking_type]);
+
+  // ── Render Actions based on state ──
+  const renderActions = () => {
+    // Guide-first: Awaiting guide
+    if (isAwaitingGuide) {
+      return (
+        <>
+          <View style={styles.guideStatusBox}>
+            <ActivityIndicator size="small" color={COLORS.orange} />
+            <Text style={styles.guideStatusText}>Finding guide…</Text>
+          </View>
+          <CancelButton
+            onPress={() => confirmCancel('Cancel Request', 'Are you sure you want to cancel this booking request?')}
+          />
+        </>
+      );
+    }
+
+    // Guide-first: Pay Now
+    if (isAwaitingPayment) {
+      return (
+        <TouchableOpacity
+          style={styles.tealBtn}
+          activeOpacity={0.85}
+          onPress={() =>
+            router.push({
+              pathname: '/more/payment',
+              params: {
+                bookingId: booking.id,
+                amount: String(booking.totalAmount),
+                description: booking.vehicleName,
+              },
+            })
+          }
+        >
+          <Ionicons name="card" size={16} color={COLORS.white} />
+          <Text style={styles.tealBtnText}>Pay Now ₹{booking.totalAmount.toLocaleString()}</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    // Normal Upcoming – Confirmed
+    if (isUpcoming && booking.status === 'Confirmed') {
+      return (
+        <>
+          <ViewDetailsButton bookingId={booking.id} />
+          <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleDirections}>
+            <Ionicons name="navigate-outline" size={14} color={COLORS.white} />
+            <Text style={styles.primaryBtnText}>Get Directions</Text>
+          </TouchableOpacity>
+        </>
+      );
+    }
+
+    // Normal Upcoming – Pending
+    if (isUpcoming && booking.status === 'Pending') {
+      return (
+        <>
+          <ViewDetailsButton bookingId={booking.id} />
+          <CancelButton
+            onPress={() => confirmCancel('Cancel Booking', 'Are you sure you want to cancel this booking?')}
+          />
+        </>
+      );
+    }
+
+    // Completed
+    if (isCompleted) {
+      return (
+        <>
+          <ViewDetailsButton bookingId={booking.id} />
+          <TouchableOpacity
+            style={styles.tealBtn}
+            activeOpacity={0.85}
+            onPress={() =>
+              router.push({
+                pathname: '/more/RateAndReview',
+                params: { bookingId: booking.id, itemId: booking.item_id },
+              })
+            }
+          >
+            <Ionicons name="star-outline" size={14} color={COLORS.white} />
+            <Text style={styles.tealBtnText}>Rate & Review</Text>
+          </TouchableOpacity>
+        </>
+      );
+    }
+
+    // Cancelled
+    if (isCancelled) {
+      return (
+        <>
+          <ViewDetailsButton bookingId={booking.id} />
+          <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleRebook}>
+            <Ionicons name="refresh-outline" size={14} color={COLORS.white} />
+            <Text style={styles.primaryBtnText}>Rebook</Text>
+          </TouchableOpacity>
+        </>
+      );
+    }
+
+    return null;
+  };
 
   return (
     <View style={styles.bookingCard}>
-
       {/* Guide-first status banner */}
       {prePayConfig && (
         <View style={[styles.prePayBanner, { backgroundColor: prePayConfig.bg }]}>
@@ -192,21 +437,22 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking; onCancel?: (id: 
             <Text style={styles.metaText}>{booking.vehicleNumber}</Text>
           </View>
           <View style={styles.metaRow}>
-            <ExpoImage source={require('../../assets/svg/calender-svgrepo-com.svg')} style={{ width: 14, height: 14, tintColor: COLORS.mediumGray }} />
+            <Ionicons name="calendar-outline" size={14} color={COLORS.mediumGray} />
             <Text style={styles.metaText}>{booking.date}</Text>
           </View>
           <View style={styles.metaRow}>
             <Feather name="clock" size={11} color={COLORS.mediumGray} />
-            <Text style={styles.metaText}>{booking.time} · {booking.duration}</Text>
+            <Text style={styles.metaText}>
+              {booking.time} · {booking.duration}
+            </Text>
           </View>
         </View>
 
-        {/* Status Badge */}
+        {/* Status Badge (hidden when pre-pay banner shows) */}
         {!prePayConfig && (
           <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-            <Text style={[styles.statusText, { color: status.color }]}>
-              {booking.status}
-            </Text>
+            <Ionicons name={status.icon} size={12} color={status.color} style={styles.statusIcon} />
+            <Text style={[styles.statusText, { color: status.color }]}>{booking.status}</Text>
           </View>
         )}
       </View>
@@ -219,7 +465,7 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking; onCancel?: (id: 
         <View style={styles.tripDetailItem}>
           <Text style={styles.tripDetailLabel}>PICKUP</Text>
           <View style={styles.tripDetailValueRow}>
-            <ExpoImage source={require('../../assets/svg/location-pin-svgrepo-com.svg')} style={{ width: 16, height: 16, tintColor: COLORS.primary }} />
+            <Ionicons name="location" size={16} color={COLORS.primary} />
             <Text style={styles.tripDetailValue} numberOfLines={1}>
               {booking.pickup}
             </Text>
@@ -228,7 +474,7 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking; onCancel?: (id: 
         <View style={styles.tripDetailDivider} />
         <View style={styles.tripDetailItem}>
           <Text style={styles.tripDetailLabel}>TOTAL</Text>
-          <Text style={[styles.tripDetailValue, { color: COLORS.primary, fontSize: 16 }]}>
+          <Text style={[styles.tripDetailValue, styles.totalAmountText]}>
             ₹{booking.totalAmount.toLocaleString()}
           </Text>
         </View>
@@ -238,177 +484,63 @@ const BookingCard = ({ booking, onCancel }: { booking: Booking; onCancel?: (id: 
       <View style={styles.divider} />
 
       {/* ── Action Buttons ── */}
-      <View style={styles.actionRow}>
-        {/* Guide-first: Awaiting guide */}
-        {isAwaitingGuide && (
-          <>
-            <View style={[styles.guideStatusBox, { backgroundColor: '#FFF7ED', borderColor: '#FED7AA', flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 11, borderRadius: 10, gap: 8 }]}>
-              <ActivityIndicator size="small" color={COLORS.orange} />
-              <Text style={[styles.guideStatusText, { color: COLORS.orange, fontSize: 13, fontWeight: '700' }]}>
-                Finding guide…
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.dangerBtn}
-              activeOpacity={0.85}
-              onPress={() => {
-                if (onCancel) {
-                  Alert.alert(
-                    'Cancel Request',
-                    'Are you sure you want to cancel this booking request?',
-                    [
-                      { text: 'No', style: 'cancel' },
-                      { text: 'Yes, Cancel', style: 'destructive', onPress: () => onCancel(booking.id) },
-                    ]
-                  );
-                }
-              }}
-            >
-              <Text style={styles.dangerBtnText}>Cancel</Text>
-            </TouchableOpacity>
-          </>
-        )}
-        {/* Guide-first: Pay Now */}
-        {isAwaitingPayment && (
-          <TouchableOpacity
-            style={[styles.primaryBtn, { backgroundColor: COLORS.teal, shadowColor: COLORS.teal }]}
-            activeOpacity={0.85}
-            onPress={() =>
-              router.push({
-                pathname: '/more/payment',
-                params: {
-                  bookingId: booking.id,
-                  amount: String(booking.totalAmount),
-                  description: booking.vehicleName,
-                },
-              })
-            }
-          >
-            <Ionicons name="card" size={16} color={COLORS.white} />
-            <Text style={styles.primaryBtnText}>Pay Now ₹{booking.totalAmount.toLocaleString()}</Text>
-          </TouchableOpacity>
-        )}
-        {/* Normal upcoming actions */}
-        {isUpcoming && !isAwaitingGuide && !isAwaitingPayment && booking.status === 'Confirmed' && (
-          <>
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              activeOpacity={0.8}
-              onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: booking.id } })}
-            >
-              <Text style={styles.secondaryBtnText}>View Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85}>
-              <Ionicons name="navigate-outline" size={14} color={COLORS.white} />
-              <Text style={styles.primaryBtnText}>Get Directions</Text>
-            </TouchableOpacity>
-          </>
-        )}
-        {isUpcoming && !isAwaitingGuide && !isAwaitingPayment && booking.status === 'Pending' && (
-          <>
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              activeOpacity={0.8}
-              onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: booking.id } })}
-            >
-              <Text style={styles.secondaryBtnText}>View Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.dangerBtn}
-              activeOpacity={0.85}
-              onPress={() => {
-                if (onCancel) {
-                  Alert.alert(
-                    'Cancel Booking',
-                    'Are you sure you want to cancel this booking?',
-                    [
-                      { text: 'No', style: 'cancel' },
-                      { text: 'Yes, Cancel', style: 'destructive', onPress: () => onCancel(booking.id) }
-                    ]
-                  );
-                }
-              }}
-            >
-              <Text style={styles.dangerBtnText}>Cancel</Text>
-            </TouchableOpacity>
-          </>
-        )}
-        {isCompleted && (
-          <>
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              activeOpacity={0.8}
-              onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: booking.id } })}
-            >
-              <Text style={styles.secondaryBtnText}>View Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.tealBtn}
-              activeOpacity={0.85}
-              onPress={() => router.push({ pathname: '/more/RateAndReview', params: { bookingId: booking.id, itemId: booking.item_id } })}
-            >
-              <Ionicons name="star-outline" size={14} color={COLORS.white} />
-              <Text style={styles.tealBtnText}>Rate & Review</Text>
-            </TouchableOpacity>
-          </>
-        )}
-        {isCancelled && (
-          <>
-            <TouchableOpacity
-              style={styles.secondaryBtn}
-              activeOpacity={0.8}
-              onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: booking.id } })}
-            >
-              <Text style={styles.secondaryBtnText}>View Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85}>
-              <Ionicons name="refresh-outline" size={14} color={COLORS.white} />
-              <Text style={styles.primaryBtnText}>Rebook</Text>
-            </TouchableOpacity>
-          </>
-        )}
-      </View>
+      <View style={styles.actionRow}>{renderActions()}</View>
     </View>
   );
 };
 
 // ─── Empty State ───────────────────────────────────────────────────────────────
 const EmptyState = ({ tab }: { tab: TabType }) => {
-  const icon =
-    tab === 'Upcoming' ? 'calendar-outline' :
-      tab === 'Completed' ? 'checkmark-circle-outline' :
-        'close-circle-outline';
-  const iconColor =
-    tab === 'Upcoming' ? COLORS.primary :
-      tab === 'Completed' ? COLORS.skyBlue :
-        COLORS.danger;
-  const iconBg =
-    tab === 'Upcoming' ? '#DCFCE7' :
-      tab === 'Completed' ? '#E0F2FE' :
-        '#FEE2E2';
-  const subtitle =
-    tab === 'Upcoming'
-      ? 'Plan your next adventure and book a vehicle!'
-      : tab === 'Completed'
-        ? 'Your completed trips will appear here.'
-        : 'Any cancelled bookings will appear here.';
+  const config = EMPTY_STATE_CONFIG[tab];
 
   return (
     <View style={styles.emptyState}>
-      <View style={[styles.emptyIconBox, { backgroundColor: iconBg }]}>
-        <Ionicons name={icon} size={44} color={iconColor} />
+      <View style={[styles.emptyIconBox, { backgroundColor: config.bg }]}>
+        <Ionicons name={config.icon} size={44} color={config.color} />
       </View>
       <Text style={styles.emptyTitle}>No {tab} Bookings</Text>
-      <Text style={styles.emptySubtitle}>{subtitle}</Text>
-      {tab === 'Upcoming' && (
+      <Text style={styles.emptySubtitle}>{config.subtitle}</Text>
+      {config.ctaLabel && config.ctaRoute && (
         <TouchableOpacity
-          style={styles.emptyBtn}
+          style={[styles.emptyBtn, { backgroundColor: config.color }]}
           activeOpacity={0.85}
-          onPress={() => router.push('/(tabs)/Home')}
+          onPress={() => router.push(config.ctaRoute as any)}
         >
-          <Text style={styles.emptyBtnText}>Rent a Vehicle</Text>
+          <Text style={styles.emptyBtnText}>{config.ctaLabel}</Text>
         </TouchableOpacity>
       )}
+    </View>
+  );
+};
+
+// ─── Summary Bar ───────────────────────────────────────────────────────────────
+const SummaryBar = ({ bookings }: { bookings: Booking[] }) => {
+  const counts = FILTER_TABS.reduce(
+    (acc, tab) => {
+      acc[tab] = bookings.filter((b) => b.tab === tab).length;
+      return acc;
+    },
+    {} as Record<TabType, number>
+  );
+
+  const total = bookings.length;
+  if (total === 0) return null;
+
+  return (
+    <View style={styles.summaryBar}>
+      <View style={styles.summaryItem}>
+        <Text style={styles.summaryCount}>{total}</Text>
+        <Text style={styles.summaryLabel}>Total</Text>
+      </View>
+      {FILTER_TABS.map((tab) => {
+        const cfg = STATUS_CONFIG[tab === 'Upcoming' ? 'Confirmed' : tab === 'Completed' ? 'Completed' : 'Cancelled'];
+        return (
+          <View key={tab} style={styles.summaryItem}>
+            <Text style={[styles.summaryCount, { color: cfg.color }]}>{counts[tab]}</Text>
+            <Text style={styles.summaryLabel}>{tab}</Text>
+          </View>
+        );
+      })}
     </View>
   );
 };
@@ -422,6 +554,19 @@ export default function MyBookingsScreen() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+
+  // Animated underline for tabs
+  const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    const toIndex = FILTER_TABS.indexOf(activeTab);
+    Animated.spring(tabIndicatorAnim, {
+      toValue: toIndex,
+      useNativeDriver: true,
+      tension: 300,
+      friction: 30,
+    }).start();
+  }, [activeTab, tabIndicatorAnim]);
 
   useEffect(() => {
     if (!user) {
@@ -445,23 +590,50 @@ export default function MyBookingsScreen() {
         return;
       }
 
-      const now = new Date().getTime();
-      const THIRTY_MINS = 30 * 60 * 1000;
+      const rows = data || [];
 
-      const fetchedBookings: Booking[] = await Promise.all((data || []).map(async (row) => {
+      // Batch fetch all unique listing IDs and guide IDs (fix N+1)
+      const listingIds = [
+        ...new Set(rows.filter((r) => r.booking_type !== 'guide' && r.item_id).map((r) => r.item_id)),
+      ];
+      const guideIds = [
+        ...new Set(
+          rows
+            .filter((r) => r.booking_type === 'guide')
+            .map((r) => r.partner_id || r.item_id)
+            .filter(Boolean)
+        ),
+      ];
+
+      // Batch fetch listing images
+      const listingImageMap: Record<string, string | null> = {};
+      if (listingIds.length > 0) {
+        const { data: listings } = await supabase
+          .from('listings')
+          .select('id, images')
+          .in('id', listingIds);
+        (listings || []).forEach((l) => {
+          listingImageMap[l.id] =
+            l.images && Array.isArray(l.images) && l.images.length > 0 ? l.images[0] : null;
+        });
+      }
+
+      // Batch fetch guide avatars
+      const guideImageMap: Record<string, string | null> = {};
+      if (guideIds.length > 0) {
+        const { data: guides } = await supabase
+          .from('users')
+          .select('id, photo_url, profile_data')
+          .in('id', guideIds);
+        (guides || []).forEach((g) => {
+          const pd = g.profile_data || {};
+          guideImageMap[g.id] = g.photo_url || pd.profileImage || pd.profile_image || null;
+        });
+      }
+
+      const fetchedBookings: Booking[] = rows.map((row) => {
         let status: StatusType = 'Pending';
-        let rawStatus = (row.status || '').toLowerCase();
-        let prePayStatus = row.pre_payment_status || null;
-
-        // Auto-expire unaccepted requests after 30 mins (only for guides)
-        if (row.booking_type === 'guide' && rawStatus === 'pending' && prePayStatus === 'awaiting_guide' && row.created_at) {
-          const createdAtTime = new Date(row.created_at).getTime();
-          if (now - createdAtTime > THIRTY_MINS) {
-            // Expire it in the database
-            await supabase.from('bookings').update({ status: 'cancelled' }).eq('id', row.id);
-            rawStatus = 'cancelled';
-          }
-        }
+        const rawStatus = (row.status || '').toLowerCase();
 
         if (rawStatus === 'confirmed') status = 'Confirmed';
         else if (rawStatus === 'completed') status = 'Completed';
@@ -471,43 +643,23 @@ export default function MyBookingsScreen() {
         if (status === 'Completed') tab = 'Completed';
         else if (status === 'Cancelled') tab = 'Cancelled';
 
+        // Use the booking date (not created_at) for display
         let dateStr = 'Unknown Date';
         let timeStr = 'Unknown Time';
-        if (row.created_at) {
-          const dateObj = new Date(row.created_at);
+        const displayDate = row.date || row.created_at;
+        if (displayDate) {
+          const dateObj = new Date(displayDate);
           dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
           timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
         }
 
-        // Fetch image: guide avatar from users table, vehicle/hotel image from listings
+        // Look up images from pre-fetched maps
         let listingImage: string | null = null;
         if (row.booking_type === 'guide') {
-          // Priority: 1. Assigned partner, 2. item_id (if it's a guide ID)
           const targetGuideId = row.partner_id || row.item_id;
-          if (targetGuideId && targetGuideId.length > 20) { // Simple UUID check
-            const { data: guideUser } = await supabase
-              .from('users')
-              .select('avatar_url, photo_url, profile_data')
-              .eq('id', targetGuideId)
-              .maybeSingle();
-            const profileData = guideUser?.profile_data || {};
-            listingImage =
-              guideUser?.avatar_url ||
-              guideUser?.photo_url ||
-              profileData.profileImage ||
-              profileData.profile_image ||
-              null;
-          }
+          if (targetGuideId) listingImage = guideImageMap[targetGuideId] || null;
         } else if (row.item_id) {
-          // Vehicle / hotel booking – look up listings
-          const { data: listing } = await supabase
-            .from('listings')
-            .select('images')
-            .eq('id', row.item_id)
-            .maybeSingle();
-          if (listing?.images && Array.isArray(listing.images) && listing.images.length > 0) {
-            listingImage = listing.images[0];
-          }
+          listingImage = listingImageMap[row.item_id] || null;
         }
 
         return {
@@ -528,7 +680,7 @@ export default function MyBookingsScreen() {
           booking_type: row.booking_type || null,
           _createdAt: row.created_at ? new Date(row.created_at).getTime() : 0,
         };
-      }));
+      });
 
       setBookings(fetchedBookings);
       setLoading(false);
@@ -538,33 +690,37 @@ export default function MyBookingsScreen() {
     fetchBookings();
   }, [user, refreshKey]);
 
-  const onRefresh = () => {
+  const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setRefreshKey(k => k + 1);
-  };
+    setRefreshKey((k) => k + 1);
+  }, []);
 
-  const handleCancelBooking = async (bookingId: string) => {
+  const handleCancelBooking = useCallback(async (bookingId: string) => {
     try {
       await invokeFunction('cancel-booking', { bookingId });
-
       Alert.alert('Success', 'Booking cancelled successfully');
-      onRefresh();
+      setRefreshing(true);
+      setRefreshKey((k) => k + 1);
     } catch (error: any) {
       Alert.alert('Error', error.message || 'Failed to cancel booking');
     }
-  };
+  }, []);
 
   const filtered = bookings.filter((b) => b.tab === activeTab);
 
-  const groupedUpcoming = filtered.reduce((acc, booking) => {
-    const existingSection = acc.find(s => s.sectionTitle === booking.date);
-    if (existingSection) {
-      existingSection.data.push(booking);
-    } else {
-      acc.push({ sectionTitle: booking.date, data: [booking] });
-    }
-    return acc;
-  }, [] as { sectionTitle: string; data: Booking[] }[]);
+  // Group by date for section headers
+  const grouped = filtered.reduce(
+    (acc, booking) => {
+      const section = acc.find((s) => s.sectionTitle === booking.date);
+      if (section) {
+        section.data.push(booking);
+      } else {
+        acc.push({ sectionTitle: booking.date, data: [booking] });
+      }
+      return acc;
+    },
+    [] as { sectionTitle: string; data: Booking[] }[]
+  );
 
   return (
     <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
@@ -576,8 +732,11 @@ export default function MyBookingsScreen() {
           <Ionicons name="chevron-back" size={24} color={COLORS.darkGray} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Bookings</Text>
-        <View style={{ width: 36 }} />
+        <View style={styles.headerSpacer} />
       </View>
+
+      {/* ── Summary Bar ── */}
+      {!loading && <SummaryBar bookings={bookings} />}
 
       {/* ── Filter Tabs ── */}
       <View style={styles.filterTabsWrapper}>
@@ -596,7 +755,9 @@ export default function MyBookingsScreen() {
               </Text>
               {count > 0 && (
                 <View style={[styles.filterTabCount, isActive && styles.filterTabCountActive]}>
-                  <Text style={[styles.filterTabCountText, isActive && styles.filterTabCountTextActive]}>
+                  <Text
+                    style={[styles.filterTabCountText, isActive && styles.filterTabCountTextActive]}
+                  >
                     {count}
                   </Text>
                 </View>
@@ -608,8 +769,9 @@ export default function MyBookingsScreen() {
 
       {/* ── Content ── */}
       {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading bookings…</Text>
         </View>
       ) : filtered.length === 0 ? (
         <EmptyState tab={activeTab} />
@@ -622,25 +784,30 @@ export default function MyBookingsScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor='#16A34A'
-              colors={['#16A34A']}
+              tintColor={COLORS.primary}
+              colors={[COLORS.primary]}
             />
           }
         >
-          {activeTab === 'Upcoming' ? (
-            groupedUpcoming.map((section) => (
-              <View key={section.sectionTitle}>
+          {grouped.map((section, sectionIndex) => (
+            <View key={section.sectionTitle}>
+              <View style={styles.sectionDateRow}>
+                <View style={styles.sectionDateDot} />
                 <Text style={styles.sectionDate}>{section.sectionTitle}</Text>
-                {section.data.map((booking) => (
-                  <BookingCard key={booking.id} booking={booking} onCancel={handleCancelBooking} />
-                ))}
+                <Text style={styles.sectionCount}>
+                  {section.data.length} {section.data.length === 1 ? 'booking' : 'bookings'}
+                </Text>
               </View>
-            ))
-          ) : (
-            filtered.map((booking) => (
-              <BookingCard key={booking.id} booking={booking} onCancel={handleCancelBooking} />
-            ))
-          )}
+              {section.data.map((booking, cardIndex) => (
+                <AnimatedCard
+                  key={booking.id}
+                  index={sectionIndex * section.data.length + cardIndex}
+                >
+                  <BookingCard booking={booking} onCancel={handleCancelBooking} />
+                </AnimatedCard>
+              ))}
+            </View>
+          ))}
 
           {/* ── Need Help Banner ── */}
           <TouchableOpacity
@@ -656,11 +823,11 @@ export default function MyBookingsScreen() {
               <Text style={styles.helpSubtitle}>Trip Support · We're here 24/7</Text>
             </View>
             <View style={styles.helpCallBtn}>
-              <ExpoImage source={require('../../assets/svg/phone-call-svgrepo-com.svg')} style={{ width: 22, height: 22, tintColor: COLORS.white }} />
+              <Ionicons name="call" size={20} color={COLORS.white} />
             </View>
           </TouchableOpacity>
 
-          <View style={{ height: 20 }} />
+          <View style={styles.scrollBottomSpacer} />
         </ScrollView>
       )}
     </View>
@@ -688,7 +855,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: 12,
@@ -700,13 +867,41 @@ const styles = StyleSheet.create({
     color: COLORS.darkGray,
     letterSpacing: -0.3,
   },
-  filterIconBtn: {
+  headerSpacer: {
     width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: COLORS.lightGray,
+  },
+
+  // Summary Bar
+  summaryBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.background,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.borderGray,
+    gap: 8,
+  },
+  summaryItem: {
+    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    paddingVertical: 6,
+    borderRadius: 10,
+    backgroundColor: COLORS.white,
+    ...SHADOWS.small,
+  },
+  summaryCount: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    letterSpacing: -0.3,
+  },
+  summaryLabel: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: COLORS.mediumGray,
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
 
   // Filter Tabs
@@ -726,11 +921,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingVertical: 10,
     borderRadius: 24,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.background,
     gap: 6,
   },
   filterTabActive: {
     backgroundColor: COLORS.primary,
+    ...SHADOWS.small,
   },
   filterTabText: {
     fontSize: 13,
@@ -758,25 +954,58 @@ const styles = StyleSheet.create({
     color: COLORS.white,
   },
 
+  // Loading
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 12,
+  },
+  loadingText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.mediumGray,
+  },
+
   // Scroll
   scroll: {
     flex: 1,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.background,
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 20,
     paddingBottom: 24,
   },
+  scrollBottomSpacer: {
+    height: 20,
+  },
 
   // Section Date
+  sectionDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+    marginLeft: 2,
+    gap: 8,
+  },
+  sectionDateDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: COLORS.primary,
+  },
   sectionDate: {
     fontSize: 13,
     fontWeight: '700',
     color: COLORS.mediumGray,
-    marginBottom: 10,
-    marginLeft: 2,
     letterSpacing: 0.2,
+  },
+  sectionCount: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: COLORS.mediumGray,
+    marginLeft: 'auto',
   },
 
   // Booking Card
@@ -811,25 +1040,19 @@ const styles = StyleSheet.create({
     height: 68,
     borderRadius: 16,
     flexShrink: 0,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.background,
     ...SHADOWS.small,
   },
   vehicleImagePlaceholder: {
     width: 68,
     height: 68,
     borderRadius: 16,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.background,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
     gap: 4,
     ...SHADOWS.small,
-  },
-  imagePlaceholderLabel: {
-    fontSize: 9,
-    color: COLORS.mediumGray,
-    fontWeight: '600',
-    textTransform: 'uppercase',
   },
   cardHeaderInfo: {
     flex: 1,
@@ -853,16 +1076,23 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   statusBadge: {
-    paddingHorizontal: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 20,
     alignSelf: 'flex-start',
     flexShrink: 0,
+    gap: 4,
+  },
+  statusIcon: {
+    marginRight: 0,
   },
   statusText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '800',
     textTransform: 'uppercase',
+    letterSpacing: 0.3,
   },
 
   // Divider
@@ -907,19 +1137,34 @@ const styles = StyleSheet.create({
     color: COLORS.darkGray,
     flex: 1,
   },
+  totalAmountText: {
+    color: COLORS.primary,
+    fontSize: 16,
+  },
 
   // Action Buttons
   actionRow: {
     flexDirection: 'row',
     gap: 12,
     padding: 16,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.background,
   },
   guideStatusBox: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 11,
+    borderRadius: 10,
+    gap: 8,
     borderWidth: 1,
+    backgroundColor: COLORS.orangeLight,
+    borderColor: COLORS.orangeBorder,
   },
   guideStatusText: {
     color: COLORS.orange,
+    fontSize: 13,
+    fontWeight: '700',
   },
   primaryBtn: {
     flex: 1,
@@ -938,6 +1183,7 @@ const styles = StyleSheet.create({
   },
   secondaryBtn: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
@@ -945,6 +1191,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.borderGray,
     backgroundColor: COLORS.white,
+    gap: 6,
   },
   secondaryBtnText: {
     fontSize: 14,
@@ -953,13 +1200,15 @@ const styles = StyleSheet.create({
   },
   dangerBtn: {
     flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 12,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: '#FECACA',
-    backgroundColor: '#FEF2F2',
+    borderColor: COLORS.dangerBorder,
+    backgroundColor: COLORS.dangerSurface,
+    gap: 6,
   },
   dangerBtnText: {
     fontSize: 14,
@@ -991,7 +1240,7 @@ const styles = StyleSheet.create({
     padding: 14,
     marginTop: 4,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: COLORS.surfaceGray,
     gap: 12,
     ...SHADOWS.medium,
   },
@@ -999,7 +1248,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 12,
-    backgroundColor: '#DCFCE7',
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1038,7 +1287,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 40,
     gap: 12,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.background,
   },
   emptyIconBox: {
     width: 100,
@@ -1063,7 +1312,6 @@ const styles = StyleSheet.create({
   },
   emptyBtn: {
     marginTop: 16,
-    backgroundColor: COLORS.primary,
     paddingHorizontal: 32,
     paddingVertical: 14,
     borderRadius: 16,
@@ -1072,45 +1320,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '700',
     color: COLORS.white,
-  },
-
-  // Bottom Tab Bar
-  tabBar: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.borderGray,
-    paddingBottom: 10,
-    paddingTop: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: -3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 10,
-  },
-  tabItem: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    paddingTop: 4,
-    gap: 3,
-  },
-  tabLabel: {
-    fontSize: 10,
-    fontWeight: '500',
-    color: COLORS.mediumGray,
-  },
-  tabLabelActive: {
-    color: COLORS.primary,
-    fontWeight: '700',
-  },
-  tabActiveBar: {
-    position: 'absolute',
-    bottom: -8,
-    width: 20,
-    height: 3,
-    borderRadius: 2,
-    backgroundColor: COLORS.primary,
   },
 });

@@ -6,7 +6,9 @@ import {
   TouchableOpacity, 
   StatusBar,
   ActivityIndicator,
-  Linking
+  Linking,
+  Share,
+  Alert
 } from 'react-native';
 import { Text } from '../../components/Text';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,6 +16,23 @@ import { Image as ExpoImage } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../utils/supabase';
+
+async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
+  const result = await supabase.functions.invoke(name, { body: body as any });
+  if (result.error) {
+    let message = result.error.message || `${name} failed.`;
+    const context = (result.error as any).context;
+    if (context && typeof context.json === 'function') {
+      try {
+        const payload = await context.json();
+        message = payload?.error || payload?.message || message;
+      } catch { }
+    }
+    throw new Error(message);
+  }
+  if (!result.data) throw new Error(`${name} returned empty response.`);
+  return result.data as T;
+}
 
 // ─── Color Palette ─────────────────────────────────────────────────────────────
 const COLORS = {
@@ -90,8 +109,9 @@ export default function BookingDetailScreen() {
 
           let dateStr = 'Unknown Date';
           let timeStr = 'Unknown Time';
-          if (data.created_at) {
-            const dateObj = new Date(data.created_at);
+          const displayDate = data.date || data.created_at;
+          if (displayDate) {
+            const dateObj = new Date(displayDate);
             dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
             timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
           }
@@ -134,6 +154,43 @@ export default function BookingDetailScreen() {
     }
   };
 
+  const handleCancelBooking = async () => {
+    if (!booking) return;
+    Alert.alert(
+      'Cancel Booking',
+      'Are you sure you want to cancel this booking?',
+      [
+        { text: 'No', style: 'cancel' },
+        {
+          text: 'Yes, Cancel',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await invokeFunction('cancel-booking', { bookingId: booking.id });
+              Alert.alert('Success', 'Booking cancelled successfully');
+              router.back();
+            } catch (err: any) {
+              Alert.alert('Error', err.message || 'Failed to cancel booking');
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleShare = async () => {
+    if (!booking) return;
+    try {
+      await Share.share({
+        message: `GMR Booking #${booking.id.slice(0, 8).toUpperCase()}\n${booking.vehicleName}\nDate: ${booking.date}\nAmount: ₹${booking.totalAmount.toLocaleString()}\nStatus: ${booking.status}`,
+      });
+    } catch { }
+  };
+
+  const handleContactSupport = () => {
+    Linking.openURL('tel:+919876543210');
+  };
+
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -169,7 +226,7 @@ export default function BookingDetailScreen() {
           <Ionicons name="arrow-back" size={24} color={COLORS.darkGray} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Booking ID: #{booking.id.slice(0, 8).toUpperCase()}</Text>
-        <TouchableOpacity style={styles.headerBtn}>
+        <TouchableOpacity style={styles.headerBtn} onPress={handleShare}>
           <Ionicons name="share-outline" size={24} color={COLORS.darkGray} />
         </TouchableOpacity>
       </View>
@@ -273,7 +330,7 @@ export default function BookingDetailScreen() {
             <Text style={styles.supportTitle}>Need help with this booking?</Text>
             <Text style={styles.supportSubtitle}>Our support team is available 24/7</Text>
           </View>
-          <TouchableOpacity style={styles.supportBtn}>
+          <TouchableOpacity style={styles.supportBtn} onPress={handleContactSupport}>
             <Text style={styles.supportBtnText}>Contact</Text>
           </TouchableOpacity>
         </View>
@@ -300,6 +357,7 @@ export default function BookingDetailScreen() {
           <View style={styles.row}>
             <TouchableOpacity 
               style={[styles.actionBtn, { flex: 1, backgroundColor: COLORS.white, borderWidth: 1, borderColor: COLORS.danger, marginRight: 12 }]}
+              onPress={handleCancelBooking}
             >
               <Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Cancel</Text>
             </TouchableOpacity>

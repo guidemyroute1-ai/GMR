@@ -18,8 +18,11 @@ import {
   TouchableOpacity,
   View,
   Dimensions,
-  Modal
+  Modal,
+  SafeAreaView
 } from 'react-native';
+import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
+import AppBar from '../../components/AppBar';
 
 // ─── Color Palette ────────────────────────────────────────────────────────────
 const COLORS = {
@@ -392,7 +395,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <View style={styles.safeArea}>
+    <SafeAreaContextView edges={['top']} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
      
@@ -412,6 +415,7 @@ export default function HomeScreen() {
           />
         }
       >
+        <AppBar />
        {/* ── Location Selector ── */}
       <View style={styles.locationBar}>
         <TouchableOpacity style={styles.loc} activeOpacity={0.8} onPress={() => setShowCitySelector(true)}>
@@ -459,7 +463,7 @@ export default function HomeScreen() {
                 <ExpoImage
                   source={item.source}
                   style={styles.heroImage}
-                  contentFit="cover"
+                  contentFit="contain"
                   transition={300}
                 />
              
@@ -596,32 +600,56 @@ export default function HomeScreen() {
 
       <Modal
         visible={showCitySelector}
-        transparent
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setShowCitySelector(false)}
       >
-        <TouchableOpacity style={styles.cityOverlay} activeOpacity={1} onPress={() => setShowCitySelector(false)}>
-          <View style={styles.citySheet}>
-            <Text style={styles.citySheetTitle}>Select city</Text>
+        <SafeAreaContextView edges={['top', 'bottom']} style={styles.cityModalSafeArea}>
+          <View style={styles.cityModalHeader}>
+            <Text style={styles.cityModalTitle}>Select Your City</Text>
+            <TouchableOpacity onPress={() => setShowCitySelector(false)}>
+              <Ionicons name="close" size={24} color="#111827" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.citySearchBarContainer}>
+            <TextInput
+              style={styles.citySearchInput}
+              placeholder="Search"
+              placeholderTextColor="#9CA3AF"
+            />
+            <Ionicons name="search" size={20} color="#9CA3AF" />
+          </View>
+
+          <ScrollView contentContainerStyle={styles.cityGridContainer}>
             {cityOptions.map((city) => (
               <TouchableOpacity
                 key={city}
-                style={styles.cityOption}
+                style={[styles.cityGridCard, selectedCity === city && styles.cityGridCardActive]}
+                activeOpacity={0.8}
                 onPress={async () => {
                   await setSelectedCity(city);
-                  setShowCitySelector(false);
                 }}
               >
-                <Text style={[styles.cityOptionText, selectedCity === city && styles.cityOptionTextActive]}>
-                  {city}
-                </Text>
-                {selectedCity === city && <Ionicons name="checkmark" size={20} color={COLORS.primary} />}
+                <View style={styles.cityIconWrapper}>
+                  <Ionicons name="location" size={40} color={COLORS.orange} />
+                </View>
+                <Text style={[styles.cityGridName, selectedCity === city && styles.cityGridNameActive]}>{city}</Text>
               </TouchableOpacity>
             ))}
+          </ScrollView>
+
+          <View style={styles.cityModalFooter}>
+            <TouchableOpacity 
+              style={styles.cityModalSaveBtn} 
+              activeOpacity={0.85}
+              onPress={() => setShowCitySelector(false)}
+            >
+              <Text style={styles.cityModalSaveBtnText}>Save</Text>
+            </TouchableOpacity>
           </View>
-        </TouchableOpacity>
+        </SafeAreaContextView>
       </Modal>
-    </View>
+    </SafeAreaContextView>
   );
 }
 
@@ -688,7 +716,7 @@ const styles = StyleSheet.create({
   },
 
   // Location Bar
-locationBar: {
+  locationBar: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
@@ -1445,5 +1473,111 @@ locationBar: {
     height: 3,
     borderRadius: 2,
     backgroundColor: COLORS.primary,
+  },
+
+  // City Selector Modal
+  cityModalSafeArea: {
+    flex: 1,
+    backgroundColor: '#FFF7F7',
+  },
+  cityModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
+  },
+  cityModalTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#111827',
+  },
+  citySearchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    marginHorizontal: 20,
+    paddingHorizontal: 16,
+    height: 48,
+    borderRadius: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 3,
+    marginBottom: 24,
+  },
+  citySearchInput: {
+    flex: 1,
+    fontSize: 15,
+    color: '#111827',
+  },
+  cityGridContainer: {
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingBottom: 40,
+  },
+  cityGridCard: {
+    backgroundColor: '#FFFFFF',
+    width: '47%',
+    aspectRatio: 0.9,
+    borderRadius: 24,
+    marginBottom: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 3,
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  cityGridCardActive: {
+    borderColor: COLORS.primary,
+    backgroundColor: '#F0FDF4',
+  },
+  cityIconWrapper: {
+    height: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  cityGridName: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1F2937',
+  },
+  cityGridNameActive: {
+    color: COLORS.primary,
+  },
+  cityModalFooter: {
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 24,
+    backgroundColor: '#FFF7F7',
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5E7EB',
+  },
+  cityModalSaveBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 16,
+    height: 54,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  cityModalSaveBtnText: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
 });

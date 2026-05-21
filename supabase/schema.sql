@@ -81,6 +81,18 @@ create table if not exists public.bookings (
   updated_at timestamptz not null default now()
 );
 
+create table if not exists public.reviews (
+  id uuid primary key default gen_random_uuid(),
+  booking_id uuid not null references public.bookings(id) on delete cascade,
+  item_id text,
+  user_id uuid not null references public.users(id) on delete cascade,
+  rating integer not null check (rating >= 1 and rating <= 5),
+  comment text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint unique_review_per_booking unique (booking_id, user_id)
+);
+
 
 
 create index if not exists users_role_idx on public.users(role);
@@ -88,12 +100,15 @@ create index if not exists listings_partner_id_idx on public.listings(partner_id
 create index if not exists listings_type_active_idx on public.listings(type, is_active);
 create index if not exists bookings_user_id_idx on public.bookings(user_id);
 create index if not exists bookings_partner_id_idx on public.bookings(partner_id);
-create unique index if not exists bookings_payment_id_unique_idx on public.bookings(payment_id) where payment_id is not null and payment_id <> '';
-
+create index if not exists bookings_payment_id_unique_idx on public.bookings(payment_id) where payment_id is not null and payment_id <> '';
+create index if not exists reviews_item_id_idx on public.reviews(item_id);
+create index if not exists reviews_user_id_idx on public.reviews(user_id);
+create index if not exists reviews_booking_id_idx on public.reviews(booking_id);
 
 alter table public.users enable row level security;
 alter table public.listings enable row level security;
 alter table public.bookings enable row level security;
+alter table public.reviews enable row level security;
 
 
 create or replace function public.current_user_role()
@@ -187,7 +202,7 @@ with check (
 insert into storage.buckets (id, name, public)
 values
   ('avatars', 'avatars', true),
-  ('partner-documents', 'partner-documents', true),
+  ('partner-documents', 'partner-documents', false),
   ('listing-images', 'listing-images', true)
 on conflict (id) do update set public = excluded.public;
 
@@ -204,7 +219,12 @@ using (bucket_id in ('avatars', 'partner-documents', 'listing-images') and auth.
 drop policy if exists "Public read app storage" on storage.objects;
 create policy "Public read app storage"
 on storage.objects for select
-using (bucket_id in ('avatars', 'partner-documents', 'listing-images'));
+using (bucket_id in ('avatars', 'listing-images'));
+
+drop policy if exists "Auth users read partner documents" on storage.objects;
+create policy "Auth users read partner documents"
+on storage.objects for select
+using (bucket_id = 'partner-documents' and auth.role() = 'authenticated');
 
 create table if not exists public.app_settings (
   id integer primary key default 1,
@@ -270,3 +290,46 @@ create trigger set_app_settings_updated_at
 before update on public.app_settings
 for each row
 execute procedure public.handle_updated_at();
+
+drop trigger if exists set_users_updated_at on public.users;
+create trigger set_users_updated_at
+before update on public.users
+for each row
+execute procedure public.handle_updated_at();
+
+drop trigger if exists set_bookings_updated_at on public.bookings;
+create trigger set_bookings_updated_at
+before update on public.bookings
+for each row
+execute procedure public.handle_updated_at();
+
+drop trigger if exists set_listings_updated_at on public.listings;
+create trigger set_listings_updated_at
+before update on public.listings
+for each row
+execute procedure public.handle_updated_at();
+
+drop trigger if exists set_reviews_updated_at on public.reviews;
+create trigger set_reviews_updated_at
+before update on public.reviews
+for each row
+execute procedure public.handle_updated_at();
+
+-- Reviews RLS
+drop policy if exists "Anyone can read reviews" on public.reviews;
+create policy "Anyone can read reviews"
+on public.reviews for select
+using (true);
+
+drop policy if exists "Users insert own reviews" on public.reviews;
+create policy "Users insert own reviews"
+on public.reviews for insert
+with check (user_id = auth.uid());
+
+drop policy if exists "Users update own reviews" on public.reviews;
+create policy "Users update own reviews"
+on public.reviews for update
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+grant select, insert on public.reviews to authenticated;

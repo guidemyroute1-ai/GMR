@@ -11,6 +11,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
+import AppBar from '../../components/AppBar';
 import { Text } from '../../components/Text';
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -289,12 +291,21 @@ export default function HotelListingsScreen() {
   });
 
   return (
-    <View style={styles.safeArea}>
+    <SafeAreaContextView edges={['top']} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      
+      <ScrollView
+        stickyHeaderIndices={[1]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
+        }
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        <AppBar />
 
-
-      <View style={styles.filterTabsContainer}>
-        <View style={styles.cityFilterRow}>
+        <View style={styles.filterTabsContainer}>
+          <View style={styles.cityFilterRow}>
           <MaterialCommunityIcons name="map-marker" size={14} color={COLORS.mediumGray} style={{ marginRight: 4 }} />
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.priceFilterScroll}>
             {cityOptions.map((city) => (
@@ -326,58 +337,26 @@ export default function HotelListingsScreen() {
       </View>
 
       {loading ? (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.loaderContainer}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={COLORS.primary}
-              colors={[COLORS.primary]}
-            />
-          }
-        >
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
           <ActivityIndicator size="large" color={COLORS.primary} />
           <Text style={styles.loaderText}>Finding best stays for you...</Text>
-        </ScrollView>
+        </View>
       ) : filtered.length === 0 ? (
-        <ScrollView
-          style={{ flex: 1 }}
-          contentContainerStyle={styles.emptyContainer}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={COLORS.primary}
-              colors={[COLORS.primary]}
-            />
-          }
-        >
+        <View style={styles.emptyContainer}>
           <MaterialCommunityIcons name="bed-empty" size={60} color={COLORS.mediumGray} />
           <Text style={styles.emptyText}>No stays found</Text>
           <Text style={styles.emptySubText}>Try adjusting your filters</Text>
-        </ScrollView>
+        </View>
       ) : (
-        <FlatList
-          data={filtered}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => <HotelCard hotel={item} />}
-          contentContainerStyle={styles.listContent}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={COLORS.primary}
-              colors={[COLORS.primary]}
-            />
-          }
-        />
+        <View style={[styles.listContent, { paddingBottom: 20 }]}>
+          {filtered.map((item) => (
+            <HotelCard key={item.id} hotel={item} />
+          ))}
+        </View>
       )}
 
-
-      
-    </View>
+      </ScrollView>
+    </SafeAreaContextView>
   );
 }
 

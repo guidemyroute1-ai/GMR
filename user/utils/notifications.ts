@@ -19,7 +19,7 @@ export async function initNotifications(userId: string): Promise<() => void> {
 
   try {
     const token = await messaging().getToken();
-    console.log('[FCM] Got token:', token ? token.substring(0, 20) + '...' : 'null');
+    console.log('[FCM] Got token:', token ? '✓' : 'null');
     if (token) {
       const { error } = await supabase.rpc('register_fcm_token', { p_token: token });
       if (error) {

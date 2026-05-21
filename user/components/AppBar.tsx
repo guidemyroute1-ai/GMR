@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Modal, Pressable, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, StyleSheet, TouchableOpacity, Pressable, Image } from 'react-native';
+
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
 import { useRouter } from 'expo-router';
@@ -19,7 +19,6 @@ const NOTIFICATIONS_STORAGE_KEY = '@gmr_notifications';
 
 export default function AppBar() {
   const router = useRouter();
-  const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   useEffect(() => {
@@ -58,7 +57,7 @@ export default function AppBar() {
   }, []);
   
   return (
-    <SafeAreaView edges={['top']} style={styles.safe}>
+    <View style={styles.safe}>
       <View style={styles.bar}>
            <TouchableOpacity 
            onPress={() => router.push('/(tabs)/Home')}>
@@ -88,57 +87,14 @@ export default function AppBar() {
           <TouchableOpacity 
             style={styles.iconButton} 
             activeOpacity={0.75}
-            onPress={() => setShowNotifications(true)}
+            onPress={() => router.push('/extra/notifications')}
           >
             <Ionicons name="notifications-outline" size={20} color="#1F2937" />
             {notifications.length > 0 && <View style={styles.dot} />}
           </TouchableOpacity>
         </View>
       </View>
-
-      <Modal
-        visible={showNotifications}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowNotifications(false)}
-      >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
-          onPress={() => setShowNotifications(false)}
-        >
-          <View style={styles.dropdownMenu}>
-            <View style={styles.dropdownHeader}>
-              <Text style={styles.dropdownTitle}>Recent Notifications</Text>
-              <TouchableOpacity onPress={() => setShowNotifications(false)} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-                <Ionicons name="close" size={20} color="#64748B" />
-              </TouchableOpacity>
-            </View>
-            {notifications.length === 0 ? (
-               <View style={styles.notificationItem}>
-                 <Text style={[styles.notificationMessage, { textAlign: 'center' }]}>No recent notifications</Text>
-               </View>
-            ) : (
-              notifications.map((notif, index) => (
-                <View 
-                  key={notif.id} 
-                  style={[
-                    styles.notificationItem, 
-                    index !== notifications.length - 1 && styles.notificationDivider
-                  ]}
-                >
-                  <View style={styles.notificationHeader}>
-                    <Text style={styles.notificationTitle}>{notif.title}</Text>
-                    <Text style={styles.notificationTime}>{notif.time}</Text>
-                  </View>
-                  <Text style={styles.notificationMessage} numberOfLines={2}>{notif.message}</Text>
-                </View>
-              ))
-            )}
-          </View>
-        </TouchableOpacity>
-      </Modal>
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -208,68 +164,5 @@ const styles = StyleSheet.create({
     backgroundColor: '#F97316',
     borderWidth: 1,
     borderColor: '#FFFFFF',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  dropdownMenu: {
-    position: 'absolute',
-    top: 110,
-    right: 16,
-    width: 320,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 12,
-    elevation: 8,
-    padding: 8,
-  },
-  dropdownHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E2E8F0',
-    marginBottom: 4,
-  },
-  dropdownTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111827',
-  },
-  notificationItem: {
-    padding: 12,
-    borderRadius: 8,
-  },
-  notificationDivider: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#F1F5F9',
-  },
-  notificationHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  notificationTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#1F2937',
-    flex: 1,
-  },
-  notificationTime: {
-    fontSize: 11,
-    color: '#64748B',
-    marginLeft: 8,
-  },
-  notificationMessage: {
-    fontSize: 13,
-    color: '#475569',
-    lineHeight: 18,
   },
 });

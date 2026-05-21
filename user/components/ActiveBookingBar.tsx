@@ -59,7 +59,7 @@ export default function ActiveBookingBar() {
   useEffect(() => {
     if (!user) return;
     const channel = supabase
-      .channel('active-booking-bar')
+      .channel(`active-booking-bar-${user.id}-${Date.now()}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bookings', filter: `user_id=eq.${user.id}` },

@@ -12,13 +12,6 @@ export async function getAdminSession() {
   const accessToken = cookieStore.get(ACCESS_COOKIE)?.value;
   if (!accessToken) return null;
 
-  if (accessToken === 'dummy_admin_access_token') {
-    return {
-      user: { id: 'admin-hardcoded', email: 'admin' } as any,
-      profile: { id: 'admin-hardcoded', role: 'admin', email: 'admin', name: 'Admin' }
-    };
-  }
-
   const { data, error } = await supabaseAdmin.auth.getUser(accessToken);
   if (error || !data.user) return null;
 

@@ -1,26 +1,27 @@
-import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import { Image as ExpoImage } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import React, { useEffect, useState } from 'react';
 import {
-  View,
-  StyleSheet,
-  FlatList,
-  TextInput,
-  TouchableOpacity,
-  StatusBar,
   ActivityIndicator,
-  RefreshControl,
-  ScrollView,
   Dimensions,
   Modal,
+  RefreshControl,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View
 } from 'react-native';
+import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
+import AppBar from '../../components/AppBar';
 import { Text } from '../../components/Text';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Image as ExpoImage } from 'expo-image';
-import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { supabase } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
-import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
 import { useLocation } from '../../contexts/LocationContext';
+import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
+import { supabase } from '../../utils/supabase';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 16 * 2 - 12) / 2; // 2-column grid
@@ -273,9 +274,9 @@ const SupportBanner = () => (
         <Text style={styles.supportBannerSubtitle}>All guides are verified and background checked.</Text>
       </View>
     </View>
-    
+
     <View style={styles.supportBannerDivider} />
-    
+
     <View style={styles.supportBannerGridItem}>
       <View style={styles.supportBannerIconBox}>
         <Ionicons name="headset-outline" size={28} color={COLORS.primary} />
@@ -445,11 +446,11 @@ export default function AllGuidesScreen() {
               {popularDestinations.map(dest => {
                 const count = guides.filter(g => normalizeCity(g.city) === normalizeCity(dest.name)).length;
                 return (
-                  <DestinationCard 
-                    key={dest.id} 
-                    dest={dest} 
-                    guideCount={count} 
-                    onPress={() => handleDestinationPress(dest.name)} 
+                  <DestinationCard
+                    key={dest.id}
+                    dest={dest}
+                    guideCount={count}
+                    onPress={() => handleDestinationPress(dest.name)}
                   />
                 );
               })}
@@ -464,97 +465,95 @@ export default function AllGuidesScreen() {
   };
 
   return (
-    <View style={styles.safeArea}>
+    <SafeAreaContextView edges={['top']} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
-      {/* Search + Filter bar */}
-      <View style={styles.searchFilterContainer}>
-        <View style={styles.searchBox}>
-          <Ionicons name="search" size={18} color={COLORS.mediumGray} style={{ marginRight: 8 }} />
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Search guides or specialties..."
-            placeholderTextColor={COLORS.mediumGray}
-            value={searchText}
-            onChangeText={setSearchText}
-          />
-          {searchText.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchText('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close-circle" size={18} color={COLORS.mediumGray} />
+      <ScrollView
+        stickyHeaderIndices={[1]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
+        }
+        contentContainerStyle={{ flexGrow: 1 }}
+      >
+        <AppBar />
+
+        {/* Search + Filter bar */}
+        <View style={styles.searchFilterContainer}>
+          <View style={styles.searchBox}>
+            <Ionicons name="search" size={18} color={COLORS.mediumGray} style={{ marginRight: 8 }} />
+            <TextInput
+              style={styles.searchInput}
+              placeholder="Search guides"
+              placeholderTextColor={COLORS.mediumGray}
+              value={searchText}
+              onChangeText={setSearchText}
+            />
+            {searchText.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchText('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Ionicons name="close-circle" size={18} color={COLORS.mediumGray} />
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
+              activeOpacity={0.8}
+              onPress={() => setShowFilters(true)}
+            >
+              <Ionicons name="options-outline" size={21} color={COLORS.darkGray} />
+              {activeFilterCount > 0 && (
+                <View style={styles.filterBadge}>
+                  <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+                </View>
+              )}
             </TouchableOpacity>
-          )}
+          </View>
+
         </View>
-        <TouchableOpacity
-          style={[styles.filterBtn, activeFilterCount > 0 && styles.filterBtnActive]}
-          activeOpacity={0.8}
-          onPress={() => setShowFilters(true)}
-        >
-          <Ionicons name="options-outline" size={21} color={COLORS.darkGray} />
-          {activeFilterCount > 0 && (
-            <View style={styles.filterBadge}>
-              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+
+        {/* Results count */}
+        {!loading && !fetchError && (
+          <Text style={styles.resultsCount}>
+            {filteredGuides.length} guide{filteredGuides.length !== 1 ? 's' : ''} available
+            {activeFilterCount > 0 ? ` - ${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''}` : ''}
+          </Text>
+        )}
+
+        {/* Content */}
+        {loading ? (
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
+            <ActivityIndicator size="large" color={COLORS.primary} />
+            <Text style={styles.loadingText}>Loading guides...</Text>
+          </View>
+        ) : fetchError ? (
+          <View style={styles.emptyStateWrap}>
+            <Ionicons name="cloud-offline-outline" size={52} color={COLORS.mediumGray} style={{ opacity: 0.5, marginBottom: 12 }} />
+            <Text style={styles.emptyStateTitle}>Could not load guides</Text>
+            <Text style={styles.emptyStateText}>{fetchError}</Text>
+          </View>
+        ) : filteredGuides.length === 0 ? (
+          <View style={styles.emptyStateWrap}>
+            <Ionicons name="person-outline" size={52} color={COLORS.mediumGray} style={{ opacity: 0.4, marginBottom: 12 }} />
+            <Text style={styles.emptyStateTitle}>No guides found</Text>
+            <Text style={styles.emptyStateText}>Try a different search term.</Text>
+          </View>
+        ) : (
+          <View style={{ paddingBottom: 20 }}>
+            {renderHeader()}
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, justifyContent: 'space-between' }}>
+              {filteredGuides.map((item) => (
+                <View key={item.id} style={{ width: CARD_WIDTH, marginBottom: 16 }}>
+                  <GuideCard item={item} onPress={() => navigateToGuide(item.id)} />
+                </View>
+              ))}
             </View>
-          )}
-        </TouchableOpacity>
-      </View>
+            <SupportBanner />
+          </View>
+        )}
 
-      {/* Results count */}
-      {!loading && !fetchError && (
-        <Text style={styles.resultsCount}>
-          {filteredGuides.length} guide{filteredGuides.length !== 1 ? 's' : ''} available
-          {activeFilterCount > 0 ? ` - ${activeFilterCount} filter${activeFilterCount !== 1 ? 's' : ''}` : ''}
-        </Text>
-      )}
+      </ScrollView>
 
-      {/* Content */}
-      {loading ? (
-        <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center', alignItems: 'center' }}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
-          }
-        >
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading guides...</Text>
-        </ScrollView>
-      ) : fetchError ? (
-        <ScrollView
-          contentContainerStyle={styles.emptyStateWrap}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
-          }
-        >
-          <Ionicons name="cloud-offline-outline" size={52} color={COLORS.mediumGray} style={{ opacity: 0.5, marginBottom: 12 }} />
-          <Text style={styles.emptyStateTitle}>Could not load guides</Text>
-          <Text style={styles.emptyStateText}>{fetchError}</Text>
-        </ScrollView>
-      ) : (
-        <FlatList
-          data={filteredGuides}
-          keyExtractor={(item) => item.id}
-          numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
-          renderItem={({ item }) => (
-            <GuideCard item={item} onPress={() => navigateToGuide(item.id)} />
-          )}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={<SupportBanner />}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyStateWrap}>
-              <Ionicons name="person-outline" size={52} color={COLORS.mediumGray} style={{ opacity: 0.4, marginBottom: 12 }} />
-              <Text style={styles.emptyStateTitle}>No guides found</Text>
-              <Text style={styles.emptyStateText}>Try a different search term.</Text>
-            </View>
-          }
-        />
-      )}
 
-    
 
       <Modal
         visible={showFilters}
@@ -678,7 +677,7 @@ export default function AllGuidesScreen() {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaContextView>
   );
 }
 
@@ -690,11 +689,13 @@ const styles = StyleSheet.create({
 
   /* ── Search bar ── */
   searchFilterContainer: {
+    width: '100%',
     flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 10,
-    gap: 10,
+
+    paddingVertical: 10,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.borderGray,
@@ -705,26 +706,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.lightGray,
     borderRadius: 12,
+
     paddingHorizontal: 12,
-    height: 44,
+    height: 48,
     borderWidth: 1,
     borderColor: COLORS.borderGray,
+    marginRight: 12,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: COLORS.darkGray,
     paddingVertical: 0,
+    height: '100%',
+    textAlignVertical: 'center',
   },
   filterBtn: {
-    width: 44,
-    height: 44,
-    backgroundColor: COLORS.lightGray,
+    width: 40,
+    height: 40,
+    backgroundColor: '#e2e8f0',
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: '#b2b6bf',
   },
   filterBtnActive: {
     backgroundColor: COLORS.primaryLight,

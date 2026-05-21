@@ -12,8 +12,9 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
 import { Text } from '../../components/Text';
+import AppBar from '../../components/AppBar';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
 
@@ -275,7 +276,7 @@ export default function ProfileScreen() {
   };
 
   return (
-    <View style={styles.safeArea}>
+    <SafeAreaContextView edges={['top']} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
      
@@ -293,6 +294,7 @@ export default function ProfileScreen() {
           />
         }
       >
+        <AppBar />
         {/* ── Profile Card ── */}
         <View style={styles.profileCard}>
           {/* Avatar */}
@@ -386,7 +388,7 @@ export default function ProfileScreen() {
 
         <View style={{ height: 20 }} />
       </ScrollView>
-    </View>
+    </SafeAreaContextView>
   );
 }
 
