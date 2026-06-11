@@ -1,0 +1,201 @@
+================================================================================
+                          PRIVACY POLICY
+                        Guide My Route
+                   Package: com.jatin551.guidemyroute
+================================================================================
+
+Effective Date : June 8, 2026
+Last Updated   : June 8, 2026
+
+--------------------------------------------------------------------------------
+1. OVERVIEW
+--------------------------------------------------------------------------------
+
+This Privacy Policy applies to the Guide My Route mobile application
+("App"), operated by GMR.
+
+By downloading, installing, or using the App, you agree to the practices
+described in this Privacy Policy. If you do not agree, please do not use
+the App.
+
+We do NOT sell, rent, or trade your personal information to any third party.
+Your data is used solely to provide, improve, and personalise our service.
+
+--------------------------------------------------------------------------------
+2. INFORMATION WE COLLECT
+--------------------------------------------------------------------------------
+
+2.1  Account & Identity Information
+     - Full name
+     - Email address (for login, notifications, and support)
+     - Profile photo (optional)
+     - Google account details (if you sign in via Google Sign-In)
+     - Phone number (where provided for account verification)
+
+2.2  Location Data
+     - Approximate location — for nearby route and service suggestions
+     - Destination data — routes and destinations you search or save
+     - Trip history — past routes for personalised recommendations
+
+     IMPORTANT: Location is only accessed when you actively use route-related
+     features. We do NOT track your location in the background without your
+     explicit permission.
+
+2.3  Device & Usage Information
+     - Device model, OS version, and unique device ID
+     - Firebase Cloud Messaging (FCM) token for push notifications
+     - App usage analytics (screens visited, features used, session duration)
+     - Crash reports and error logs
+     - IP address (for security and fraud prevention)
+
+--------------------------------------------------------------------------------
+3. HOW WE USE YOUR INFORMATION
+--------------------------------------------------------------------------------
+
+We use the information we collect to:
+
+  - Create and manage your account and authenticate your identity
+  - Provide route guidance, recommendations, and location-based services
+  - Connect you with GMR Partners for bookings and services
+  - Send push notifications for booking confirmations and travel updates
+  - Respond to your support requests and resolve disputes
+  - Monitor and analyse app usage to improve performance
+  - Detect, investigate, and prevent fraud or illegal activities
+  - Comply with applicable legal obligations
+  - Send service-related and (with your consent) promotional communications
+
+--------------------------------------------------------------------------------
+4. INFORMATION SHARING
+--------------------------------------------------------------------------------
+
+We share your data only in the following limited circumstances:
+
+  Recipient            | What Is Shared                  | Purpose
+  ---------------------|----------------------------------|----------------------
+  GMR Partners         | Name, booking details, reviews  | Fulfil your bookings
+  Service Providers    | Data needed to operate services | Hosting, analytics
+  Law Enforcement      | As required by law              | Legal compliance
+  Business Transfers   | User data as part of assets     | Merger or acquisition
+
+All service providers are contractually bound to use data only for the
+specified purpose and to protect it with appropriate security measures.
+
+--------------------------------------------------------------------------------
+5. THIRD-PARTY SERVICES
+--------------------------------------------------------------------------------
+
+The Guide My Route app integrates with the following third-party services:
+
+  Service                     | Provider       | Purpose
+  ----------------------------|----------------|------------------------------
+  Firebase Authentication     | Google LLC     | User sign-in & sessions
+  Firebase Cloud Messaging    | Google LLC     | Push notifications
+  Google Sign-In              | Google LLC     | OAuth authentication
+  Supabase                    | Supabase Inc.  | Database & backend API
+  Expo Notifications          | Expo           | Push notification delivery
+
+Each service has its own Privacy Policy. We are not responsible for the
+privacy practices of these third-party providers.
+
+--------------------------------------------------------------------------------
+6. PUSH NOTIFICATIONS
+--------------------------------------------------------------------------------
+
+We may send the following push notifications:
+
+  - Booking confirmations and status updates
+  - New route recommendations and travel alerts
+  - Promotional offers and announcements (with your consent)
+  - Security alerts and account activity notifications
+
+You can manage or disable notifications at any time through your device
+settings or within the app. Disabling notifications may limit some features.
+
+--------------------------------------------------------------------------------
+7. DATA RETENTION
+--------------------------------------------------------------------------------
+
+  Data Type                   | Retention Period
+  ----------------------------|-------------------------------------------
+  Account information         | Duration of account + 90 days after deletion
+  Trip / booking history      | 3 years from the date of trip/booking
+  Crash & diagnostic logs     | 90 days
+  Push notification tokens    | Until account deletion or token refresh
+  Legal / compliance records  | As required by applicable law
+
+When you delete your account, we will delete or anonymise your personal
+data within 90 days, except where retention is required by law.
+
+--------------------------------------------------------------------------------
+8. YOUR RIGHTS
+--------------------------------------------------------------------------------
+
+Depending on your jurisdiction, you have the following rights:
+
+  - Access        : Request a copy of your personal data
+  - Rectification : Correct inaccurate or incomplete information
+  - Erasure       : Request deletion of your data ("right to be forgotten")
+  - Portability   : Receive your data in a machine-readable format
+  - Restriction   : Request limits on how we process your data
+  - Objection     : Object to processing based on legitimate interests
+  - Withdraw Consent : Revoke consent at any time where applicable
+
+To exercise any of these rights, contact us (see Section 12).
+We will respond within 30 days.
+
+--------------------------------------------------------------------------------
+9. CHILDREN'S PRIVACY
+--------------------------------------------------------------------------------
+
+The Guide My Route app is NOT intended for children under the age of 13
+(or the applicable age of digital consent in your jurisdiction).
+
+We do not knowingly collect personal information from children. If we
+discover we have inadvertently collected a child's data, we will promptly
+delete it. If you are a parent or guardian and believe your child has
+provided us with personal information, please contact us immediately.
+
+--------------------------------------------------------------------------------
+10. DATA SECURITY
+--------------------------------------------------------------------------------
+
+We implement industry-standard security measures including:
+
+  - Encryption in transit via TLS/HTTPS for all data transmissions
+  - Secure authentication via OAuth 2.0 (Google Sign-In + Firebase Auth)
+  - Access controls — only authorised personnel can access personal data
+  - Supabase Row-Level Security (RLS) for database-level protection
+  - Regular security audits of our infrastructure and codebase
+
+No method of electronic transmission or storage is 100% secure. If you
+suspect a security breach or unauthorised account access, please contact
+us immediately and change your password.
+
+--------------------------------------------------------------------------------
+11. CHANGES TO THIS POLICY
+--------------------------------------------------------------------------------
+
+We may update this Privacy Policy from time to time. When we make material
+changes, we will:
+
+  - Update the "Last Updated" date at the top of this document
+  - Send a push notification to all users (where feasible)
+  - Display a prominent in-app notice when you next open the app
+
+Continued use of the app after the effective date constitutes acceptance
+of the updated policy.
+
+--------------------------------------------------------------------------------
+12. CONTACT US
+--------------------------------------------------------------------------------
+
+If you have any questions, concerns, or data requests, please contact us:
+
+  Email   : privacy@guidemyroute.app
+
+We aim to respond to all enquiries within 30 business days.
+
+================================================================================
+         © 2026 GMR — Guide My Route. All rights reserved.
+         Package: com.jatin551.guidemyroute
+================================================================================

@@ -394,12 +394,20 @@ export default function HomeScreen() {
     setRefreshKey(k => k + 1);
   };
 
+  const handleSearch = () => {
+    const trimmed = searchText.trim();
+    if (trimmed) {
+      const city = normalizeCity(trimmed);
+      if (city) {
+        setSelectedCity(city);
+        setSearchText('');
+      }
+    }
+  };
+
   return (
     <SafeAreaContextView edges={['top']} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-
-     
-
 
       {/* ── Scrollable Content ── */}
       <ScrollView
@@ -433,8 +441,10 @@ export default function HomeScreen() {
             placeholderTextColor={COLORS.mediumGray}
             value={searchText}
             onChangeText={setSearchText}
+            onSubmitEditing={handleSearch}
+            returnKeyType="search"
           />
-          <TouchableOpacity style={styles.searchBtn} activeOpacity={0.85}>
+          <TouchableOpacity style={styles.searchBtn} activeOpacity={0.85} onPress={handleSearch}>
             <ExpoImage source={require('../../assets/svg/search-svgrepo-com.svg')} style={{ width: 20, height: 20, tintColor: COLORS.white }} contentFit="contain" />
           </TouchableOpacity>
         </View>
@@ -862,7 +872,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 22,
     overflow: 'hidden',
-    height: 190,
+    height: 180,
     ...SHADOWS.large,
     backgroundColor: COLORS.white,
     position: 'relative',
@@ -871,7 +881,7 @@ const styles = StyleSheet.create({
   },
   heroSlide: {
     width: SCREEN_WIDTH - 32,
-    height: 190,
+    height: 180,
   },
   heroImage: {
     width: '100%',

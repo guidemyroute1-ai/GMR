@@ -67,11 +67,7 @@ export default function SignUpScreen() {
     setLoading(true);
     try {
       await signUpWithEmail(email.trim(), password, name.trim());
-      Alert.alert(
-        'Account Created!',
-        'Your account has been created successfully. Please check your email to verify your address.',
-        [{ text: 'OK', onPress: () => router.replace('/auth/login') }]
-      );
+      // User is now signed in — _layout auth guard will redirect to home automatically
     } catch (err: any) {
       const message = err?.message || 'Sign up failed. Please try again.';
       Alert.alert('Sign Up Failed', message);

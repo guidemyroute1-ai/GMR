@@ -15,7 +15,7 @@ import { getDashboardStats } from '@/lib/data';
 export const dynamic = 'force-dynamic';
 
 export default async function DashboardPage() {
-  const { stats: dbStats, recentBookings, bookingsByType, bookingsByLocation } = await getDashboardStats();
+  const { stats: dbStats, recentBookings, bookingsByType, bookingsByLocation, revenueData } = await getDashboardStats();
 
   const stats = [
     { label: 'Total Users', value: dbStats.totalUsers, icon: Users, iconBg: 'bg-blue-100', iconColor: 'text-blue-600' },
@@ -41,7 +41,7 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-12 gap-5">
         {/* Left column */}
         <div className="col-span-12 lg:col-span-7 space-y-5">
-          <RevenueChart />
+          <RevenueChart data={revenueData} />
 
           {/* Recent Bookings */}
           <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
               {[
                 { label: 'Verified', count: dbStats.verifiedPartners, color: 'text-green-600 bg-green-50' },
                 { label: 'Pending', count: dbStats.pendingPartners, color: 'text-yellow-600 bg-yellow-50' },
-                { label: 'Suspended', count: 0, color: 'text-red-600 bg-red-50' },
+                { label: 'Suspended', count: dbStats.suspendedPartners, color: 'text-red-600 bg-red-50' },
               ].map((item) => (
                 <div key={item.label} className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">{item.label}</span>

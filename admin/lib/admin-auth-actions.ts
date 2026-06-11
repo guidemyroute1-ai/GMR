@@ -5,10 +5,17 @@ import { clearAdminCookies, setAdminCookies } from './admin-session';
 import { supabaseAdmin } from './supabase-server';
 
 export async function loginAdmin(_prevState: { error?: string } | undefined, formData: FormData) {
-  const email = String(formData.get('email') || '').trim();
+  const username = String(formData.get('email') || '').trim();
   const password = String(formData.get('password') || '');
 
-  if (!email || !password) return { error: 'Email and password are required.' };
+  if (!username || !password) return { error: 'Username and password are required.' };
+
+  if (username !== 'admin' || password !== 'admin123') {
+    return { error: 'Invalid login credentials.' };
+  }
+
+  // Map to the actual Supabase admin user we created to ensure sessions still work properly under the hood
+  const email = 'admin@guidemyroute.com';
 
   const { data, error } = await supabaseAdmin.auth.signInWithPassword({ email, password });
   if (error || !data.session || !data.user) {

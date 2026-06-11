@@ -42,7 +42,6 @@
       ],
       "@react-native-firebase/app",
       "@react-native-firebase/messaging",
-      "@react-native-community/datetimepicker",
       "@react-native-google-signin/google-signin",
       [
         "expo-notifications",

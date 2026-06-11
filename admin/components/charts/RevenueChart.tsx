@@ -10,9 +10,8 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from 'recharts';
-import { revenueData } from '@/lib/mockData';
 
-const formatCurrency = (value: number) => `$${value.toLocaleString()}`;
+const formatCurrency = (value: number) => `₹${value.toLocaleString('en-IN')}`;
 
 interface TooltipProps {
   active?: boolean;
@@ -32,7 +31,7 @@ function CustomTooltip({ active, payload, label }: TooltipProps) {
   return null;
 }
 
-export default function RevenueChart() {
+export default function RevenueChart({ data }: { data: any[] }) {
   const [mode, setMode] = useState<'weekly' | 'monthly'>('weekly');
 
   return (
@@ -57,7 +56,7 @@ export default function RevenueChart() {
       </div>
 
       <ResponsiveContainer width="100%" height={220}>
-        <AreaChart data={revenueData} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
+        <AreaChart data={data} margin={{ top: 5, right: 5, left: -10, bottom: 0 }}>
           <defs>
             <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
               <stop offset="5%" stopColor="#16A34A" stopOpacity={0.15} />
@@ -72,7 +71,7 @@ export default function RevenueChart() {
             tickLine={false}
           />
           <YAxis
-            tickFormatter={(v) => `$${v / 1000}k`}
+            tickFormatter={(v) => `₹${v / 1000}k`}
             tick={{ fontSize: 11, fill: '#94a3b8' }}
             axisLine={false}
             tickLine={false}

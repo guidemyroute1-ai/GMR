@@ -1,17 +1,20 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search, Eye, Ban, Users, UserCheck, UserPlus, UserX } from 'lucide-react';
+import { Search, Eye, Ban, Users, UserCheck, UserPlus, UserX, Trash2 } from 'lucide-react';
 import StatCard from '@/components/ui/StatCard';
 import StatusBadge from '@/components/ui/StatusBadge';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import { User } from '@/lib/mockData';
+
+import { deleteUser } from '@/lib/actions';
 
 interface UsersClientProps {
   users: User[];
 }
 
 export default function UsersClient({ users }: UsersClientProps) {
+  const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
   const [search, setSearch] = useState('');
@@ -85,7 +88,7 @@ export default function UsersClient({ users }: UsersClientProps) {
       key: 'actions',
       header: 'Actions',
       className: 'text-right',
-      render: () => (
+      render: (u) => (
         <div className="flex items-center justify-end gap-2">
           <button
             title="View"
@@ -95,9 +98,35 @@ export default function UsersClient({ users }: UsersClientProps) {
           </button>
           <button
             title="Block"
-            className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+            className="p-2 rounded-lg text-gray-400 hover:text-orange-600 hover:bg-orange-50 transition-colors"
           >
             <Ban className="w-4 h-4" />
+          </button>
+          <button
+            title="Delete"
+            onClick={async () => {
+              if (confirm(`Are you sure you want to delete ${u.name}?`)) {
+                setIsDeleting(u.id);
+                try {
+                  const res = await deleteUser(u.id);
+                  if (res.error) {
+                    alert(res.error);
+                  }
+                } catch (err: any) {
+                  alert(err.message);
+                } finally {
+                  setIsDeleting(null);
+                }
+              }
+            }}
+            disabled={isDeleting === u.id}
+            className={`p-2 rounded-lg transition-colors ${
+              isDeleting === u.id
+                ? 'text-red-300 cursor-not-allowed'
+                : 'text-gray-400 hover:text-red-600 hover:bg-red-50'
+            }`}
+          >
+            <Trash2 className={`w-4 h-4 ${isDeleting === u.id ? 'animate-pulse' : ''}`} />
           </button>
         </div>
       ),

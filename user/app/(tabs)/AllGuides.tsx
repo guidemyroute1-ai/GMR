@@ -332,14 +332,6 @@ export default function AllGuidesScreen() {
   }, [cityParam, selectedCity]);
 
   useEffect(() => {
-    if (!user) {
-      setGuides([]);
-      setFetchError('Please sign in to view guides.');
-      setLoading(false);
-      setRefreshing(false);
-      return;
-    }
-
     const fetchGuides = async () => {
       setFetchError(null);
       const { data, error } = await supabase
@@ -531,23 +523,28 @@ export default function AllGuidesScreen() {
             <Text style={styles.emptyStateTitle}>Could not load guides</Text>
             <Text style={styles.emptyStateText}>{fetchError}</Text>
           </View>
-        ) : filteredGuides.length === 0 ? (
-          <View style={styles.emptyStateWrap}>
-            <Ionicons name="person-outline" size={52} color={COLORS.mediumGray} style={{ opacity: 0.4, marginBottom: 12 }} />
-            <Text style={styles.emptyStateTitle}>No guides found</Text>
-            <Text style={styles.emptyStateText}>Try a different search term.</Text>
-          </View>
         ) : (
           <View style={{ paddingBottom: 20 }}>
             {renderHeader()}
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, justifyContent: 'space-between' }}>
-              {filteredGuides.map((item) => (
-                <View key={item.id} style={{ width: CARD_WIDTH, marginBottom: 16 }}>
-                  <GuideCard item={item} onPress={() => navigateToGuide(item.id)} />
+            
+            {filteredGuides.length === 0 ? (
+              <View style={styles.emptyStateWrap}>
+                <Ionicons name="person-outline" size={52} color={COLORS.mediumGray} style={{ opacity: 0.4, marginBottom: 12 }} />
+                <Text style={styles.emptyStateTitle}>No guides found</Text>
+                <Text style={styles.emptyStateText}>Try a different search term or city.</Text>
+              </View>
+            ) : (
+              <>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 16, justifyContent: 'space-between' }}>
+                  {filteredGuides.map((item) => (
+                    <View key={item.id} style={{ width: CARD_WIDTH, marginBottom: 16 }}>
+                      <GuideCard item={item} onPress={() => navigateToGuide(item.id)} />
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </View>
-            <SupportBanner />
+                <SupportBanner />
+              </>
+            )}
           </View>
         )}
 

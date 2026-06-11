@@ -6,9 +6,9 @@ import Navbar from './Navbar';
 
 export default function AdminShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isLogin = pathname === '/login';
+  const isPublicRoute = pathname === '/login' || pathname === '/delete-account';
 
-  if (isLogin) {
+  if (isPublicRoute) {
     return <main className="min-h-screen w-full">{children}</main>;
   }
 

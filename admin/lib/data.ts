@@ -192,6 +192,7 @@ export async function getDashboardStats() {
   const totalPartners = partners.length;
   const verifiedPartners = partners.filter((p) => p.status === 'verified').length;
   const pendingPartners = partners.filter((p) => p.status === 'pending').length;
+  const suspendedPartners = partners.filter((p) => p.status === 'suspended').length;
   const activeListings = listings.filter((l) => l.status === 'active').length;
   const pendingBookings = bookings.filter((b) => b.status === 'pending').length;
 
@@ -254,6 +255,48 @@ export async function getDashboardStats() {
     bookingsByLocation.push({ name: 'No Bookings Yet', percentage: 100, color: 'bg-gray-300' });
   }
 
+  // Revenue Chart Data
+  const revenueChartData: Record<string, { weekly: number; monthly: number }> = {
+    'Mon': { weekly: 0, monthly: 0 },
+    'Tue': { weekly: 0, monthly: 0 },
+    'Wed': { weekly: 0, monthly: 0 },
+    'Thu': { weekly: 0, monthly: 0 },
+    'Fri': { weekly: 0, monthly: 0 },
+    'Sat': { weekly: 0, monthly: 0 },
+    'Sun': { weekly: 0, monthly: 0 },
+  };
+
+  const now = new Date();
+  const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+  const oneMonthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+  for (const b of bookings) {
+    if (b.status === 'completed' || b.status === 'confirmed') {
+      const amountStr = String(b.amount).replace(/[^0-9.-]+/g, '');
+      const amount = parseFloat(amountStr) || 0;
+      const bDate = new Date(b.dateTime);
+      
+      if (!isNaN(bDate.getTime())) {
+        const dayName = bDate.toLocaleDateString('en-US', { weekday: 'short' });
+        if (revenueChartData[dayName]) {
+          if (bDate >= oneWeekAgo) {
+            revenueChartData[dayName].weekly += amount;
+          }
+          if (bDate >= oneMonthAgo) {
+            revenueChartData[dayName].monthly += amount;
+          }
+        }
+      }
+    }
+  }
+
+  const orderedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  const finalRevenueData = orderedDays.map(day => ({
+    day,
+    weekly: revenueChartData[day].weekly,
+    monthly: revenueChartData[day].monthly,
+  }));
+
   const recentBookings = bookings.slice(0, 5);
 
   return {
@@ -262,6 +305,7 @@ export async function getDashboardStats() {
       totalPartners,
       verifiedPartners,
       pendingPartners,
+      suspendedPartners,
       activeListings,
       pendingBookings,
       totalRevenue: `₹${totalRevenue.toLocaleString('en-IN')}`,
@@ -269,5 +313,6 @@ export async function getDashboardStats() {
     recentBookings,
     bookingsByType,
     bookingsByLocation,
+    revenueData: finalRevenueData,
   };
 }

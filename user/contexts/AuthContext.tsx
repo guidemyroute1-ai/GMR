@@ -114,22 +114,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       if (error) {
         if (error.message.includes('User already registered') || error.message.includes('already exists')) {
-          // Attempt sign in instead
+          // Email already exists — try signing in directly
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
           if (signInError) {
             if (signInError.message.includes('Invalid login credentials')) {
-              throw new Error('Email already registered. If this is your account, please enter the correct password, or go to Sign In.');
+              throw new Error('Email already registered. Please enter the correct password or go to Sign In.');
             }
             throw signInError;
           }
-          if (signInData.user) {
-            await upsertUserProfile(signInData.user);
-            return;
-          }
+          if (signInData.user) await upsertUserProfile(signInData.user);
+          return;
         }
         throw error;
       }
-      if (data.user) await upsertUserProfile(data.user);
+      // Account created — immediately sign in so user doesn't need to verify email
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInError) throw signInError;
+      if (signInData.user) await upsertUserProfile(signInData.user);
     },
     signInWithGoogle: async () => {
       if (Platform.OS === 'web') {

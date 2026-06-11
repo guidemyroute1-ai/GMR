@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/adaptive.png"
@@ -51,11 +52,19 @@
           "sounds": []
         }
       ],
-      "expo-video"
+      "expo-video",
+      "./withNotificationColorFix.js",
+      "expo-font"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "150882a2-c806-4db1-8a7b-eeb5bbf827ec"
+      }
     }
   }
 }

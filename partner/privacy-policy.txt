@@ -1,0 +1,224 @@
+================================================================================
+                          PRIVACY POLICY
+                         GMR Partner
+                   Package: com.jatin551.gmrpartner
+================================================================================
+
+Effective Date : June 8, 2026
+Last Updated   : June 8, 2026
+
+--------------------------------------------------------------------------------
+1. OVERVIEW
+--------------------------------------------------------------------------------
+
+This Privacy Policy applies to the GMR Partner mobile application ("App"),
+operated by GMR.
+
+The GMR Partner app is designed for service providers and business partners
+who list and manage their services on the Guide My Route platform.
+
+By downloading, installing, or using the App, you agree to the practices
+described in this Privacy Policy. If you do not agree, please do not use
+the App.
+
+We do NOT sell, rent, or trade your personal information to any third party.
+Your data is used solely to provide, improve, and manage our partner services.
+
+--------------------------------------------------------------------------------
+2. INFORMATION WE COLLECT
+--------------------------------------------------------------------------------
+
+2.1  Account & Identity Information
+     - Full name
+     - Email address (for login, notifications, and support)
+     - Profile photo (optional)
+     - Google account details (if you sign in via Google Sign-In)
+     - Phone number (for partner contact and verification)
+
+2.2  Partner & Business Information
+     - Business name, type, and description
+     - Services offered, operating hours, and pricing details
+     - Business location and service areas
+     - Identity verification documents (where required for onboarding)
+
+2.3  Financial & Payout Information
+     - Banking or payment details (for processing your earnings)
+     - Transaction and payout history
+     - Tax identification details (where applicable)
+
+2.4  Performance & Operational Data
+     - Booking counts and booking history
+     - Customer ratings and reviews received
+     - Response times and acceptance rates
+     - Revenue and earnings metrics
+
+2.5  Device & Usage Information
+     - Device model, OS version, and unique device ID
+     - Firebase Cloud Messaging (FCM) token for push notifications
+     - App usage analytics (screens visited, features used, session duration)
+     - Crash reports and error logs
+     - IP address (for security and fraud prevention)
+
+--------------------------------------------------------------------------------
+3. HOW WE USE YOUR INFORMATION
+--------------------------------------------------------------------------------
+
+We use the information we collect to:
+
+  - Create and manage your partner account and verify your identity
+  - List your services and make them discoverable to users
+  - Process bookings, payments, and partner earnings
+  - Send push notifications for new bookings and customer enquiries
+  - Display your performance metrics and business analytics
+  - Respond to support requests and resolve disputes
+  - Monitor and analyse app usage to improve partner tools
+  - Detect, investigate, and prevent fraud or illegal activities
+  - Comply with applicable legal and financial regulations
+  - Send service-related and (with your consent) promotional communications
+
+--------------------------------------------------------------------------------
+4. INFORMATION SHARING
+--------------------------------------------------------------------------------
+
+We share your data only in the following limited circumstances:
+
+  Recipient            | What Is Shared                    | Purpose
+  ---------------------|-----------------------------------|--------------------
+  App Users            | Business name, services, ratings  | Service discovery
+  Payment Processors   | Payout / banking details          | Process your earnings
+  Service Providers    | Data needed to operate services   | Hosting, analytics
+  Law Enforcement      | As required by law                | Legal compliance
+  Business Transfers   | Partner data as part of assets    | Merger or acquisition
+
+All service providers are contractually bound to use data only for the
+specified purpose and to protect it with appropriate security measures.
+
+--------------------------------------------------------------------------------
+5. THIRD-PARTY SERVICES
+--------------------------------------------------------------------------------
+
+The GMR Partner app integrates with the following third-party services:
+
+  Service                     | Provider       | Purpose
+  ----------------------------|----------------|------------------------------
+  Firebase Authentication     | Google LLC     | User sign-in & sessions
+  Firebase Cloud Messaging    | Google LLC     | Push notifications
+  Google Sign-In              | Google LLC     | OAuth authentication
+  Supabase                    | Supabase Inc.  | Database & backend API
+  Expo Notifications          | Expo           | Push notification delivery
+
+Each service has its own Privacy Policy. We are not responsible for the
+privacy practices of these third-party providers.
+
+--------------------------------------------------------------------------------
+6. PUSH NOTIFICATIONS
+--------------------------------------------------------------------------------
+
+We may send the following push notifications to partners:
+
+  - New booking requests from users
+  - Booking confirmations and cancellations
+  - Customer messages and enquiries
+  - Payout and earnings notifications
+  - Promotional updates and platform announcements (with your consent)
+  - Security alerts and account activity notifications
+
+You can manage or disable notifications at any time through your device
+settings or within the app. Disabling notifications may delay your response
+to booking requests and affect your performance rating.
+
+--------------------------------------------------------------------------------
+7. DATA RETENTION
+--------------------------------------------------------------------------------
+
+  Data Type                   | Retention Period
+  ----------------------------|-------------------------------------------
+  Account information         | Duration of account + 90 days after deletion
+  Booking history             | 3 years from the date of the booking
+  Partner earnings records    | 7 years (for financial/tax compliance)
+  Identity verification docs  | Duration of partnership + as required by law
+  Crash & diagnostic logs     | 90 days
+  Push notification tokens    | Until account deletion or token refresh
+  Legal / compliance records  | As required by applicable law
+
+When you close your partner account, we will delete or anonymise your
+personal data within 90 days, except where retention is required by law
+(e.g., financial records must be kept for 7 years).
+
+--------------------------------------------------------------------------------
+8. YOUR RIGHTS
+--------------------------------------------------------------------------------
+
+Depending on your jurisdiction, you have the following rights:
+
+  - Access        : Request a copy of your personal data
+  - Rectification : Correct inaccurate or incomplete information
+  - Erasure       : Request deletion of your data ("right to be forgotten")
+  - Portability   : Receive your data in a machine-readable format
+  - Restriction   : Request limits on how we process your data
+  - Objection     : Object to processing based on legitimate interests
+  - Withdraw Consent : Revoke consent at any time where applicable
+
+NOTE: Some data (e.g., financial transaction records) may not be erasable
+due to legal retention requirements.
+
+To exercise any of these rights, contact us (see Section 12).
+We will respond within 30 days.
+
+--------------------------------------------------------------------------------
+9. CHILDREN'S PRIVACY
+--------------------------------------------------------------------------------
+
+The GMR Partner app is intended for adults and registered business entities
+only. It is NOT intended for children under the age of 18.
+
+We do not knowingly collect personal information from minors. If we discover
+we have inadvertently collected such data, we will promptly delete it and
+deactivate the associated account.
+
+--------------------------------------------------------------------------------
+10. DATA SECURITY
+--------------------------------------------------------------------------------
+
+We implement industry-standard security measures including:
+
+  - Encryption in transit via TLS/HTTPS for all data transmissions
+  - Secure authentication via OAuth 2.0 (Google Sign-In + Firebase Auth)
+  - Access controls — only authorised personnel can access personal data
+  - Supabase Row-Level Security (RLS) for database-level protection
+  - Encrypted storage of sensitive financial and identity data
+  - Regular security audits of our infrastructure and codebase
+
+No method of electronic transmission or storage is 100% secure. If you
+suspect a security breach or unauthorised account access, please contact
+us immediately and change your password.
+
+--------------------------------------------------------------------------------
+11. CHANGES TO THIS POLICY
+--------------------------------------------------------------------------------
+
+We may update this Privacy Policy from time to time. When we make material
+changes, we will:
+
+  - Update the "Last Updated" date at the top of this document
+  - Send a push notification to all partners (where feasible)
+  - Display a prominent in-app notice when you next open the app
+
+Continued use of the app after the effective date constitutes acceptance
+of the updated policy.
+
+--------------------------------------------------------------------------------
+12. CONTACT US
+--------------------------------------------------------------------------------
+
+If you have any questions, concerns, or data requests related to your
+partner account or this Privacy Policy, please contact us:
+
+  Email   : privacy@guidemyroute.app
+
+We aim to respond to all enquiries within 30 business days.
+
+================================================================================
+         © 2026 GMR — GMR Partner. All rights reserved.
+         Package: com.jatin551.gmrpartner
+================================================================================
