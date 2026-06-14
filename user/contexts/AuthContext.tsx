@@ -117,6 +117,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Email already exists — try signing in directly
           const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
           if (signInError) {
+            if (signInError.message.toLowerCase().includes('email not confirmed')) {
+              throw new Error('Account exists but email is not confirmed. Please disable "Email Confirmations" in your Supabase Auth settings, or confirm your email first.');
+            }
             if (signInError.message.includes('Invalid login credentials')) {
               throw new Error('Email already registered. Please enter the correct password or go to Sign In.');
             }
@@ -127,9 +130,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         throw error;
       }
-      // Account created — immediately sign in so user doesn't need to verify email
+      // If Supabase returned a session immediately, email confirmation is disabled — use it directly
+      if (data.session && data.user) {
+        await upsertUserProfile(data.user);
+        return;
+      }
+      // Email confirmation is ON in Supabase — try signing in anyway (will fail if not confirmed)
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
-      if (signInError) throw signInError;
+      if (signInError) {
+        if (signInError.message.toLowerCase().includes('email not confirmed')) {
+          throw new Error(
+            'Please disable "Email Confirmations" in your Supabase project:\n\nAuthentication → Settings → uncheck "Enable email confirmations"\n\nThen try signing up again.'
+          );
+        }
+        throw signInError;
+      }
       if (signInData.user) await upsertUserProfile(signInData.user);
     },
     signInWithGoogle: async () => {

@@ -12,7 +12,7 @@ import ProgressList from '@/components/ui/ProgressList';
 import StatusBadge from '@/components/ui/StatusBadge';
 import { getDashboardStats } from '@/lib/data';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60; // revalidate at most every 60 seconds
 
 export default async function DashboardPage() {
   const { stats: dbStats, recentBookings, bookingsByType, bookingsByLocation, revenueData } = await getDashboardStats();

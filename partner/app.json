@@ -4,7 +4,7 @@
     "slug": "gmrpartner",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/Partners.png",
+    "icon": "./assets/images/Partnerscopy.png",
     "scheme": "gmrpartner",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -14,8 +14,7 @@
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/Partners.png"
- 
+        "foregroundImage": "./assets/images/Partnerscopy.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -51,11 +50,19 @@
           "sounds": []
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-font",
+      "./withManifestToolsReplace.js"
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5856ac30-b4b2-49c2-9556-24e66534ac59"
+      }
     }
   }
 }

@@ -1,7 +1,7 @@
 import { supabaseAdmin } from '@/lib/supabase-server';
 import DestinationsClient from './DestinationsClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60; // revalidate at most every 60 seconds
 
 export default async function DestinationsPage() {
   const { data: destinations, error } = await supabaseAdmin

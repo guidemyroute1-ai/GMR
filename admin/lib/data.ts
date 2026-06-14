@@ -183,10 +183,13 @@ export async function getBookings(): Promise<Booking[]> {
 }
 
 export async function getDashboardStats() {
-  const users = await getUsers();
-  const partners = await getPartners();
-  const listings = await getListings();
-  const bookings = await getBookings();
+  // Run all independent queries in parallel — cuts load time from ~4× to ~1× DB round-trip
+  const [users, partners, listings, bookings] = await Promise.all([
+    getUsers(),
+    getPartners(),
+    getListings(),
+    getBookings(),
+  ]);
 
   const totalUsers = users.length;
   const totalPartners = partners.length;

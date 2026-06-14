@@ -1,7 +1,7 @@
 import { getUsers } from '@/lib/data';
 import UsersClient from './UsersClient';
 
-export const dynamic = 'force-dynamic';
+export const revalidate = 60; // revalidate at most every 60 seconds
 
 export default async function UsersPage() {
   const users = await getUsers();
