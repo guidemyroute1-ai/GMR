@@ -82,6 +82,39 @@ interface Vehicle {
 
 const FILTER_TABS = ['All', 'Scooty', 'Bike', 'Car'];
 
+// ─── Design Tokens ─────────────────────────────────────────────────────────────
+const C = {
+  green:       '#16A34A',
+  greenDark:   '#14532D',
+  greenLight:  '#DCFCE7',
+  greenTint:   '#F0FDF4',
+  ink:         '#0F172A',
+  inkMid:      '#374151',
+  muted:       '#6B7280',
+  mutedLight:  '#9CA3AF',
+  border:      '#E2E8F0',
+  borderLight: '#F1F5F9',
+  surface:     '#FFFFFF',
+  base:        '#EEF2EF',
+  amber:       '#F59E0B',
+  amberLight:  '#FEF3C7',
+  sky:         '#0EA5E9',
+  skyLight:    '#E0F2FE',
+  coral:       '#F97316',
+  coralLight:  '#FFF7ED',
+  rose:        '#F43F5E',
+  roseLight:   '#FFF1F2',
+  gold:        '#FBBF24',
+  white:       '#FFFFFF',
+};
+
+const SHADOW = {
+  xs: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  sm: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.09, shadowRadius: 8, elevation: 3 },
+  md: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 14, elevation: 6 },
+  green: { shadowColor: '#16A34A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 10, elevation: 6 },
+};
+
 const normalizeVehicleType = (...values: unknown[]) => {
   const text = values
     .filter(Boolean)
@@ -93,6 +126,87 @@ const normalizeVehicleType = (...values: unknown[]) => {
   return 'Bike';
 };
 
+
+// ─── Filter Header ─────────────────────────────────────────────────────────────
+const FilterHeader = ({
+  cityOptions, activeCity, onCityChange,
+  activeTab, onTabChange,
+  uniqueMakes, activeMake, onMakeChange,
+}: {
+  cityOptions: string[];
+  activeCity: string;
+  onCityChange: (c: string) => void;
+  activeTab: string;
+  onTabChange: (t: string) => void;
+  uniqueMakes: string[];
+  activeMake: string;
+  onMakeChange: (m: string) => void;
+}) => (
+  <View style={styles.filterBox}>
+    {/* City pills */}
+    <View style={styles.cityRow}>
+      <MaterialCommunityIcons name="map-marker-outline" size={15} color={C.green} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cityScroll}>
+        {cityOptions.map((city) => {
+          const active = activeCity === city;
+          return (
+            <TouchableOpacity
+              key={city}
+              style={[styles.cityPill, active && styles.cityPillActive]}
+              onPress={() => onCityChange(city)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.cityPillTxt, active && styles.cityPillTxtActive]}>{city}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+ 
+    {/* Segmented type control */}
+    <View style={styles.segmentWrap}>
+      <View style={styles.segment}>
+        {FILTER_TABS.map((tab) => {
+          const active = activeTab === tab;
+          return (
+            <TouchableOpacity
+              key={tab}
+              style={[styles.segmentItem, active && styles.segmentItemActive]}
+              onPress={() => onTabChange(tab)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.segmentTxt, active && styles.segmentTxtActive]}>{tab}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </View>
+ 
+    {/* Make row (conditional) */}
+    {uniqueMakes.length > 1 && (
+      <View style={styles.makeRow}>
+        <MaterialCommunityIcons name="tune-variant" size={13} color={C.muted} />
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.makeScroll}>
+          {uniqueMakes.map((make) => {
+            const active = activeMake === make;
+            return (
+              <TouchableOpacity
+                key={make}
+                style={[styles.makePill, active && styles.makePillActive]}
+                onPress={() => onMakeChange(make)}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.makePillTxt, active && styles.makePillTxtActive]}>
+                  {make === 'All' ? 'All Makes' : make}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      </View>
+    )}
+  </View>
+);
 // ─── Vehicle Card ──────────────────────────────────────────────────────────────
 const VehicleCard = ({ vehicle }: { vehicle: Vehicle }) => {
   const router = useRouter();
@@ -201,6 +315,8 @@ export default function RentAVehicleScreen() {
   const [activeCity, setActiveCity] = useState(normalizeCity(city) || selectedCity || DEFAULT_CITIES[0]);
   const [refreshing, setRefreshing] = useState(false);
 
+
+
   const fetchVehicles = async () => {
     try {
       const { data, error } = await supabase
@@ -290,62 +406,22 @@ export default function RentAVehicleScreen() {
     return true;
   });
 
+
+
   return (
     <SafeAreaContextView edges={['top']} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       <AppBar />
-      <View style={styles.filterTabsContainer}>
-        <View style={styles.cityFilterRow}>
-          <MaterialCommunityIcons name="map-marker" size={14} color={COLORS.mediumGray} style={{ marginRight: 4 }} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.makeFilterScroll}>
-            {cityOptions.map((city) => (
-              <TouchableOpacity
-                key={city}
-                style={[styles.cityTab, activeCity === city && styles.cityTabActive]}
-                onPress={() => {
-                  setActiveCity(city);
-                  setSelectedCity(city);
-                }}
-              >
-                <Text style={[styles.cityTabText, activeCity === city && styles.cityTabTextActive]}>{city}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-        {/* Vehicle type filter */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsScroll}>
-          {FILTER_TABS.map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.filterTab, activeTab === tab && styles.filterTabActive]}
-              onPress={() => setActiveTab(tab)}
-            >
-              <Text style={[styles.filterTabText, activeTab === tab && styles.filterTabTextActive]}>{tab}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Vehicle make filter — only shown when makes exist */}
-        {uniqueMakes.length > 1 && (
-          <View style={styles.makeFilterRow}>
-            <MaterialCommunityIcons name="car-cog" size={14} color={COLORS.mediumGray} style={{ marginRight: 4 }} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.makeFilterScroll}>
-              {uniqueMakes.map((make) => (
-                <TouchableOpacity
-                  key={make}
-                  style={[styles.makeTab, activeMake === make && styles.makeTabActive]}
-                  onPress={() => setActiveMake(make)}
-                >
-                  <Text style={[styles.makeTabText, activeMake === make && styles.makeTabTextActive]}>
-                    {make === 'All' ? 'All Makes' : make}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-        )}
-      </View>
-
+      <FilterHeader
+        cityOptions={cityOptions}
+        activeCity={activeCity}
+        onCityChange={(c) => { setActiveCity(c); setSelectedCity(c); }}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        uniqueMakes={uniqueMakes}
+        activeMake={activeMake}
+        onMakeChange={setActiveMake}
+      />
       {loading ? (
         <ScrollView
           style={{ flex: 1 }}
@@ -410,6 +486,72 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F1F5F9',
   },
+
+    // ── Filter Box ──
+  filterBox: {
+    backgroundColor: C.surface,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+    paddingBottom: 10,
+    ...SHADOW.xs,
+  },
+  cityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 16,
+    paddingTop: 10,
+    paddingBottom: 4,
+    gap: 8,
+  },
+  cityScroll: { paddingRight: 16, gap: 6, flexDirection: 'row' },
+  cityPill: {
+    paddingHorizontal: 13,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: C.borderLight,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  cityPillActive:    { backgroundColor: C.greenLight, borderColor: C.green },
+  cityPillTxt:       { fontSize: 12, fontWeight: '700', color: C.muted },
+  cityPillTxtActive: { color: C.green },
+ 
+  segmentWrap: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 2 },
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: C.borderLight,
+    borderRadius: 12,
+    padding: 3,
+  },
+  segmentItem: {
+    flex: 1,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
+  },
+  segmentItemActive:  { backgroundColor: C.surface, ...SHADOW.xs },
+  segmentTxt:         { fontSize: 13, fontWeight: '600', color: C.muted },
+  segmentTxtActive:   { fontSize: 13, fontWeight: '800', color: C.ink },
+ 
+  makeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingLeft: 16,
+    paddingTop: 8,
+    gap: 8,
+  },
+  makeScroll:        { paddingRight: 16, gap: 6, flexDirection: 'row' },
+  makePill: {
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20,
+    backgroundColor: C.borderLight,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+  },
+  makePillActive:    { backgroundColor: C.coralLight, borderColor: C.coral },
+  makePillTxt:       { fontSize: 11, fontWeight: '600', color: C.muted },
+  makePillTxtActive: { color: C.coral },
   filterTabsContainer: {
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,

@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text as RNText, TextProps, TextStyle } from 'react-native';
+import { rs } from '../utils/typography';
 
 function getInterFamily(style?: TextStyle) {
   if (style?.fontFamily) return style.fontFamily;
@@ -13,13 +14,35 @@ function getInterFamily(style?: TextStyle) {
   return 'Inter-Regular';
 }
 
+/**
+ * Drop-in replacement for React Native's <Text>.
+ *
+ * Automatically:
+ *  - Applies the Inter font family based on fontWeight
+ *  - Scales every fontSize through the global responsive scaler (utils/typography.ts)
+ *    so fonts look "medium" and adapt to the phone screen width.
+ *
+ * To adjust the global size, change GLOBAL_SCALE in utils/typography.ts.
+ */
 export function Text(props: TextProps) {
   const flatStyle = StyleSheet.flatten(props.style) as TextStyle | undefined;
+
+  // Scale fontSize if one is provided in the style; otherwise leave it undefined
+  // so React Native uses its default (~14).
+  const scaledFontSize =
+    flatStyle?.fontSize !== undefined ? rs(flatStyle.fontSize) : undefined;
 
   return (
     <RNText
       {...props}
-      style={[styles.defaultText, props.style, { fontFamily: getInterFamily(flatStyle) }]}
+      style={[
+        styles.defaultText,
+        props.style,
+        {
+          fontFamily: getInterFamily(flatStyle),
+          ...(scaledFontSize !== undefined ? { fontSize: scaledFontSize } : {}),
+        },
+      ]}
     />
   );
 }

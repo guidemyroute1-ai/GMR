@@ -55,43 +55,44 @@ export default function AppBar() {
 
     return () => unsubscribe();
   }, []);
-  
+
   return (
     <View style={styles.safe}>
       <View style={styles.bar}>
-           <TouchableOpacity 
-           onPress={() => router.push('/(tabs)/Home')}>
-        <View style={styles.brandRow}>
-          <View style={styles.logo}>
-            <Image 
-              source={require('../assets/images/gmr_logo.png')} 
-              style={styles.logoImage} 
-              resizeMode="contain"
-            />
+        <TouchableOpacity
+          onPress={() => router.push('/(tabs)/Home')}>
+          <View style={styles.brandRow}>
+            <View style={styles.logo}>
+              <Image
+                source={require('../assets/images/gmr_logo.png')}
+                style={styles.logoImage}
+                resizeMode="contain"
+              />
+            </View>
+            <View>
+              <Text style={styles.eyebrow}>Explore with confidence</Text>
+              <Text style={styles.title}>Guide My <Text style={{ color: '#16A34A' }}>Route</Text></Text>
+            </View>
           </View>
-          <View>
-            <Text style={styles.eyebrow}>Explore with confidence</Text>
-            <Text style={styles.title}>Guide My <Text style={{ color: '#16A34A' }}>Route</Text></Text>
-          </View>
-        </View>
-</TouchableOpacity>
+        </TouchableOpacity>
         <View style={styles.rightActions}>
-          <TouchableOpacity 
-            style={[styles.iconButton, { marginRight: 8 }]} 
-            activeOpacity={0.75}
-            onPress={() => router.push('/more/MyBookings')}
-          >
-            <Ionicons name="calendar-outline" size={20} color="#1F2937" />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.iconButton} 
+          <TouchableOpacity
+            style={styles.iconButton}
             activeOpacity={0.75}
             onPress={() => router.push('/extra/notifications')}
           >
             <Ionicons name="notifications-outline" size={20} color="#1F2937" />
             {notifications.length > 0 && <View style={styles.dot} />}
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.iconButton, { marginRight: 8 }]}
+            activeOpacity={0.75}
+            onPress={() => router.push('/more/Profile')}
+          >
+            <Ionicons name="person-outline" size={20} color="#1F2937" />
+          </TouchableOpacity>
+
+
         </View>
       </View>
     </View>
@@ -117,6 +118,7 @@ const styles = StyleSheet.create({
   rightActions: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6
   },
   logo: {
     width: 40,
