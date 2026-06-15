@@ -109,16 +109,18 @@ export default function AppBar({ transparent = false }: AppBarProps = {}) {
 }
 
 const styles = StyleSheet.create({
-  safe: {},
+  safe: {
+    backgroundColor: '#FFFFFF',
+  },
   bar: {
     height: 64,
     paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(226, 232, 240, 0.5)',
-    backgroundColor: 'transparent',
+   // borderBottomWidth: StyleSheet.hairlineWidth,
+    // borderBottomColor: '#E2E8F0',
+    backgroundColor: '#FFFFFF',
   },
   brandRow: {
     flexDirection: 'row',

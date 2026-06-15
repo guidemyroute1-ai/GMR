@@ -544,7 +544,7 @@ export default function HomeScreen() {
           </View>
 
           {/* Header Row */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',marginTop:8, marginBottom: 16 }}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',marginTop:2, marginBottom: 8 }}>
             {/* Greeting headline */}
             <Text style={[s.heroHeadline, { marginBottom: 0 }]}>Hi, <Text style={s.heroHeadlineAccent}>{user?.displayName ? user.displayName.split(' ')[0] : 'Explorer'}</Text></Text>
             

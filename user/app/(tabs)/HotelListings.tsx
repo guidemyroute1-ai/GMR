@@ -436,7 +436,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
     paddingBottom: 10,
-    ...SHADOW.xs,
   },
   cityRow: {
     flexDirection: 'row',

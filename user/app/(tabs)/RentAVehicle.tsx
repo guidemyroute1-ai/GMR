@@ -13,8 +13,8 @@ import {
 } from 'react-native';
 import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
 import AppBar from '../../components/AppBar';
-import { Text } from '../../components/Text';
 import LoadingSpinner from '../../components/LoadingSpinner';
+import { Text } from '../../components/Text';
 import { useLocation } from '../../contexts/LocationContext';
 import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
 import { supabase } from '../../utils/supabase';
@@ -84,28 +84,28 @@ const FILTER_TABS = ['All', 'Scooty', 'Bike', 'Car'];
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────────
 const C = {
-  green:       '#16A34A',
-  greenDark:   '#14532D',
-  greenLight:  '#DCFCE7',
-  greenTint:   '#F0FDF4',
-  ink:         '#0F172A',
-  inkMid:      '#374151',
-  muted:       '#6B7280',
-  mutedLight:  '#9CA3AF',
-  border:      '#E2E8F0',
+  green: '#16A34A',
+  greenDark: '#14532D',
+  greenLight: '#DCFCE7',
+  greenTint: '#F0FDF4',
+  ink: '#0F172A',
+  inkMid: '#374151',
+  muted: '#6B7280',
+  mutedLight: '#9CA3AF',
+  border: '#E2E8F0',
   borderLight: '#F1F5F9',
-  surface:     '#FFFFFF',
-  base:        '#EEF2EF',
-  amber:       '#F59E0B',
-  amberLight:  '#FEF3C7',
-  sky:         '#0EA5E9',
-  skyLight:    '#E0F2FE',
-  coral:       '#F97316',
-  coralLight:  '#FFF7ED',
-  rose:        '#F43F5E',
-  roseLight:   '#FFF1F2',
-  gold:        '#FBBF24',
-  white:       '#FFFFFF',
+  surface: '#FFFFFF',
+  base: '#EEF2EF',
+  amber: '#F59E0B',
+  amberLight: '#FEF3C7',
+  sky: '#0EA5E9',
+  skyLight: '#E0F2FE',
+  coral: '#F97316',
+  coralLight: '#FFF7ED',
+  rose: '#F43F5E',
+  roseLight: '#FFF1F2',
+  gold: '#FBBF24',
+  white: '#FFFFFF',
 };
 
 const SHADOW = {
@@ -162,7 +162,7 @@ const FilterHeader = ({
         })}
       </ScrollView>
     </View>
- 
+
     {/* Segmented type control */}
     <View style={styles.segmentWrap}>
       <View style={styles.segment}>
@@ -181,7 +181,7 @@ const FilterHeader = ({
         })}
       </View>
     </View>
- 
+
     {/* Make row (conditional) */}
     {uniqueMakes.length > 1 && (
       <View style={styles.makeRow}>
@@ -295,7 +295,7 @@ const DeliveryBanner = () => {
           style={styles.bannerImage}
           resizeMode="contain"
         />
-      
+
       </View>
     </TouchableOpacity>
   );
@@ -487,7 +487,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F1F5F9',
   },
 
-    // ── Filter Box ──
+  // ── Filter Box ──
   filterBox: {
     backgroundColor: C.surface,
     borderBottomWidth: 1,
@@ -507,15 +507,15 @@ const styles = StyleSheet.create({
   cityPill: {
     paddingHorizontal: 13,
     paddingVertical: 6,
-    borderRadius: 20,
+    borderRadius: 15,
     backgroundColor: C.borderLight,
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
-  cityPillActive:    { backgroundColor: C.greenLight, borderColor: C.green },
-  cityPillTxt:       { fontSize: 12, fontWeight: '700', color: C.muted },
+  cityPillActive: { backgroundColor: C.greenLight, borderColor: C.green },
+  cityPillTxt: { fontSize: 12, fontWeight: '700', color: C.muted },
   cityPillTxtActive: { color: C.green },
- 
+
   segmentWrap: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 2 },
   segment: {
     flexDirection: 'row',
@@ -530,10 +530,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderRadius: 10,
   },
-  segmentItemActive:  { backgroundColor: C.surface, ...SHADOW.xs },
-  segmentTxt:         { fontSize: 13, fontWeight: '600', color: C.muted },
-  segmentTxtActive:   { fontSize: 13, fontWeight: '800', color: C.ink },
- 
+  segmentItemActive: { backgroundColor: C.surface, ...SHADOW.xs },
+  segmentTxt: { fontSize: 13, fontWeight: '600', color: C.muted },
+  segmentTxtActive: { fontSize: 13, fontWeight: '800', color: C.ink },
+
   makeRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -541,7 +541,7 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     gap: 8,
   },
-  makeScroll:        { paddingRight: 16, gap: 6, flexDirection: 'row' },
+  makeScroll: { paddingRight: 16, gap: 6, flexDirection: 'row' },
   makePill: {
     paddingHorizontal: 12, paddingVertical: 5,
     borderRadius: 20,
@@ -549,8 +549,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
-  makePillActive:    { backgroundColor: C.coralLight, borderColor: C.coral },
-  makePillTxt:       { fontSize: 11, fontWeight: '600', color: C.muted },
+  makePillActive: { backgroundColor: C.coralLight, borderColor: C.coral },
+  makePillTxt: { fontSize: 11, fontWeight: '600', color: C.muted },
   makePillTxtActive: { color: C.coral },
   filterTabsContainer: {
     backgroundColor: COLORS.white,
@@ -657,7 +657,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 16,
     height: 120,
-  
+
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -688,7 +688,7 @@ const styles = StyleSheet.create({
     width: 100,
     height: 100,
     position: 'absolute',
-    
+
     bottom: -50,
     zIndex: 1,
     borderRadius: 20,
