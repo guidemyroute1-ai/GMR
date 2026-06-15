@@ -3,7 +3,22 @@ import { BottomTabBar } from '@react-navigation/bottom-tabs';
 import { Tabs, useRouter } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import ActiveBookingBar from '../../components/ActiveBookingBar';
+
+function TabIcon({ name, color, focused }: { name: React.ComponentProps<typeof Ionicons>['name']; color: string; focused: boolean }) {
+  const animatedStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: withSpring(focused ? 1.15 : 1, { damping: 10, stiffness: 100 }) }],
+    };
+  });
+
+  return (
+    <Animated.View style={animatedStyle}>
+      <Ionicons name={name} size={22} color={color} />
+    </Animated.View>
+  );
+}
 
 
 // ─── Custom Tab Bar with Active Booking Strip ──────────────────────────────────
@@ -57,7 +72,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'home' : 'home-outline'} size={22} color={color} />
+            <TabIcon name={focused ? 'home' : 'home-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -66,7 +81,7 @@ export default function TabLayout() {
         options={{
           title: 'Rent',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'bicycle' : 'bicycle-outline'} size={22} color={color} />
+            <TabIcon name={focused ? 'bicycle' : 'bicycle-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -75,7 +90,7 @@ export default function TabLayout() {
         options={{
           title: 'Hotels',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'bed' : 'bed-outline'} size={22} color={color} />
+            <TabIcon name={focused ? 'bed' : 'bed-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -84,7 +99,7 @@ export default function TabLayout() {
         options={{
           title: 'Bookings',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'calendar' : 'calendar-outline'} size={22} color={color} />
+            <TabIcon name={focused ? 'calendar' : 'calendar-outline'} color={color} focused={focused} />
           ),
         }}
         listeners={{
@@ -99,7 +114,7 @@ export default function TabLayout() {
         options={{
           title: 'Guides',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? 'people' : 'people-outline'} size={22} color={color} />
+            <TabIcon name={focused ? 'people' : 'people-outline'} color={color} focused={focused} />
           ),
         }}
       />

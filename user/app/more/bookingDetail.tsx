@@ -5,12 +5,12 @@ import {
   ScrollView, 
   TouchableOpacity, 
   StatusBar,
-  ActivityIndicator,
   Linking,
   Share,
   Alert
 } from 'react-native';
 import { Text } from '../../components/Text';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -194,7 +194,7 @@ export default function BookingDetailScreen() {
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <LoadingSpinner size="large" color={COLORS.primary} />
       </View>
     );
   }

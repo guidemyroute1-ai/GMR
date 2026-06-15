@@ -2,7 +2,6 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   RefreshControl,
@@ -15,6 +14,7 @@ import {
 import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
 import AppBar from '../../components/AppBar';
 import { Text } from '../../components/Text';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import { useLocation } from '../../contexts/LocationContext';
 import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
 import { supabase } from '../../utils/supabase';
@@ -435,7 +435,7 @@ export default function RentAVehicleScreen() {
             />
           }
         >
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <LoadingSpinner size="large" color={COLORS.primary} />
           <Text style={styles.loaderText}>Finding best vehicles for you...</Text>
         </ScrollView>
       ) : filtered.length === 0 ? (

@@ -2,9 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
   Dimensions,
   Modal,
   RefreshControl,
@@ -18,6 +17,7 @@ import {
 import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
 import AppBar from '../../components/AppBar';
 import { Text } from '../../components/Text';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocation } from '../../contexts/LocationContext';
 import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
@@ -332,20 +332,31 @@ export default function AllGuidesScreen() {
   }, [cityParam, selectedCity]);
 
   useEffect(() => {
+    let active = true;
     const fetchGuides = async () => {
       setFetchError(null);
-      const { data, error } = await supabase
-        .from('users')
-        .select('id, name, city, rating, reviews, is_online, is_approved, profile_data, photo_url')
-        .eq('role', 'guide')
-        .eq('is_approved', true);
 
-      if (error) {
+      // ✅ Fetch both in parallel — cuts wait time roughly in half
+      const [guidesResult, destResult] = await Promise.all([
+        supabase
+          .from('users')
+          .select('id, name, city, rating, reviews, is_online, is_approved, profile_data, photo_url')
+          .eq('role', 'guide')
+          .eq('is_approved', true),
+        supabase
+          .from('popular_destinations')
+          .select('*')
+          .eq('is_popular', true),
+      ]);
+
+      if (!active) return;
+
+      if (guidesResult.error) {
         setFetchError('Unable to load guides right now. Please try again.');
-        console.warn('AllGuides fetch issue:', error.message);
+        console.warn('AllGuides fetch issue:', guidesResult.error.message);
         setGuides([]);
       } else {
-        const guidesData: Guide[] = (data || []).map((row) => ({
+        const guidesData: Guide[] = (guidesResult.data || []).map((row) => ({
           id: row.id,
           name: row.name || 'Anonymous',
           rating: row.rating || 0,
@@ -356,6 +367,7 @@ export default function AllGuidesScreen() {
             ? row.profile_data.specialisations.join(', ')
             : (row.profile_data?.specialisations || row.profile_data?.specialty || 'General Guide'),
           profileImage: row.profile_data?.profileImage || row.photo_url || null,
+          // ✅ Normalize city once at fetch time, not on every filter pass
           city: normalizeCity(row.city || row.profile_data?.city || row.profile_data?.location),
           hourlyRate: firstPositiveNumber(
             row.profile_data?.per_hour_rate,
@@ -368,13 +380,8 @@ export default function AllGuidesScreen() {
         setGuides(guidesData);
       }
 
-      const { data: destData, error: destError } = await supabase
-        .from('popular_destinations')
-        .select('*')
-        .eq('is_popular', true);
-
-      if (!destError && destData) {
-        setPopularDestinations(destData);
+      if (!destResult.error && destResult.data) {
+        setPopularDestinations(destResult.data);
       }
 
       setLoading(false);
@@ -382,7 +389,9 @@ export default function AllGuidesScreen() {
     };
 
     fetchGuides();
-  }, [user, refreshKey]);
+    return () => { active = false; };
+  // ✅ Use user?.id (stable string) instead of user object to prevent spurious refetches
+  }, [user?.id, refreshKey]);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -391,33 +400,38 @@ export default function AllGuidesScreen() {
   };
 
   const activeFilterCount = getActiveGuideFilterCount(guideFilters);
-  const filteredGuides = guides
-    .filter((guide) => {
-      const q = searchText.trim().toLowerCase();
-      const specialty = typeof guide.specialty === 'string' ? guide.specialty : '';
-      const matchesSearch = !q
-        || (guide.name || '').toLowerCase().includes(q)
-        || specialty.toLowerCase().includes(q);
 
-      if (!matchesSearch) return false;
-      if (guideFilters.city && normalizeCity(guide.city) !== guideFilters.city) return false;
-      if (guideFilters.onlineOnly && !guide.isOnline) return false;
-      if (guideFilters.verifiedOnly && !guide.verified) return false;
-      if (guideFilters.minRating > 0 && guide.rating < guideFilters.minRating) return false;
-      if (guideFilters.maxRate > 0 && (!guide.hourlyRate || guide.hourlyRate > guideFilters.maxRate)) return false;
-      return true;
-    })
-    .sort((a, b) => {
-      if (guideFilters.sortBy === 'priceLow') {
-        return (a.hourlyRate || Number.MAX_SAFE_INTEGER) - (b.hourlyRate || Number.MAX_SAFE_INTEGER);
-      }
-      if (guideFilters.sortBy === 'ratingHigh') {
-        return b.rating - a.rating || b.reviews - a.reviews;
-      }
-      return Number(b.verified) - Number(a.verified)
-        || Number(b.isOnline) - Number(a.isOnline)
-        || b.rating - a.rating;
-    });
+  // ✅ Memoized — only recomputes when guides data, search text, or filters actually change
+  const filteredGuides = useMemo(() => {
+    const q = searchText.trim().toLowerCase();
+    return guides
+      .filter((guide) => {
+        const specialty = typeof guide.specialty === 'string' ? guide.specialty : '';
+        const matchesSearch = !q
+          || (guide.name || '').toLowerCase().includes(q)
+          || specialty.toLowerCase().includes(q);
+
+        if (!matchesSearch) return false;
+        // guide.city is already normalized at fetch time
+        if (guideFilters.city && guide.city !== guideFilters.city) return false;
+        if (guideFilters.onlineOnly && !guide.isOnline) return false;
+        if (guideFilters.verifiedOnly && !guide.verified) return false;
+        if (guideFilters.minRating > 0 && guide.rating < guideFilters.minRating) return false;
+        if (guideFilters.maxRate > 0 && (!guide.hourlyRate || guide.hourlyRate > guideFilters.maxRate)) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (guideFilters.sortBy === 'priceLow') {
+          return (a.hourlyRate || Number.MAX_SAFE_INTEGER) - (b.hourlyRate || Number.MAX_SAFE_INTEGER);
+        }
+        if (guideFilters.sortBy === 'ratingHigh') {
+          return b.rating - a.rating || b.reviews - a.reviews;
+        }
+        return Number(b.verified) - Number(a.verified)
+          || Number(b.isOnline) - Number(a.isOnline)
+          || b.rating - a.rating;
+      });
+  }, [guides, searchText, guideFilters]);
 
   const navigateToGuide = (id: string) =>
     router.push({ pathname: '/more/guideDetail', params: { id } });
@@ -514,8 +528,7 @@ export default function AllGuidesScreen() {
         {/* Content */}
         {loading ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-            <Text style={styles.loadingText}>Loading guides...</Text>
+            <LoadingSpinner size="large" color={COLORS.primary} />
           </View>
         ) : fetchError ? (
           <View style={styles.emptyStateWrap}>

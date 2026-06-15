@@ -5,14 +5,15 @@ import {
   ScrollView, 
   TouchableOpacity, 
   StatusBar,
-  ActivityIndicator,
   Dimensions
 } from 'react-native';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Text } from '../../components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView as SafeAreaContextView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../utils/supabase';
 import { VideoView, useVideoPlayer } from 'expo-video';
 
@@ -227,7 +228,7 @@ export default function GuideDetailScreen() {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <ActivityIndicator size="large" color="#16A34A" />
+        <LoadingSpinner size="large" color="#16A34A" />
       </View>
     );
   }
@@ -250,60 +251,63 @@ export default function GuideDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: '#FFFFFF', zIndex: 20 }} />
+
+      <View style={[styles.imageContainer, { position: 'absolute', top: insets.top, left: 0, right: 0, height: HEADER_IMAGE_HEIGHT, zIndex: 0 }]}>
+        {guide.image ? (
+          <View style={{ width, height: HEADER_IMAGE_HEIGHT }}>
+            <ExpoImage
+              source={{ uri: guide.image }}
+              style={styles.image}
+              contentFit="cover"
+            />
+            <View style={styles.imageOverlay} />
+          </View>
+        ) : (
+          <View style={[styles.image, styles.fallbackImage, { height: HEADER_IMAGE_HEIGHT }]}>
+            <Ionicons name="person" size={80} color="#9CA3AF" />
+          </View>
+        )}
+      </View>
+
+      <View style={[styles.floatingHeader, { top: insets.top + 16, zIndex: 10 }]}>
+        <TouchableOpacity 
+          style={styles.glassButton} 
+          onPress={() => router.back()} 
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        
+        <View style={styles.floatingRight}>
+          <TouchableOpacity style={styles.glassButton} activeOpacity={0.7}>
+            <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.glassButton, { marginLeft: 12 }]} 
+            onPress={() => setIsSaved(!isSaved)}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={isSaved ? "heart" : "heart-outline"} 
+              size={22} 
+              color={isSaved ? "#EF4444" : "#FFFFFF"} 
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <ScrollView 
-        style={styles.scroll} 
-        contentContainerStyle={styles.scrollContent} 
+        style={[styles.scroll, { zIndex: 1 }]} 
+        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_IMAGE_HEIGHT + insets.top - 30 }]} 
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        <View style={styles.imageContainer}>
-          {guide.image ? (
-            <View style={{ width, height: HEADER_IMAGE_HEIGHT }}>
-              <ExpoImage
-                source={{ uri: guide.image }}
-                style={styles.image}
-                contentFit="cover"
-              />
-              <View style={styles.imageOverlay} />
-            </View>
-          ) : (
-            <View style={[styles.image, styles.fallbackImage]}>
-              <Ionicons name="person" size={80} color="#9CA3AF" />
-            </View>
-          )}
 
-          <View style={[styles.floatingHeader, { top: Math.max(insets.top, 20) }]}>
-            <TouchableOpacity 
-              style={styles.glassButton} 
-              onPress={() => router.back()} 
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            
-            <View style={styles.floatingRight}>
-              <TouchableOpacity style={styles.glassButton} activeOpacity={0.7}>
-                <Ionicons name="share-outline" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.glassButton, { marginLeft: 12 }]} 
-                onPress={() => setIsSaved(!isSaved)}
-                activeOpacity={0.7}
-              >
-                <Ionicons 
-                  name={isSaved ? "heart" : "heart-outline"} 
-                  size={22} 
-                  color={isSaved ? "#EF4444" : "#FFFFFF"} 
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
 
         <View style={styles.contentContainer}>
-          <View style={styles.headerSection}>
+          <Animated.View style={styles.headerSection} entering={FadeInDown.delay(100).springify()}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
               <View style={styles.typeBadge}>
                 <Text style={styles.typeText}>LOCAL GUIDE</Text>
@@ -351,17 +355,17 @@ export default function GuideDetailScreen() {
                 </>
               ) : null}
             </View>
-          </View>
+          </Animated.View>
           {guide.about ? (
-            <View style={styles.section}>
+            <Animated.View style={styles.section} entering={FadeInDown.delay(200).springify()}>
               <Text style={styles.sectionTitle}>About</Text>
               <Text style={styles.aboutText}>{guide.about}</Text>
-            </View>
+            </Animated.View>
           ) : null}
 
           <View style={styles.divider} />
 
-          <View style={styles.highlightsWrapper}>
+          <Animated.View style={styles.highlightsWrapper} entering={FadeInDown.delay(300).springify()}>
             <Text style={styles.sectionTitle}>Guide Overview</Text>
             <View style={styles.highlightsGrid}>
               {!!guide.experience && (
@@ -410,7 +414,7 @@ export default function GuideDetailScreen() {
                 </Text>
               </View>
             </View>
-          </View>
+          </Animated.View>
 
           {guide.specialties && guide.specialties.length > 0 && (
             <View style={styles.section}>
@@ -449,7 +453,7 @@ export default function GuideDetailScreen() {
           )}
 
           {guide.images && guide.images.length > 0 && (
-            <View style={styles.section}>
+            <Animated.View style={styles.section} entering={FadeInDown.delay(400).springify()}>
               <Text style={styles.sectionTitle}>Gallery</Text>
               <ScrollView 
                 horizontal 
@@ -465,7 +469,7 @@ export default function GuideDetailScreen() {
                   />
                 ))}
               </ScrollView>
-            </View>
+            </Animated.View>
           )}
 
           {/* ── Demo Video ── */}
@@ -556,7 +560,7 @@ export default function GuideDetailScreen() {
           )}
 
           {/* ── Guest Reviews ── */}
-          <View style={styles.section}>
+          <Animated.View style={styles.section} entering={FadeInDown.delay(500).springify()}>
             <Text style={styles.sectionTitle}>Guest Reviews</Text>
             <View style={styles.reviewsList}>
               {reviewsList.length > 0 ? (
@@ -589,7 +593,7 @@ export default function GuideDetailScreen() {
                 <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to leave one!</Text>
               )}
             </View>
-          </View>
+          </Animated.View>
           
           <View style={styles.bottomSpacer} />
         </View>
@@ -1059,6 +1063,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 10,
+    zIndex: 100,
   },
   bottomBar: {
     flexDirection: 'row',

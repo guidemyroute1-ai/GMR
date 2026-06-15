@@ -5,11 +5,12 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  ActivityIndicator,
   Dimensions,
   Modal,
   FlatList,
 } from 'react-native';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Text } from '../../components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
@@ -164,7 +165,7 @@ export default function HotelDetailScreen() {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <ActivityIndicator size="large" color="#16A34A" />
+        <LoadingSpinner size="large" color="#16A34A" />
       </View>
     );
   }
@@ -185,80 +186,79 @@ export default function HotelDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: '#FFFFFF', zIndex: 20 }} />
+
+      {/* ── Image Header ── */}
+      <View style={[styles.imageContainer, { position: 'absolute', top: insets.top, left: 0, right: 0, height: HEADER_IMAGE_HEIGHT, zIndex: 0 }]}>
+        {hotel.images.length > 0 ? (
+          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+            {hotel.images.map((img, index) => (
+              <View key={index} style={{ width, height: HEADER_IMAGE_HEIGHT }}>
+                <ExpoImage
+                  source={{ uri: img }}
+                  style={styles.image}
+                  contentFit="cover"
+                />
+                <View style={styles.imageOverlay} />
+              </View>
+            ))}
+          </ScrollView>
+        ) : hotel.image ? (
+          <View style={{ width, height: HEADER_IMAGE_HEIGHT }}>
+            <ExpoImage
+              source={{ uri: hotel.image }}
+              style={styles.image}
+              contentFit="cover"
+            />
+            <View style={styles.imageOverlay} />
+          </View>
+        ) : (
+          <View style={[styles.image, styles.fallbackImage]}>
+            <Text style={{ fontSize: 80 }}>{hotel.emoji}</Text>
+          </View>
+        )}
+      </View>
+
+      {/* Floating Action Buttons */}
+      <View style={[styles.floatingHeader, { top: insets.top + 16, zIndex: 10 }]}>
+        <TouchableOpacity 
+          style={styles.glassButton} 
+          onPress={() => router.back()} 
+          activeOpacity={0.7}
+        >
+          <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+        </TouchableOpacity>
+        
+        <View style={styles.floatingRight}>
+          <TouchableOpacity style={styles.glassButton} activeOpacity={0.7}>
+            <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.glassButton, { marginLeft: 12 }]} 
+            onPress={() => setIsSaved(!isSaved)}
+            activeOpacity={0.7}
+          >
+            <Ionicons 
+              name={isSaved ? "heart" : "heart-outline"} 
+              size={22} 
+              color={isSaved ? "#EF4444" : "#FFFFFF"} 
+            />
+          </TouchableOpacity>
+        </View>
+      </View>
 
       <ScrollView 
-        style={styles.scroll} 
-        contentContainerStyle={styles.scrollContent} 
+        style={[styles.scroll, { zIndex: 1 }]} 
+        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_IMAGE_HEIGHT + insets.top - 30 }]} 
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* ── Image Header ── */}
-        <View style={styles.imageContainer}>
-          {hotel.images.length > 0 ? (
-            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-              {hotel.images.map((img, index) => (
-                <View key={index} style={{ width, height: HEADER_IMAGE_HEIGHT }}>
-                  <ExpoImage
-                    source={{ uri: img }}
-                    style={styles.image}
-                    contentFit="cover"
-                  />
-                  <View style={styles.imageOverlay} />
-                </View>
-              ))}
-            </ScrollView>
-          ) : hotel.image ? (
-            <View style={{ width, height: HEADER_IMAGE_HEIGHT }}>
-              <ExpoImage
-                source={{ uri: hotel.image }}
-                style={styles.image}
-                contentFit="cover"
-              />
-              <View style={styles.imageOverlay} />
-            </View>
-          ) : (
-            <View style={[styles.image, styles.fallbackImage]}>
-              <Text style={{ fontSize: 80 }}>{hotel.emoji}</Text>
-            </View>
-          )}
-
-          {/* Floating Action Buttons */}
-          <View style={[styles.floatingHeader, { top: Math.max(insets.top, 20) }]}>
-            <TouchableOpacity 
-              style={styles.glassButton} 
-              onPress={() => router.back()} 
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            
-            <View style={styles.floatingRight}>
-              <TouchableOpacity style={styles.glassButton} activeOpacity={0.7}>
-                <Ionicons name="share-outline" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.glassButton, { marginLeft: 12 }]} 
-                onPress={() => setIsSaved(!isSaved)}
-                activeOpacity={0.7}
-              >
-                <Ionicons 
-                  name={isSaved ? "heart" : "heart-outline"} 
-                  size={22} 
-                  color={isSaved ? "#EF4444" : "#FFFFFF"} 
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-          
-          {/* Pagination dots could go here if using horizontal scroll */}
-        </View>
-
         {/* ── Content Container (Overlapping Image) ── */}
         <View style={styles.contentContainer}>
           
           {/* Title & Type */}
-          <View style={styles.headerSection}>
+          <Animated.View style={styles.headerSection} entering={FadeInDown.delay(100).springify()}>
             <View style={styles.typeBadge}>
               <Text style={styles.typeText}>{hotel.type.toUpperCase()}</Text>
             </View>
@@ -284,9 +284,9 @@ export default function HotelDetailScreen() {
                 </>
               ) : null}
             </View>
-          </View>
+          </Animated.View>
 
-          <View style={styles.highlightsWrapper}>
+          <Animated.View style={styles.highlightsWrapper} entering={FadeInDown.delay(200).springify()}>
             {/* ── Highlights Grid ── */}
             <Text style={styles.sectionTitle}>What's included</Text>
             <View style={styles.highlightsGrid}>
@@ -330,15 +330,15 @@ export default function HotelDetailScreen() {
             {(!hotel.maxOccupancy && !hotel.bedConfig && !hotel.floorView && !hotel.cancellation) && (
               <Text style={styles.emptyText}>Standard room configuration applies.</Text>
             )}
-          </View>
+          </Animated.View>
           {hotel.about ? (
-            <View style={styles.section}>
+            <Animated.View style={styles.section} entering={FadeInDown.delay(300).springify()}>
               <Text style={styles.sectionTitle}>About this stay</Text>
               <Text style={styles.aboutText}>{hotel.about}</Text>
-            </View>
+            </Animated.View>
           ) : null}
           {hotel.amenities && hotel.amenities.length > 0 && (
-            <View style={styles.section}>
+            <Animated.View style={styles.section} entering={FadeInDown.delay(400).springify()}>
               <Text style={styles.sectionTitle}>Popular amenities</Text>
               <View style={styles.amenitiesList}>
                 {hotel.amenities.map((item: string, index: number) => (
@@ -348,12 +348,12 @@ export default function HotelDetailScreen() {
                   </View>
                 ))}
               </View>
-            </View>
+            </Animated.View>
           )}
 
       
           {hotel.images && hotel.images.length > 0 && (
-            <View style={styles.section}>
+            <Animated.View style={styles.section} entering={FadeInDown.delay(500).springify()}>
               <Text style={styles.sectionTitle}>Photo Gallery</Text>
               <ScrollView 
                 horizontal 
@@ -370,7 +370,7 @@ export default function HotelDetailScreen() {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </View>
+            </Animated.View>
           )}
 
 
@@ -378,7 +378,7 @@ export default function HotelDetailScreen() {
 
               {/* Partner Info */}
           {hotel.partnerName && (
-            <View style={[styles.section, styles.partnerSection]}>
+            <Animated.View style={[styles.section, styles.partnerSection]} entering={FadeInDown.delay(600).springify()}>
               <Text style={styles.sectionTitle}>Booking Partner</Text>
               <View style={styles.partnerCard}>
                 <View style={styles.partnerIconBg}>
@@ -392,12 +392,12 @@ export default function HotelDetailScreen() {
                 </View>
                 <Ionicons name="shield-checkmark" size={24} color="#10B981" style={styles.partnerBadge} />
               </View>
-            </View>
+            </Animated.View>
           )}
 
           {/* ── More from Partner ── */}
           {partnerListings.length > 0 && hotel?.partnerName && (
-            <View style={styles.section}>
+            <Animated.View style={styles.section} entering={FadeInDown.delay(700).springify()}>
               <Text style={styles.sectionTitle}>More from {hotel.partnerName}</Text>
               {partnerListings.map((item) => (
                 <TouchableOpacity
@@ -427,11 +427,11 @@ export default function HotelDetailScreen() {
                   <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
                 </TouchableOpacity>
               ))}
-            </View>
+            </Animated.View>
           )}
 
           {/* ── Guest Reviews ── */}
-          <View style={styles.section}>
+          <Animated.View style={styles.section} entering={FadeInDown.delay(800).springify()}>
             <Text style={styles.sectionTitle}>Guest Reviews</Text>
             <View style={styles.reviewsList}>
               {reviewsList.length > 0 ? (
@@ -464,7 +464,7 @@ export default function HotelDetailScreen() {
                 <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to leave one!</Text>
               )}
             </View>
-          </View>
+          </Animated.View>
           
           <View style={styles.bottomSpacer} />
         </View>
@@ -889,6 +889,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 10,
+    zIndex: 100,
   },
   bottomBar: {
     flexDirection: 'row',

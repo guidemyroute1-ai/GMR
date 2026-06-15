@@ -7,7 +7,9 @@ import {
   Dimensions,
   FlatList,
   Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -22,6 +24,7 @@ import { Text } from '../../components/Text';
 import { useLocation } from '../../contexts/LocationContext';
 import { normalizeCity } from '../../utils/cities';
 import { supabase } from '../../utils/supabase';
+import { useAuth } from '../../contexts/AuthContext';
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -104,6 +107,27 @@ interface Guide {
   hourlyRate?: number;
 }
 
+interface HomeHotel {
+  id: string;
+  name: string;
+  rating: number;
+  pricePerNight: number;
+  image?: string;
+  location?: string;
+  city?: string;
+}
+
+interface HomeVehicle {
+  id: string;
+  name: string;
+  type: string;
+  rating: number;
+  pricePerDay: number;
+  image?: string;
+  emoji: string;
+  city?: string;
+}
+
 interface Vehicle {
   id: string;
   type: string;
@@ -129,11 +153,6 @@ const BANNERS = [
   { id: '3', source: require('../../assets/images/banner3.png') },
 ];
 
-const VEHICLES: Vehicle[] = [
-  { id: '1', type: 'scooty', pricePerDay: 499, image: require('../../assets/images/scooty.png') },
-  { id: '2', type: 'bike', pricePerDay: 899, image: require('../../assets/images/bike.png') },
-  { id: '3', type: 'car', pricePerDay: 2499, image: require('../../assets/images/car.png') },
-];
 
 // Each vehicle type gets a tint so cards feel alive
 const VEHICLE_TINTS: Record<string, { bg: string; accent: string }> = {
@@ -165,7 +184,7 @@ const QUICK_NAV = [
   { id: 'hotels', label: 'Hotels', icon: 'business-outline' as const, iconColor: C.sky, bgColor: C.skyLight },
   { id: 'guides', label: 'Guides', icon: 'people-outline' as const, iconColor: C.violet, bgColor: C.violetLight },
   { id: 'experiences', label: 'Explore', icon: 'compass-outline' as const, iconColor: C.coral, bgColor: C.coralLight },
-  { id: 'more', label: 'More', icon: 'grid-outline' as const, iconColor: C.muted, bgColor: C.borderLight },
+
 ];
 
 // ─── StarRating ────────────────────────────────────────────────────────────────
@@ -294,6 +313,69 @@ const CategoryCard = ({ cat }: { cat: Category }) => (
   </TouchableOpacity>
 );
 
+// ─── HotelMiniCard ─────────────────────────────────────────────────────────────
+const HotelMiniCard = ({ hotel }: { hotel: HomeHotel }) => {
+  const router = useRouter();
+  return (
+    <TouchableOpacity
+      style={s.miniCard}
+      activeOpacity={0.88}
+      onPress={() => router.push({ pathname: '/more/hotel', params: { id: hotel.id } })}
+    >
+      <View style={s.miniImgWrap}>
+        {hotel.image ? (
+          <Image source={{ uri: hotel.image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center', backgroundColor: C.skyLight }]}>
+            <Ionicons name="business" size={28} color={C.sky} />
+          </View>
+        )}
+        <View style={s.miniRatingBadge}>
+          <Ionicons name="star" size={10} color={C.gold} />
+          <Text style={s.miniRatingTxt}>{hotel.rating.toFixed(1)}</Text>
+        </View>
+      </View>
+      <View style={s.miniInfo}>
+        <Text style={s.miniName} numberOfLines={1}>{hotel.name}</Text>
+        {hotel.location ? <Text style={s.miniSub} numberOfLines={1}>{hotel.location}</Text> : null}
+        <Text style={s.miniPrice}>₹{hotel.pricePerNight.toLocaleString()}<Text style={s.miniPriceSub}>/night</Text></Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+// ─── VehicleMiniCard ───────────────────────────────────────────────────────────
+const VehicleMiniCard = ({ vehicle }: { vehicle: HomeVehicle }) => {
+  const router = useRouter();
+  const tint = vehicle.type === 'Car' ? { bg: C.coralLight, accent: C.coral }
+    : vehicle.type === 'Scooty' ? { bg: C.greenTint, accent: C.green }
+    : { bg: C.skyLight, accent: C.sky };
+  return (
+    <TouchableOpacity
+      style={[s.miniCard, { backgroundColor: tint.bg }]}
+      activeOpacity={0.88}
+      onPress={() => router.push({ pathname: '/more/vehicle', params: { id: vehicle.id } })}
+    >
+      <View style={s.miniImgWrap}>
+        {vehicle.image ? (
+          <Image source={{ uri: vehicle.image }} style={StyleSheet.absoluteFill} resizeMode="cover" />
+        ) : (
+          <View style={[StyleSheet.absoluteFill, { alignItems: 'center', justifyContent: 'center' }]}>
+            <Text style={{ fontSize: 36 }}>{vehicle.emoji}</Text>
+          </View>
+        )}
+        <View style={[s.miniRatingBadge, { backgroundColor: tint.accent }]}>
+          <Text style={[s.miniRatingTxt, { color: C.white }]}>{vehicle.type}</Text>
+        </View>
+      </View>
+      <View style={s.miniInfo}>
+        <Text style={s.miniName} numberOfLines={1}>{vehicle.name}</Text>
+        <Text style={s.miniPrice}>₹{vehicle.pricePerDay.toLocaleString()}<Text style={s.miniPriceSub}>/day</Text></Text>
+      </View>
+    </TouchableOpacity>
+  );
+};
+
 // ─── SectionHeader ─────────────────────────────────────────────────────────────
 const SectionHeader = ({
   title, subtitle, onSeeAll,
@@ -316,10 +398,13 @@ const SectionHeader = ({
 
 // ─── HomeScreen ────────────────────────────────────────────────────────────────
 export default function HomeScreen() {
+  const { user } = useAuth();
   const router = useRouter();
   const [searchText, setSearchText] = useState('');
   const [guides, setGuides] = useState<Guide[]>([]);
   const [loadingGuides, setLoadingGuides] = useState(true);
+  const [hotels, setHotels] = useState<HomeHotel[]>([]);
+  const [vehicles, setVehicles] = useState<HomeVehicle[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showCity, setShowCity] = useState(false);
@@ -372,7 +457,63 @@ export default function HomeScreen() {
     })();
   }, [refreshKey, selectedCity]);
 
-  const onRefresh = () => { setRefreshing(true); setGuides([]); setRefreshKey(k => k + 1); };
+  // Fetch hotels
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from('listings')
+        .select('id, title, price, images, location, details')
+        .eq('type', 'hotel')
+        .eq('is_active', true)
+        .limit(5);
+      if (!error && data) {
+        setHotels(data.map((doc: any) => ({
+          id: doc.id,
+          name: doc.title,
+          rating: doc.details?.rating || 4.5,
+          pricePerNight: doc.price,
+          image: doc.images?.[0],
+          location: typeof doc.location === 'string' ? doc.location : doc.location?.address || doc.details?.address || '',
+          city: normalizeCity(doc.details?.city || (typeof doc.location === 'string' ? doc.location : doc.location?.address)),
+        })));
+      }
+    })();
+  }, [refreshKey, selectedCity]);
+
+  // Fetch vehicles
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from('listings')
+        .select('id, title, price, images, location, details')
+        .eq('type', 'rental')
+        .eq('is_active', true)
+        .limit(5);
+      if (!error && data) {
+        const typeOf = (doc: any) => {
+          const t = [doc.details?.vehicleType, doc.details?.category, doc.title].filter(Boolean).join(' ').toLowerCase();
+          if (t.includes('car') || t.includes('cab')) return 'Car';
+          if (t.includes('scoot') || t.includes('activa')) return 'Scooty';
+          return 'Bike';
+        };
+        setVehicles(data.map((doc: any) => {
+          const vType = typeOf(doc);
+          return {
+            id: doc.id,
+            name: doc.title,
+            type: vType,
+            rating: doc.details?.rating || 4.5,
+            pricePerDay: doc.price,
+            image: doc.images?.[0],
+            emoji: vType === 'Car' ? '🚗' : vType === 'Scooty' ? '🛵' : '🏍️',
+            city: normalizeCity(doc.details?.city || (typeof doc.location === 'string' ? doc.location : doc.location?.address)),
+          };
+        }));
+      }
+    })();
+  }, [refreshKey, selectedCity]);
+
+  const onRefresh = () => { setRefreshing(true); setGuides([]); setHotels([]); setVehicles([]); setRefreshKey(k => k + 1); };
 
   const handleSearch = () => {
     const t = searchText.trim();
@@ -391,22 +532,24 @@ export default function HomeScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.green} colors={[C.green]} />
         }
       >
-        {/* ── AppBar ── */}
-        <AppBar />
-
         {/* ══ HERO SEARCH BLOCK ══════════════════════════════════════════════ */}
         <LinearGradient
           colors={['#F0FDF4', '#FAFAF8']}
           start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
           style={s.heroBlock}
         >
-          {/* Header Row */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 16 }}>
-            {/* Greeting headline */}
-            <Text style={[s.heroHeadline, { marginBottom: 0 }]}>Where to{'\n'}<Text style={s.heroHeadlineAccent}>explore today?</Text></Text>
+          {/* ── AppBar ── */}
+          <View style={{ marginHorizontal: -16 }}>
+            <AppBar transparent />
+          </View>
 
+          {/* Header Row */}
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',marginTop:8, marginBottom: 16 }}>
+            {/* Greeting headline */}
+            <Text style={[s.heroHeadline, { marginBottom: 0 }]}>Hi, <Text style={s.heroHeadlineAccent}>{user?.displayName ? user.displayName.split(' ')[0] : 'Explorer'}</Text></Text>
+            
             {/* City selector row */}
-            <TouchableOpacity style={[s.cityChip, { marginBottom: 4, alignSelf: 'auto' }]} activeOpacity={0.8} onPress={() => setShowCity(true)}>
+            <TouchableOpacity style={[s.cityChip, { marginBottom: 0, alignSelf: 'auto' }]} activeOpacity={0.8} onPress={() => setShowCity(true)}>
               <View style={s.cityChipDot} />
               <ExpoImage
                 source={require('../../assets/svg/location-pin-svgrepo-com.svg')}
@@ -519,6 +662,32 @@ export default function HomeScreen() {
           }
         />
 
+        {/* ══ TOP HOTELS ═════════════════════════════════════════════════════ */}
+        <SectionHeader
+          title="Top Hotels"
+          subtitle="Best stays near you"
+          onSeeAll={() => router.push({ pathname: '/(tabs)/HotelListings', params: { city: selectedCity } })}
+        />
+        <FlatList
+          data={hotels}
+          keyExtractor={(i) => i.id}
+          horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={s.hList}
+          renderItem={({ item }) => <HotelMiniCard hotel={item} />}
+          ListEmptyComponent={
+            <View style={s.emptyCard}>
+              <View style={s.emptyIconWrap}><Ionicons name="business-outline" size={22} color={C.sky} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.emptyTitle}>No hotels yet</Text>
+                <Text style={s.emptySub}>Try another city.</Text>
+              </View>
+              <TouchableOpacity style={s.emptyBtn} onPress={() => router.push({ pathname: '/(tabs)/HotelListings', params: { city: selectedCity } })}>
+                <Text style={s.emptyBtnTxt}>View all</Text>
+              </TouchableOpacity>
+            </View>
+          }
+        />
+
         {/* ══ RENT A VEHICLE ═════════════════════════════════════════════════ */}
         <SectionHeader
           title="Rent a Ride"
@@ -526,11 +695,23 @@ export default function HomeScreen() {
           onSeeAll={() => router.push({ pathname: '/(tabs)/RentAVehicle', params: { city: selectedCity } })}
         />
         <FlatList
-          data={VEHICLES}
+          data={vehicles}
           keyExtractor={(i) => i.id}
           horizontal showsHorizontalScrollIndicator={false}
           contentContainerStyle={s.hList}
-          renderItem={({ item }) => <VehicleCard vehicle={item} city={selectedCity} />}
+          renderItem={({ item }) => <VehicleMiniCard vehicle={item} />}
+          ListEmptyComponent={
+            <View style={s.emptyCard}>
+              <View style={s.emptyIconWrap}><Ionicons name="bicycle-outline" size={22} color={C.green} /></View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.emptyTitle}>No rentals yet</Text>
+                <Text style={s.emptySub}>Try another city.</Text>
+              </View>
+              <TouchableOpacity style={s.emptyBtn} onPress={() => router.push({ pathname: '/(tabs)/RentAVehicle', params: { city: selectedCity } })}>
+                <Text style={s.emptyBtnTxt}>View all</Text>
+              </TouchableOpacity>
+            </View>
+          }
         />
 
         {/* ══ QUICK CATEGORIES ═══════════════════════════════════════════════ */}
@@ -579,64 +760,60 @@ export default function HomeScreen() {
       </ScrollView>
 
       {/* ══ CITY SELECTOR MODAL ════════════════════════════════════════════════ */}
-      <Modal visible={showCity} animationType="slide" onRequestClose={() => setShowCity(false)}>
-        <SafeAreaContextView edges={['top', 'bottom']} style={s.cityRoot}>
+      <Modal visible={showCity} animationType="slide" transparent={true} onRequestClose={() => setShowCity(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={s.cityModalOverlay}>
+          <View style={s.cityRoot}>
+            {/* Handle */}
+            <View style={s.cityHandle} />
 
-          {/* Header */}
-          <View style={s.cityHeader}>
-            <View>
-              <Text style={s.cityHeaderLabel}>LOCATION</Text>
-              <Text style={s.cityHeaderTitle}>Select Your City</Text>
+            {/* Header */}
+            <View style={s.cityHeader}>
+              <View>
+                <Text style={s.cityHeaderTitle}>Select Your City</Text>
+                <Text style={s.cityHeaderSub}>Find guides and rentals near you</Text>
+              </View>
+              <TouchableOpacity style={s.cityCloseBtn} onPress={() => setShowCity(false)}>
+                <Ionicons name="close" size={20} color={C.inkSoft} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity style={s.cityCloseBtn} onPress={() => setShowCity(false)}>
-              <Ionicons name="close" size={20} color={C.ink} />
-            </TouchableOpacity>
-          </View>
 
-          {/* Search */}
-          <View style={s.citySearchWrap}>
-            <Ionicons name="search-outline" size={17} color={C.mutedLight} style={{ marginLeft: 14 }} />
-            <TextInput
-              style={s.citySearchInput}
-              placeholder="Search cities…"
-              placeholderTextColor={C.mutedLight}
-            />
-          </View>
+            {/* Search */}
+            <View style={s.citySearchWrap}>
+              <Ionicons name="search-outline" size={18} color={C.muted} style={{ marginLeft: 14 }} />
+              <TextInput
+                style={s.citySearchInput}
+                placeholder="Search cities…"
+                placeholderTextColor={C.mutedLight}
+              />
+            </View>
 
-          {/* Grid */}
-          <ScrollView contentContainerStyle={s.cityGrid}>
-            {cityOptions.map((city) => {
-              const active = selectedCity === city;
-              return (
-                <TouchableOpacity
-                  key={city}
-                  style={[s.cityCard, active && s.cityCardActive]}
-                  activeOpacity={0.8}
-                  onPress={async () => { await setSelectedCity(city); }}
-                >
-                  {active && (
-                    <View style={s.cityCardCheck}>
-                      <Ionicons name="checkmark" size={11} color={C.white} />
+            {/* List */}
+            <ScrollView contentContainerStyle={s.cityList}>
+              {cityOptions.map((city) => {
+                const active = selectedCity === city;
+                return (
+                  <TouchableOpacity
+                    key={city}
+                    style={[s.cityListItem, active && s.cityListItemActive]}
+                    activeOpacity={0.7}
+                    onPress={async () => { await setSelectedCity(city); setShowCity(false); }}
+                  >
+                    <View style={[s.cityListItemIcon, active && s.cityListItemIconActive]}>
+                      <Ionicons name="location" size={18} color={active ? C.white : C.muted} />
                     </View>
-                  )}
-                  <View style={[s.cityCardIcon, active && s.cityCardIconActive]}>
-                    <Ionicons name="location" size={26} color={active ? C.green : C.coral} />
-                  </View>
-                  <Text style={[s.cityCardName, active && s.cityCardNameActive]} numberOfLines={1}>
-                    {city}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          {/* Footer CTA */}
-          <View style={s.cityFooter}>
-            <TouchableOpacity style={s.citySaveBtn} activeOpacity={0.85} onPress={() => setShowCity(false)}>
-              <Text style={s.citySaveTxt}>Confirm City</Text>
-            </TouchableOpacity>
+                    <Text style={[s.cityListItemName, active && s.cityListItemNameActive]} numberOfLines={1}>
+                      {city}
+                    </Text>
+                    {active && (
+                      <Ionicons name="checkmark-circle" size={24} color={C.green} />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+              <View style={{ height: 20 }} />
+            </ScrollView>
           </View>
-        </SafeAreaContextView>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaContextView>
   );
@@ -734,15 +911,15 @@ const s = StyleSheet.create({
   },
   quickNavItem: { alignItems: 'center', gap: 6, flex: 1 },
   quickNavIcon: {
-    width: 46,
-    height: 46,
+    width: 45,
+    height: 45,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     ...SHADOW.xs,
   },
   quickNavLabel: {
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '700',
     color: C.inkSoft,
     textAlign: 'center',
@@ -826,9 +1003,46 @@ const s = StyleSheet.create({
   },
   emptyBtnTxt: { color: C.white, fontSize: 12, fontWeight: '700' },
 
+  // ── Mini Card (Hotels & Vehicles) ──
+  miniCard: {
+    width: 152,
+    backgroundColor: C.surface,
+    borderRadius: 18,
+    marginRight: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: C.borderLight,
+    ...SHADOW.sm,
+  },
+  miniImgWrap: {
+    width: '100%',
+    height: 110,
+    backgroundColor: C.baseDark,
+    position: 'relative',
+    overflow: 'hidden',
+  },
+  miniRatingBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  miniRatingTxt: { fontSize: 11, fontWeight: '700', color: C.ink },
+  miniInfo: { padding: 10, gap: 2 },
+  miniName: { fontSize: 13, fontWeight: '700', color: C.ink },
+  miniSub: { fontSize: 11, color: C.muted },
+  miniPrice: { fontSize: 14, fontWeight: '800', color: C.ink, marginTop: 4 },
+  miniPriceSub: { fontSize: 11, fontWeight: '500', color: C.muted },
+
   // ── Guide Card ──
   guideCard: {
-    width: 164,
+    width: 155,
     backgroundColor: C.surface,
     borderRadius: 20,
     marginRight: 14,
@@ -839,7 +1053,7 @@ const s = StyleSheet.create({
   },
   guidePhoto: {
     width: '100%',
-    height: 145,
+    height: 115,
     backgroundColor: C.baseDark,
     position: 'relative',
     overflow: 'hidden',
@@ -1050,25 +1264,39 @@ const s = StyleSheet.create({
   promoImg: { width: 92, height: 82 },
 
   // ── City Modal ──
-  cityRoot: { flex: 1, backgroundColor: '#F7FAF7' },
+  cityModalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  cityRoot: { 
+    backgroundColor: C.white,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
+    maxHeight: '85%',
+    ...SHADOW.md,
+  },
+  cityHandle: {
+    width: 40, height: 5,
+    backgroundColor: C.border,
+    borderRadius: 3,
+    alignSelf: 'center',
+    marginTop: 12,
+    marginBottom: 8,
+  },
   cityHeader: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 20, paddingBottom: 16,
+    paddingHorizontal: 24,
+    paddingTop: 10, paddingBottom: 20,
   },
-  cityHeaderLabel: {
-    fontSize: 11, fontWeight: '800', color: C.green,
-    letterSpacing: 1.2, marginBottom: 4,
-  },
-  cityHeaderTitle: { fontSize: 24, fontWeight: '900', color: C.ink, letterSpacing: -0.4 },
+  cityHeaderTitle: { fontSize: 22, fontWeight: '900', color: C.ink, letterSpacing: -0.4 },
+  cityHeaderSub: { fontSize: 13, color: C.muted, marginTop: 2 },
   cityCloseBtn: {
-    width: 38, height: 38, borderRadius: 12,
+    width: 36, height: 36, borderRadius: 18,
     backgroundColor: C.surface,
     alignItems: 'center', justifyContent: 'center',
-    borderWidth: 1, borderColor: C.border,
-    marginTop: 4,
   },
   citySearchWrap: {
     flexDirection: 'row',
@@ -1078,57 +1306,35 @@ const s = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: C.border,
-    marginBottom: 20,
-    ...SHADOW.xs,
+    marginBottom: 16,
   },
-  citySearchInput: { flex: 1, fontSize: 14, color: C.ink, paddingVertical: 12, paddingHorizontal: 10 },
-  cityGrid: {
-    paddingHorizontal: 16,
+  citySearchInput: { flex: 1, fontSize: 15, color: C.ink, paddingVertical: 14, paddingHorizontal: 12 },
+  cityList: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+  },
+  cityListItem: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingBottom: 32,
-  },
-  cityCard: {
-    width: '47.5%',
-    aspectRatio: 0.88,
-    backgroundColor: C.surface,
-    borderRadius: 20,
-    marginBottom: 14,
     alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    marginBottom: 8,
+    backgroundColor: C.white,
+    borderWidth: 1,
     borderColor: 'transparent',
-    ...SHADOW.sm,
-    position: 'relative',
-    overflow: 'hidden',
   },
-  cityCardActive: { borderColor: C.green, backgroundColor: C.greenTint },
-  cityCardCheck: {
-    position: 'absolute', top: 10, right: 10,
-    width: 20, height: 20, borderRadius: 10,
-    backgroundColor: C.green,
+  cityListItemActive: {
+    backgroundColor: C.greenTint,
+    borderColor: C.greenLight,
+  },
+  cityListItemIcon: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: C.surface,
     alignItems: 'center', justifyContent: 'center',
+    marginRight: 14,
   },
-  cityCardIcon: {
-    width: 64, height: 64, borderRadius: 18,
-    backgroundColor: C.coralLight,
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 10,
-  },
-  cityCardIconActive: { backgroundColor: C.greenLight },
-  cityCardName: { fontSize: 14, fontWeight: '700', color: C.ink, textAlign: 'center' },
-  cityCardNameActive: { color: C.green },
-  cityFooter: {
-    paddingHorizontal: 20, paddingTop: 14, paddingBottom: 20,
-    backgroundColor: '#F7FAF7',
-    borderTopWidth: 1, borderTopColor: C.border,
-  },
-  citySaveBtn: {
-    backgroundColor: C.green,
-    borderRadius: 16, height: 54,
-    alignItems: 'center', justifyContent: 'center',
-    ...SHADOW.green,
-  },
-  citySaveTxt: { color: C.white, fontSize: 16, fontWeight: '800', letterSpacing: 0.3 },
+  cityListItemIconActive: { backgroundColor: C.green },
+  cityListItemName: { flex: 1, fontSize: 16, fontWeight: '600', color: C.ink },
+  cityListItemNameActive: { color: C.greenDark, fontWeight: '700' },
 });

@@ -5,9 +5,10 @@ import {
   ScrollView,
   TouchableOpacity,
   StatusBar,
-  ActivityIndicator,
   Dimensions,
 } from 'react-native';
+import LoadingSpinner from '../../components/LoadingSpinner';
+import Animated, { FadeInDown } from 'react-native-reanimated';
 import { Text } from '../../components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
@@ -145,7 +146,7 @@ export default function VehicleDetailScreen() {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
         <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <ActivityIndicator size="large" color="#16A34A" />
+        <LoadingSpinner size="large" color="#16A34A" />
       </View>
     );
   }
@@ -166,78 +167,79 @@ export default function VehicleDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: '#FFFFFF', zIndex: 20 }} />
+
+      {/* ── Image Header ── */}
+      <View style={[styles.imageContainer, { position: 'absolute', top: insets.top, left: 0, right: 0, height: HEADER_IMAGE_HEIGHT, zIndex: 0 }]}>
+        {vehicle.images.length > 0 ? (
+          <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
+            {vehicle.images.map((img, index) => (
+              <View key={index} style={{ width, height: HEADER_IMAGE_HEIGHT }}>
+                <ExpoImage
+                  source={{ uri: img }}
+                  style={styles.image}
+                  contentFit="cover"
+                />
+                <View style={styles.imageOverlay} />
+              </View>
+            ))}
+          </ScrollView>
+        ) : vehicle.image ? (
+          <View style={{ width, height: HEADER_IMAGE_HEIGHT }}>
+            <ExpoImage
+              source={{ uri: vehicle.image }}
+              style={styles.image}
+              contentFit="cover"
+            />
+            <View style={styles.imageOverlay} />
+          </View>
+        ) : (
+          <View style={[styles.image, styles.fallbackImage]}>
+            <Text style={{ fontSize: 80 }}>{vehicle.emoji}</Text>
+          </View>
+        )}
+
+        {/* Floating Action Buttons */}
+        <View style={[styles.floatingHeader, { top: insets.top + 16, zIndex: 10 }]}>
+          <TouchableOpacity 
+            style={styles.glassButton} 
+            onPress={() => router.back()} 
+            activeOpacity={0.7}
+          >
+            <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
+          </TouchableOpacity>
+          
+          <View style={styles.floatingRight}>
+            <TouchableOpacity style={styles.glassButton} activeOpacity={0.7}>
+              <Ionicons name="share-outline" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={[styles.glassButton, { marginLeft: 12 }]} 
+              onPress={() => setIsSaved(!isSaved)}
+              activeOpacity={0.7}
+            >
+              <Ionicons 
+                name={isSaved ? "heart" : "heart-outline"} 
+                size={22} 
+                color={isSaved ? "#EF4444" : "#FFFFFF"} 
+              />
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
 
       <ScrollView 
-        style={styles.scroll} 
-        contentContainerStyle={styles.scrollContent} 
+        style={[styles.scroll, { zIndex: 1 }]} 
+        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_IMAGE_HEIGHT + insets.top - 30 }]} 
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
-        {/* ── Image Header ── */}
-        <View style={styles.imageContainer}>
-          {vehicle.images.length > 0 ? (
-            <ScrollView horizontal pagingEnabled showsHorizontalScrollIndicator={false} style={{ flex: 1 }}>
-              {vehicle.images.map((img, index) => (
-                <View key={index} style={{ width, height: HEADER_IMAGE_HEIGHT }}>
-                  <ExpoImage
-                    source={{ uri: img }}
-                    style={styles.image}
-                    contentFit="cover"
-                  />
-                  <View style={styles.imageOverlay} />
-                </View>
-              ))}
-            </ScrollView>
-          ) : vehicle.image ? (
-            <View style={{ width, height: HEADER_IMAGE_HEIGHT }}>
-              <ExpoImage
-                source={{ uri: vehicle.image }}
-                style={styles.image}
-                contentFit="cover"
-              />
-              <View style={styles.imageOverlay} />
-            </View>
-          ) : (
-            <View style={[styles.image, styles.fallbackImage]}>
-              <Text style={{ fontSize: 80 }}>{vehicle.emoji}</Text>
-            </View>
-          )}
-
-          {/* Floating Action Buttons */}
-          <View style={[styles.floatingHeader, { top: Math.max(insets.top, 20) }]}>
-            <TouchableOpacity 
-              style={styles.glassButton} 
-              onPress={() => router.back()} 
-              activeOpacity={0.7}
-            >
-              <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
-            </TouchableOpacity>
-            
-            <View style={styles.floatingRight}>
-              <TouchableOpacity style={styles.glassButton} activeOpacity={0.7}>
-                <Ionicons name="share-outline" size={22} color="#FFFFFF" />
-              </TouchableOpacity>
-              <TouchableOpacity 
-                style={[styles.glassButton, { marginLeft: 12 }]} 
-                onPress={() => setIsSaved(!isSaved)}
-                activeOpacity={0.7}
-              >
-                <Ionicons 
-                  name={isSaved ? "heart" : "heart-outline"} 
-                  size={22} 
-                  color={isSaved ? "#EF4444" : "#FFFFFF"} 
-                />
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-
         {/* ── Content Container (Overlapping Image) ── */}
         <View style={styles.contentContainer}>
           
           {/* Title & Type */}
-          <View style={styles.headerSection}>
+          <Animated.View style={styles.headerSection} entering={FadeInDown.delay(100).springify()}>
             <View style={styles.typeBadge}>
               <Text style={styles.typeText}>{vehicle.type.toUpperCase()}</Text>
             </View>
@@ -264,10 +266,10 @@ export default function VehicleDetailScreen() {
                 </>
               ) : null}
             </View>
-          </View>
+          </Animated.View>
 
           {/* ── Highlights Grid ── */}
-          <View style={styles.highlightsWrapper}>
+          <Animated.View style={styles.highlightsWrapper} entering={FadeInDown.delay(200).springify()}>
             <Text style={styles.sectionTitle}>Key features</Text>
             <View style={styles.highlightsGrid}>
               {!!vehicle.fuelType && (
@@ -312,19 +314,19 @@ export default function VehicleDetailScreen() {
             {(!vehicle.fuelType && !vehicle.helmet && !vehicle.minDuration && !vehicle.deposit) && (
               <Text style={styles.emptyText}>Standard vehicle conditions apply.</Text>
             )}
-          </View>
+          </Animated.View>
 
           {/* ── About Section ── */}
           {vehicle.about ? (
-            <View style={styles.section}>
+            <Animated.View style={styles.section} entering={FadeInDown.delay(300).springify()}>
               <Text style={styles.sectionTitle}>About this vehicle</Text>
               <Text style={styles.aboutText}>{vehicle.about}</Text>
-            </View>
+            </Animated.View>
           ) : null}
 
           {/* ── Specifications ── */}
           {vehicle.specs && vehicle.specs.length > 0 && (
-            <View style={styles.section}>
+            <Animated.View style={styles.section} entering={FadeInDown.delay(400).springify()}>
               <Text style={styles.sectionTitle}>Specifications</Text>
               <View style={styles.amenitiesList}>
                 {vehicle.specs.map((item, index) => (
@@ -334,12 +336,12 @@ export default function VehicleDetailScreen() {
                   </View>
                 ))}
               </View>
-            </View>
+            </Animated.View>
           )}
 
           {/* ── Photo Gallery ── */}
           {vehicle.images && vehicle.images.length > 0 && (
-            <View style={styles.section}>
+            <Animated.View style={styles.section} entering={FadeInDown.delay(500).springify()}>
               <Text style={styles.sectionTitle}>Photo Gallery</Text>
               <ScrollView 
                 horizontal 
@@ -355,12 +357,12 @@ export default function VehicleDetailScreen() {
                   />
                 ))}
               </ScrollView>
-            </View>
+            </Animated.View>
           )}
              
           {/* ── More from this Partner ── */}
           {moreListings.length > 0 && (
-            <View style={styles.section}>
+            <Animated.View style={styles.section} entering={FadeInDown.delay(600).springify()}>
               <Text style={styles.sectionTitle}>More from this partner</Text>
               <ScrollView
                 horizontal
@@ -392,11 +394,11 @@ export default function VehicleDetailScreen() {
                   </TouchableOpacity>
                 ))}
               </ScrollView>
-            </View>
+            </Animated.View>
           )}
 
           {/* ── Guest Reviews ── */}
-          <View style={styles.section}>
+          <Animated.View style={styles.section} entering={FadeInDown.delay(700).springify()}>
             <Text style={styles.sectionTitle}>Guest Reviews</Text>
             <View style={styles.reviewsList}>
               {reviewsList.length > 0 ? (
@@ -429,7 +431,7 @@ export default function VehicleDetailScreen() {
                 <Text style={styles.emptyReviewsText}>No reviews yet. Be the first to leave one!</Text>
               )}
             </View>
-          </View>
+          </Animated.View>
        
 
           <View style={styles.bottomSpacer} />
@@ -757,6 +759,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.05,
     shadowRadius: 10,
     elevation: 10,
+    zIndex: 100,
   },
   bottomBar: {
     flexDirection: 'row',

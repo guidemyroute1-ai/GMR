@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Pressable, Image } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Pressable, Image, Platform } from 'react-native';
+import { BlurView } from 'expo-blur';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { Ionicons } from '@expo/vector-icons';
 import { Text } from './Text';
@@ -17,7 +19,11 @@ interface AppNotification {
 
 const NOTIFICATIONS_STORAGE_KEY = '@gmr_notifications';
 
-export default function AppBar() {
+interface AppBarProps {
+  transparent?: boolean;
+}
+
+export default function AppBar({ transparent = false }: AppBarProps = {}) {
   const router = useRouter();
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
@@ -56,9 +62,12 @@ export default function AppBar() {
     return () => unsubscribe();
   }, []);
 
+  const Container = transparent ? View : BlurView;
+  const containerProps = transparent ? {} : { intensity: 80, tint: "light" as const };
+
   return (
-    <View style={styles.safe}>
-      <View style={styles.bar}>
+    <Container {...containerProps} style={[styles.safe, transparent && { backgroundColor: 'transparent' }]}>
+      <View style={[styles.bar, transparent && { backgroundColor: 'transparent', borderBottomWidth: 0 }]}>
         <TouchableOpacity
           onPress={() => router.push('/(tabs)/Home')}>
           <View style={styles.brandRow}>
@@ -95,12 +104,12 @@ export default function AppBar() {
 
         </View>
       </View>
-    </View>
+    </Container>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { backgroundColor: '#ffffff' },
+  safe: {},
   bar: {
     height: 64,
     paddingHorizontal: 16,
@@ -108,8 +117,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E2E8F0',
-    backgroundColor: '#ffffff',
+    borderBottomColor: 'rgba(226, 232, 240, 0.5)',
+    backgroundColor: 'transparent',
   },
   brandRow: {
     flexDirection: 'row',

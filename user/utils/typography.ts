@@ -12,7 +12,7 @@ import { Dimensions, PixelRatio } from 'react-native';
 // Adjust GLOBAL_SCALE (range 0.80 – 1.0) to taste.
 
 const BASE_WIDTH = 390;
-const GLOBAL_SCALE = 0.92; // ← tweak this one value to make all text larger/smaller
+const GLOBAL_SCALE = 0.95; // ← tweak this one value to make all text larger/smaller
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 

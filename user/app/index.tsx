@@ -1,14 +1,13 @@
 import { Redirect } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
-
-export default function Index() {
+import { View, StyleSheet } from 'react-native';
+import LoadingSpinner from '../components/LoadingSpinner';export default function Index() {
   const { user, loading } = useAuth();
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#16A34A" />
+        <LoadingSpinner size="large" color="#16A34A" />
       </View>
     );
   }

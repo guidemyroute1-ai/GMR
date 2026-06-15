@@ -1,7 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   FlatList,
   Image,
   RefreshControl,
@@ -14,6 +13,7 @@ import {
 import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
 import AppBar from '../../components/AppBar';
 import { Text } from '../../components/Text';
+import LoadingSpinner from '../../components/LoadingSpinner';
 
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
@@ -51,6 +51,39 @@ const SHADOWS = {
   },
 };
 
+// ─── Design Tokens ─────────────────────────────────────────────────────────────
+const C = {
+  green:       '#16A34A',
+  greenDark:   '#14532D',
+  greenLight:  '#DCFCE7',
+  greenTint:   '#F0FDF4',
+  ink:         '#0F172A',
+  inkMid:      '#374151',
+  muted:       '#6B7280',
+  mutedLight:  '#9CA3AF',
+  border:      '#E2E8F0',
+  borderLight: '#F1F5F9',
+  surface:     '#FFFFFF',
+  base:        '#EEF2EF',
+  amber:       '#F59E0B',
+  amberLight:  '#FEF3C7',
+  sky:         '#0EA5E9',
+  skyLight:    '#E0F2FE',
+  coral:       '#F97316',
+  coralLight:  '#FFF7ED',
+  rose:        '#F43F5E',
+  roseLight:   '#FFF1F2',
+  gold:        '#FBBF24',
+  white:       '#FFFFFF',
+};
+
+const SHADOW = {
+  xs: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  sm: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.09, shadowRadius: 8, elevation: 3 },
+  md: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 14, elevation: 6 },
+  green: { shadowColor: '#16A34A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 10, elevation: 6 },
+};
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface FeatureTag {
   label: string;
@@ -86,6 +119,61 @@ const PRICE_FILTERS = [
   { label: 'Rs 1k-3k', min: 1000, max: 3000 },
   { label: 'Rs 3k+', min: 3000, max: Infinity },
 ];
+
+// ─── Filter Header ─────────────────────────────────────────────────────────────
+const FilterHeader = ({
+  cityOptions, activeCity, onCityChange,
+  activeTab, onTabChange,
+}: {
+  cityOptions: string[];
+  activeCity: string;
+  onCityChange: (c: string) => void;
+  activeTab: string;
+  onTabChange: (t: string) => void;
+}) => (
+  <View style={styles.filterBox}>
+    {/* City pills */}
+    <View style={styles.cityRow}>
+      <MaterialCommunityIcons name="map-marker-outline" size={15} color={C.green} />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.cityScroll}>
+        {cityOptions.map((city) => {
+          const active = activeCity === city;
+          return (
+            <TouchableOpacity
+              key={city}
+              style={[styles.cityPill, active && styles.cityPillActive]}
+              onPress={() => onCityChange(city)}
+              activeOpacity={0.75}
+            >
+              <Text style={[styles.cityPillTxt, active && styles.cityPillTxtActive]}>{city}</Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+    </View>
+ 
+    {/* Segmented type control */}
+    <View style={styles.segmentWrap}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 16 }}>
+        <View style={styles.segment}>
+          {FILTER_TABS.map((tab) => {
+            const active = activeTab === tab;
+            return (
+              <TouchableOpacity
+                key={tab}
+                style={[styles.segmentItem, active && styles.segmentItemActive]}
+                onPress={() => onTabChange(tab)}
+                activeOpacity={0.75}
+              >
+                <Text style={[styles.segmentTxt, active && styles.segmentTxtActive]}>{tab}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
+  </View>
+);
 
 const normalizeHotelType = (...values: unknown[]) => {
   const text = values
@@ -304,41 +392,17 @@ export default function HotelListingsScreen() {
       >
         <AppBar />
 
-        <View style={styles.filterTabsContainer}>
-          <View style={styles.cityFilterRow}>
-          <MaterialCommunityIcons name="map-marker" size={14} color={COLORS.mediumGray} style={{ marginRight: 4 }} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.priceFilterScroll}>
-            {cityOptions.map((city) => (
-              <TouchableOpacity
-                key={city}
-                style={[styles.cityTab, activeCity === city && styles.cityTabActive]}
-                onPress={() => {
-                  setActiveCity(city);
-                  setSelectedCity(city);
-                }}
-              >
-                <Text style={[styles.cityTabText, activeCity === city && styles.cityTabTextActive]}>{city}</Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterTabsScroll}>
-          {FILTER_TABS.map((tab) => (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.filterTab, activeTab === tab && styles.filterTabActive]}
-              onPress={() => setActiveTab(tab)}
-            >
-              <Text style={[styles.filterTabText, activeTab === tab && styles.filterTabTextActive]}>{tab}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-      </View>
+        <FilterHeader
+          cityOptions={cityOptions}
+          activeCity={activeCity}
+          onCityChange={(c) => { setActiveCity(c); setSelectedCity(c); }}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+        />
 
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
+          <LoadingSpinner size="large" color={COLORS.primary} />
           <Text style={styles.loaderText}>Finding best stays for you...</Text>
         </View>
       ) : filtered.length === 0 ? (
@@ -365,96 +429,54 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.lightGray,
   },
-  filterTabsContainer: {
-    backgroundColor: COLORS.white,
+
+  // ── Filter Box ──
+  filterBox: {
+    backgroundColor: C.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
+    borderBottomColor: C.border,
+    paddingBottom: 10,
+    ...SHADOW.xs,
   },
-  cityFilterRow: {
+  cityRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingLeft: 16,
     paddingTop: 10,
-  },
-  cityTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 50,
-    backgroundColor: '#F8FAFC',
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-  },
-  cityTabActive: {
-    backgroundColor: '#DCFCE7',
-    borderColor: COLORS.primary,
-  },
-  cityTabText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.mediumGray,
-  },
-  cityTabTextActive: {
-    color: COLORS.primary,
-  },
-  filterTabsScroll: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingBottom: 4,
     gap: 8,
-    flexDirection: 'row',
   },
-  filterTab: {
-    paddingHorizontal: 18,
-    paddingVertical: 8,
-    borderRadius: 50,
-    backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.borderGray,
-  },
-  filterTabActive: {
-    backgroundColor: COLORS.darkGray,
-    borderColor: COLORS.darkGray,
-  },
-  filterTabText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.mediumGray,
-  },
-  filterTabTextActive: {
-    color: COLORS.white,
-  },
-  secondaryFilterRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingLeft: 16,
-    paddingBottom: 10,
-    borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
-  },
-  priceFilterScroll: {
-    flexDirection: 'row',
-    gap: 6,
-    paddingRight: 16,
-  },
-  priceTab: {
-    paddingHorizontal: 14,
-    paddingVertical: 5,
-    borderRadius: 50,
-    backgroundColor: '#F8FAFC',
+  cityScroll: { paddingRight: 16, gap: 6, flexDirection: 'row' },
+  cityPill: {
+    paddingHorizontal: 13,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: C.borderLight,
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
-  priceTabActive: {
-    backgroundColor: '#EFF6FF',
-    borderColor: COLORS.skyBlue,
+  cityPillActive:    { backgroundColor: C.greenLight, borderColor: C.green },
+  cityPillTxt:       { fontSize: 12, fontWeight: '700', color: C.muted },
+  cityPillTxtActive: { color: C.green },
+ 
+  segmentWrap: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 2 },
+  segment: {
+    flexDirection: 'row',
+    backgroundColor: C.borderLight,
+    borderRadius: 12,
+    padding: 3,
   },
-  priceTabText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: COLORS.mediumGray,
+  segmentItem: {
+    paddingHorizontal: 16,
+    paddingVertical: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 10,
   },
-  priceTabTextActive: {
-    color: COLORS.skyBlue,
-  },
+  segmentItemActive:  { backgroundColor: C.surface, ...SHADOW.xs },
+  segmentTxt:         { fontSize: 13, fontWeight: '600', color: C.muted },
+  segmentTxtActive:   { fontSize: 13, fontWeight: '800', color: C.ink },
+
   loaderContainer: {
     flex: 1,
     justifyContent: 'center',

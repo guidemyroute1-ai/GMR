@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, StatusBar, TextInput,
-  Modal, Alert, ActivityIndicator, KeyboardAvoidingView, Platform,
+  Modal, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { Text } from '../../components/Text';
+import LoadingSpinner from '../../components/LoadingSpinner';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -458,7 +459,7 @@ export default function CheckoutScreen() {
               disabled={phoneSaving || phoneInput.length < 10}
             >
               {phoneSaving ? (
-                <ActivityIndicator color={C.white} size="small" />
+                <LoadingSpinner color={C.white} size="small" />
               ) : (
                 <>
                   <Ionicons name="checkmark-circle" size={18} color={C.white} />
@@ -502,7 +503,7 @@ export default function CheckoutScreen() {
           disabled={requesting}
         >
           {requesting ? (
-            <ActivityIndicator size="small" color={C.white} />
+            <LoadingSpinner size="small" color={C.white} />
           ) : (
             <Ionicons name="paper-plane" size={16} color={C.white} />
           )}
