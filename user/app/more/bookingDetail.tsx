@@ -7,7 +7,8 @@ import {
   StatusBar,
   Linking,
   Share,
-  Alert
+  Alert,
+  Platform,
 } from 'react-native';
 import { Text } from '../../components/Text';
 import LoadingSpinner from '../../components/LoadingSpinner';
@@ -71,6 +72,10 @@ interface BookingDetail {
   item_id: string;
   price_per_day: number;
   days: number;
+  /** Partner's pinned coordinates from onboarding */
+  partnerLat?: number | null;
+  partnerLng?: number | null;
+  partner_id?: string | null;
 }
 
 const STATUS_CONFIG: Record<StatusType, { color: string; bg: string; icon: any }> = {
@@ -135,7 +140,26 @@ export default function BookingDetailScreen() {
             item_id: data.item_id,
             price_per_day: data.price_per_day || 0,
             days: data.days || 0,
+            partner_id: data.partner_id || null,
+            partnerLat: null,
+            partnerLng: null,
           });
+
+          // Fetch partner's pinned coordinates if partner_id exists
+          if (data.partner_id) {
+            const { data: partnerRow } = await supabase
+              .from('users')
+              .select('latitude, longitude')
+              .eq('id', data.partner_id)
+              .maybeSingle();
+            if (partnerRow?.latitude && partnerRow?.longitude) {
+              setBooking((prev) =>
+                prev
+                  ? { ...prev, partnerLat: partnerRow.latitude, partnerLng: partnerRow.longitude }
+                  : prev
+              );
+            }
+          }
         }
       } catch (err) {
         console.error('Error fetching booking details:', err);
@@ -148,7 +172,26 @@ export default function BookingDetailScreen() {
   }, [id]);
 
   const handleGetDirections = () => {
-    if (booking?.pickup) {
+    if (!booking) return;
+
+    // Prefer exact coordinates from partner onboarding
+    if (booking.partnerLat && booking.partnerLng) {
+      const lat = booking.partnerLat;
+      const lng = booking.partnerLng;
+      const label = encodeURIComponent(booking.vehicleName || 'Partner Location');
+      const url =
+        Platform.OS === 'ios'
+          ? `maps://?ll=${lat},${lng}&q=${label}`
+          : `geo:${lat},${lng}?q=${lat},${lng}(${label})`;
+      Linking.openURL(url).catch(() => {
+        // Fallback to Google Maps web
+        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
+      });
+      return;
+    }
+
+    // Fallback: text-based search on pickup address
+    if (booking.pickup) {
       const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.pickup)}`;
       Linking.openURL(url);
     }

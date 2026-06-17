@@ -13,7 +13,7 @@ const COLORS = {
   iconBg: '#1B4332',       // Darker Green for icon background
   white: '#FFFFFF',
   textSecondary: '#D1D5DB', // Light gray
-  glassBg: 'rgba(30, 30, 30, 0.65)',
+  glassBg: 'rgba(30, 30, 30, 0.20)',
 };
 
 export default function WelcomeScreen() {

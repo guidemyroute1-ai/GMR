@@ -133,6 +133,11 @@ export default function ProfileSetupScreen2() {
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
 
+  // Location passed from location-picker screen
+  const lat = params.lat ? parseFloat(params.lat as string) : null;
+  const lng = params.lng ? parseFloat(params.lng as string) : null;
+  const locationAddress = (params.locationAddress as string) || null;
+
   const role = profile?.role ?? 'guide';
 
   const isFormValid = () => {
@@ -176,11 +181,20 @@ export default function ProfileSetupScreen2() {
     setLoading(true);
     try {
       if (role === 'hotel') {
-        await updateUserProfile(user.uid, { profileData: formData, isOnboarded: true });
+        await updateUserProfile(user.uid, {
+          profileData: formData,
+          isOnboarded: true,
+          ...(lat != null ? { latitude: lat } : {}),
+          ...(lng != null ? { longitude: lng } : {}),
+        });
         setProfile({ ...profile!, profileData: formData, isOnboarded: true });
         router.replace('/(tabs)/dashboard');
       } else {
-        await updateUserProfile(user.uid, { profileData: formData });
+        await updateUserProfile(user.uid, {
+          profileData: formData,
+          ...(lat != null ? { latitude: lat } : {}),
+          ...(lng != null ? { longitude: lng } : {}),
+        });
         setProfile({ ...profile!, profileData: formData });
         if (role === 'guide') {
           router.push('/onboarding/profile-photo');
@@ -204,7 +218,7 @@ export default function ProfileSetupScreen2() {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.stepBadge}>
-          <Text style={styles.stepText}>Step 4 of 5</Text>
+          <Text style={styles.stepText}>Step 5 of 6</Text>
         </View>
       </View>
 

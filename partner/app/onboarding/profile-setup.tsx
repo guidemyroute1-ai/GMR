@@ -182,7 +182,7 @@ export default function ProfileSetupScreen() {
   const handleNext = () => {
     if (!isValid) return;
     router.push({
-      pathname: '/onboarding/profile-setup-2',
+      pathname: '/onboarding/location-picker',
       params: { formData: JSON.stringify(formData) }
     });
   };
@@ -196,7 +196,7 @@ export default function ProfileSetupScreen() {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.stepBadge}>
-          <Text style={styles.stepText}>Step 3 of 5</Text>
+          <Text style={styles.stepText}>Step 3 of 6</Text>
         </View>
       </View>
 

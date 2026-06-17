@@ -26,6 +26,9 @@ export interface PartnerProfile {
   kycVideoUrl?: string | null;
   photoUrl?: string | null;
   createdAt: string;
+  /** Business location coordinates (set during onboarding) */
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 function toPartnerUser(user: any): PartnerAuthUser {
@@ -228,6 +231,8 @@ export async function updateUserProfile(uid: string, updates: Partial<PartnerPro
   if (updates.kycVideoUrl !== undefined) dbUpdates.kyc_video_url = updates.kycVideoUrl;
   if (updates.photoUrl !== undefined) dbUpdates.photo_url = updates.photoUrl;
   if (updates.createdAt !== undefined) dbUpdates.created_at = updates.createdAt;
+  if (updates.latitude !== undefined) dbUpdates.latitude = updates.latitude;
+  if (updates.longitude !== undefined) dbUpdates.longitude = updates.longitude;
 
   const { error } = await supabase.from('users').update(dbUpdates).eq('id', uid);
   if (error) {

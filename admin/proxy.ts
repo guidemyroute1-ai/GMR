@@ -10,7 +10,7 @@ export function proxy(request: NextRequest) {
 
   if (isPublic) return NextResponse.next();
 
-  const hasSession = request.cookies.has('gmr_admin_access_token');
+  const hasSession = request.cookies.has('gmr_admin_session');
   if (!hasSession) {
     const loginUrl = request.nextUrl.clone();
     loginUrl.pathname = '/login';
