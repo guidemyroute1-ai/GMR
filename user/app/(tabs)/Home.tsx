@@ -521,7 +521,7 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaContextView edges={['top']} style={s.root}>
+    <SafeAreaContextView edges={['top', 'bottom']} style={s.root}>
       <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
 
       <ScrollView

@@ -97,7 +97,7 @@ export default function SignUpScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.flex}>
+    <SafeAreaView style={styles.flex} edges={['top', 'bottom']}>
       <KeyboardAvoidingView
         style={styles.flex}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}

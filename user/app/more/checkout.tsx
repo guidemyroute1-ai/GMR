@@ -274,7 +274,7 @@ export default function CheckoutScreen() {
 
   // ── UI ───────────────────────────────────────────────────────────────────────
   return (
-    <SafeAreaView style={s.safe} edges={['top']}>
+    <SafeAreaView style={s.safe} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={C.white} />
 
       {/* Header */}

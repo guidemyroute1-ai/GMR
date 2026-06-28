@@ -90,7 +90,14 @@ async function invokeFunction<T>(name: string, body: unknown) {
       try {
         const errorBody = await context.json();
         message = errorBody?.error || errorBody?.message || message;
-      } catch {}
+      } catch { }
+    } else if (typeof context === 'string') {
+      try {
+        const parsed = JSON.parse(context);
+        message = parsed?.error || parsed?.message || message;
+      } catch { }
+    } else if (context && typeof context === 'object') {
+      message = context.error || context.message || message;
     }
     throw new Error(message);
   }
@@ -240,17 +247,17 @@ export default function PaymentScreen() {
       // Guide-first flow: pass bookingId so the server updates the existing booking.
       const verifyBody = isGuideFirstFlow
         ? {
-            bookingId: existingBookingId,
-            razorpay_payment_id: checkoutResult.razorpay_payment_id,
-            razorpay_order_id: checkoutResult.razorpay_order_id,
-            razorpay_signature: checkoutResult.razorpay_signature,
-          }
+          bookingId: existingBookingId,
+          razorpay_payment_id: checkoutResult.razorpay_payment_id,
+          razorpay_order_id: checkoutResult.razorpay_order_id,
+          razorpay_signature: checkoutResult.razorpay_signature,
+        }
         : {
-            booking: bookingPayload,
-            razorpay_payment_id: checkoutResult.razorpay_payment_id,
-            razorpay_order_id: checkoutResult.razorpay_order_id,
-            razorpay_signature: checkoutResult.razorpay_signature,
-          };
+          booking: bookingPayload,
+          razorpay_payment_id: checkoutResult.razorpay_payment_id,
+          razorpay_order_id: checkoutResult.razorpay_order_id,
+          razorpay_signature: checkoutResult.razorpay_signature,
+        };
 
       const verified = await invokeFunction<VerifyPaymentResponse>('razorpay-verify-payment', verifyBody);
 

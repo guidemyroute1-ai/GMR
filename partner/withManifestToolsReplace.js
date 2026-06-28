@@ -1,28 +1,30 @@
-const { withAndroidManifest } = require('@expo/config-plugins');
+const { withAndroidManifest } = require('expo/config-plugins');
 
 module.exports = function withManifestToolsReplace(config) {
-  return withAndroidManifest(config, (config) => {
-    const androidManifest = config.modResults;
+  return withAndroidManifest(config, async (config) => {
+    const androidManifest = config.modResults.manifest;
+    const application = androidManifest.application?.[0];
 
-    // Ensure xmlns:tools is present on the manifest element
-    if (!androidManifest.manifest.$['xmlns:tools']) {
-      androidManifest.manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
+    if (application) {
+      if (!application['meta-data']) {
+        application['meta-data'] = [];
+      }
+      let metaData = application['meta-data'].find(
+        (item) => item.$ && item.$['android:name'] === 'com.google.firebase.messaging.default_notification_color'
+      );
+      if (!metaData) {
+        metaData = { $: { 'android:name': 'com.google.firebase.messaging.default_notification_color' } };
+        application['meta-data'].push(metaData);
+      }
+      metaData.$['tools:replace'] = 'android:resource';
     }
 
-    // Add tools:replace="android:resource" to the specific Firebase messaging meta-data elements
-    const application = androidManifest.manifest.application[0];
-    if (application['meta-data']) {
-      application['meta-data'].forEach((metaData) => {
-        const name = metaData.$['android:name'];
-        if (
-          name === 'com.google.firebase.messaging.default_notification_color' ||
-          name === 'com.google.firebase.messaging.default_notification_icon'
-        ) {
-          metaData.$['tools:replace'] = 'android:resource';
-        }
-      });
+    // Ensure xmlns:tools is present in the manifest root
+    if (!androidManifest.$['xmlns:tools']) {
+      androidManifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
     }
 
     return config;
   });
 };
+

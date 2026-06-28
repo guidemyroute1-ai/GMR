@@ -7,6 +7,17 @@ import { Router } from 'expo-router';
 const CHANNEL_ID = 'gmr-default';
 
 export async function initNotifications(userId: string): Promise<() => void> {
+  // Android 13+ (API 33+) requires an explicit POST_NOTIFICATIONS runtime permission.
+  // ExpoNotifications.requestPermissionsAsync() triggers the system dialog on Android.
+  // On iOS, this call is a no-op — Firebase's requestPermission() handles iOS below.
+  if (Platform.OS === 'android') {
+    const { status } = await ExpoNotifications.requestPermissionsAsync();
+    if (status !== 'granted') {
+      console.log('[FCM] Android notification permission not granted');
+      return () => { };
+    }
+  }
+
   const authStatus = await messaging().requestPermission();
   const enabled =
     authStatus === messaging.AuthorizationStatus.AUTHORIZED ||

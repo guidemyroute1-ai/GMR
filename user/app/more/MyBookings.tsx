@@ -31,6 +31,13 @@ async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
         const payload = await context.json();
         message = payload?.error || payload?.message || message;
       } catch { }
+    } else if (typeof context === 'string') {
+      try {
+        const parsed = JSON.parse(context);
+        message = parsed?.error || parsed?.message || message;
+      } catch {}
+    } else if (context && typeof context === 'object') {
+      message = context.error || context.message || message;
     }
     throw new Error(message);
   }

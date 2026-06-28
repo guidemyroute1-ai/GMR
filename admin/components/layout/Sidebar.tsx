@@ -17,6 +17,8 @@ const navItems = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Users', href: '/users', icon: Users },
   { name: 'Partners', href: '/partners', icon: Briefcase },
+  { name: 'Trip Organizers', href: '/trip-organizers', icon: Users },
+  { name: 'Trips', href: '/trips', icon: MapPin },
   { name: 'Listings', href: '/listings', icon: BookOpen },
   { name: 'Bookings', href: '/bookings', icon: CalendarCheck },
   { name: 'Destinations', href: '/destinations', icon: MapPin },

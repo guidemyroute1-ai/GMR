@@ -379,7 +379,7 @@ export default function HotelListingsScreen() {
   });
 
   return (
-    <SafeAreaContextView edges={['top']} style={styles.safeArea}>
+    <SafeAreaContextView edges={['top', 'bottom']} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       
       <ScrollView

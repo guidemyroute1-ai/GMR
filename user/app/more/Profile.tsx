@@ -57,20 +57,7 @@ interface MenuSection {
 // ─── Data ──────────────────────────────────────────────────────────────────────
 // Removed static STATS data
 
-const MENU_SECTIONS: MenuSection[] = [
-  {
-    title: 'Account',
-    items: [
-      { id: '1', icon: '👤', label: 'Personal Information', type: 'navigate' },
-      { id: '3', icon: '📋', iconSource: require('../../assets/svg/calender-svgrepo-com.svg'), label: 'My Bookings', type: 'navigate' },
-    
-      { id: '10', icon: '❓', iconSource: require('../../assets/svg/phone-call-svgrepo-com.svg'), label: 'Help & Support', type: 'navigate' },
-      { id: '11', icon: '📄', iconSource: require('../../assets/svg/license-svgrepo-com.svg'), label: 'Terms & Privacy', type: 'navigate' },
-      { id: '12', icon: '🚪', iconSource: require('../../assets/svg/logout-2-svgrepo-com.svg'), label: 'Log Out', type: 'danger' },
-    ],
-  },
-
-];
+// MENU_SECTIONS will be generated dynamically now to include Organizer features
 
 // ─── Menu Row ──────────────────────────────────────────────────────────────────
 const MenuRow = ({
@@ -175,6 +162,8 @@ export default function ProfileScreen() {
   const [tripsCount, setTripsCount] = useState<number>(0);
   const [reviewsCount, setReviewsCount] = useState<number>(0);
   const [userRating, setUserRating] = useState<number>(0);
+  const [isOrganizerVerified, setIsOrganizerVerified] = useState<boolean>(false);
+  const [organizerAppStatus, setOrganizerAppStatus] = useState<string | null>(null);
 
   const fetchStats = React.useCallback(async () => {
     if (!user?.uid) return;
@@ -203,12 +192,28 @@ export default function ProfileScreen() {
       // 3. Fetch user rating from users table (if available)
       const { data: userData, error: uError } = await supabase
         .from('users')
-        .select('rating')
+        .select('rating, is_trip_organizer_verified')
         .eq('id', user.uid)
         .maybeSingle();
       
       if (!uError && userData) {
         setUserRating(userData.rating || 0);
+        setIsOrganizerVerified(userData.is_trip_organizer_verified || false);
+      }
+
+      // 4. Fetch pending organizer application if not verified
+      if (!userData?.is_trip_organizer_verified) {
+        const { data: appData } = await supabase
+          .from('trip_organizer_applications')
+          .select('status')
+          .eq('user_id', user.uid)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (appData) {
+          setOrganizerAppStatus(appData.status);
+        }
       }
     } catch (err) {
       console.warn('Error fetching profile stats:', err);
@@ -272,11 +277,58 @@ export default function ProfileScreen() {
       router.push('../extra/HelpSupport');
     } else if (item.id === '11') {
       router.push('../extra/TermsPrivacy');
+    } else if (item.id === 'create_trip') {
+      router.push('../more/createTrip');
+    } else if (item.id === 'become_organizer') {
+      if (organizerAppStatus === 'pending') {
+        Alert.alert('Application Pending', 'Your organizer application is currently being reviewed.');
+      } else {
+        router.push('../more/becomeOrganizer');
+      }
     }
   };
 
+  const getMenuSections = (): MenuSection[] => {
+    const accountItems: MenuItem[] = [
+      { id: '1', icon: '👤', label: 'Personal Information', type: 'navigate' },
+      { id: '3', icon: '📋', iconSource: require('../../assets/svg/calender-svgrepo-com.svg'), label: 'My Bookings', type: 'navigate' },
+    ];
+
+    if (isOrganizerVerified) {
+      accountItems.push({ 
+        id: 'create_trip', 
+        icon: '✈️', 
+        label: 'Create a Trip', 
+        type: 'badge',
+        badge: 'NEW',
+        badgeBg: '#DCFCE7',
+        badgeColor: COLORS.primary
+      });
+    } else {
+      accountItems.push({ 
+        id: 'become_organizer', 
+        icon: '🎯', 
+        label: 'Become a Trip Organizer', 
+        type: organizerAppStatus === 'pending' ? 'badge' : 'navigate',
+        badge: organizerAppStatus === 'pending' ? 'PENDING' : undefined,
+        badgeBg: '#FEF3C7',
+        badgeColor: '#D97706'
+      });
+    }
+
+    accountItems.push(
+      { id: '10', icon: '❓', iconSource: require('../../assets/svg/phone-call-svgrepo-com.svg'), label: 'Help & Support', type: 'navigate' },
+      { id: '11', icon: '📄', iconSource: require('../../assets/svg/license-svgrepo-com.svg'), label: 'Terms & Privacy', type: 'navigate' },
+      { id: '12', icon: '🚪', iconSource: require('../../assets/svg/logout-2-svgrepo-com.svg'), label: 'Log Out', type: 'danger' }
+    );
+
+    return [{ title: 'Account', items: accountItems }];
+  };
+
+  const MENU_SECTIONS = getMenuSections();
+
   return (
-    <SafeAreaContextView edges={['top']} style={styles.safeArea}>
+    <SafeAreaContextView edges={['top', 'bottom']} style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
 
      

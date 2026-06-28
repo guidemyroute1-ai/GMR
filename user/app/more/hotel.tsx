@@ -21,6 +21,8 @@ import { supabase } from '../../utils/supabase';
 const { width } = Dimensions.get('window');
 const HEADER_IMAGE_HEIGHT = 380;
 
+
+
 interface FeatureTag {
   label: string;
   color: string;

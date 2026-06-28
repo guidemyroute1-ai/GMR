@@ -260,7 +260,7 @@ export default function BookingDetailScreen() {
   const statusConfig = STATUS_CONFIG[booking.status];
 
   return (
-    <SafeAreaView style={styles.container} edges={['top']}>
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
       
       {/* ── Header ── */}

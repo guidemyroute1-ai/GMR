@@ -77,11 +77,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="RentAVehicle"
+        name="Trips"
         options={{
-          title: 'Rent',
+          title: 'Trips',
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? 'bicycle' : 'bicycle-outline'} color={color} focused={focused} />
+            <TabIcon name={focused ? 'compass' : 'compass-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -107,6 +107,15 @@ export default function TabLayout() {
             e.preventDefault();
             router.push('/more/MyBookings');
           },
+        }}
+      />
+      <Tabs.Screen
+        name="Community"
+        options={{
+          title: 'Community',
+          tabBarIcon: ({ color, focused }) => (
+            <TabIcon name={focused ? 'people' : 'people-outline'} color={color} focused={focused} />
+          ),
         }}
       />
       <Tabs.Screen
