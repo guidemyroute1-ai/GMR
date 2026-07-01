@@ -42,14 +42,16 @@ const roles = [
   },
 ];
 
+import { useOnboardingStore } from '../../store/useOnboardingStore';
+
 export default function RoleScreen() {
-  const [selected, setSelected] = useState<UserRole | null>(null);
-  const { setProfile } = useAuthStore();
+  const { data, updateData } = useOnboardingStore();
+  const [selected, setSelected] = useState<UserRole | null>((data.role as UserRole) || null);
   const insets = useSafeAreaInsets();
 
   const handleContinue = () => {
     if (!selected) return;
-    setProfile({ role: selected } as any);
+    updateData({ role: selected });
     router.push('/onboarding/register');
   };
 
@@ -61,9 +63,9 @@ export default function RoleScreen() {
         </TouchableOpacity>
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
-            <View style={[styles.progressFill, { width: '25%' }]} />
+            <View style={[styles.progressFill, { width: '16.6%' }]} />
           </View>
-          <Text style={styles.stepLabel}>Step 1 of 4</Text>
+          <Text style={styles.stepLabel}>Step 1 of 6</Text>
         </View>
       </View>
 

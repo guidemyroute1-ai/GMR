@@ -7,7 +7,7 @@ import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { useAuthStore } from '../../store/useAuthStore';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, Image as ImageIcon, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
-import { updateUserProfile } from '../../services/auth';
+import { updateUserProfile, uploadToSupabase } from '../../services/auth';
 
 export default function ProfilePhotoScreen() {
   const { user, profile, setProfile } = useAuthStore();
@@ -42,12 +42,10 @@ export default function ProfilePhotoScreen() {
       allowsEditing: false,
       aspect: type === 'profile' ? [1, 1] : [16, 9],
       quality: 0.8,
-      base64: true,
     });
-    if (!result.canceled && result.assets[0].base64) {
-      const base64Uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      if (type === 'profile') setProfileImage(base64Uri);
-      else setCoverImage(base64Uri);
+    if (!result.canceled && result.assets[0].uri) {
+      if (type === 'profile') setProfileImage(result.assets[0].uri);
+      else setCoverImage(result.assets[0].uri);
     }
   };
 
@@ -61,7 +59,18 @@ export default function ProfilePhotoScreen() {
     setLoading(true);
     try {
       const currentData = profile?.profileData || {};
-      const updatedData = { ...currentData, profileImage, coverImage };
+      
+      let profileUrl = profileImage;
+      if (!profileUrl.startsWith('http')) {
+        profileUrl = await uploadToSupabase(profileImage, 'image/jpeg', `profile-${Date.now()}.jpg`, 'avatars');
+      }
+
+      let coverUrl = coverImage;
+      if (coverImage && !coverImage.startsWith('http')) {
+        coverUrl = await uploadToSupabase(coverImage, 'image/jpeg', `cover-${Date.now()}.jpg`, 'avatars');
+      }
+
+      const updatedData = { ...currentData, profileImage: profileUrl, coverImage: coverUrl };
       await updateUserProfile(user.uid, { profileData: updatedData });
       setProfile({ ...profile!, profileData: updatedData });
       router.push('/onboarding/upload-docs');
@@ -79,6 +88,9 @@ export default function ProfilePhotoScreen() {
           <ArrowLeft color={Colors.primary} size={20} />
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
+        <View style={styles.stepBadge}>
+          <Text style={styles.stepText}>Step 5 of 6</Text>
+        </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
@@ -166,12 +178,23 @@ const styles = StyleSheet.create({
   },
   backText: {
     color: Colors.primary,
-    fontSize: FontSize.base,
+    fontSize: 16,
     fontWeight: '600',
   },
+  stepBadge: {
+    backgroundColor: Colors.primary + '15',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: Radius.full,
+  },
+  stepText: {
+    color: Colors.primary,
+    fontSize: FontSize.sm,
+    fontWeight: '700',
+  },
   container: {
-    padding: Spacing.md,
-    paddingBottom: 60,
+    padding: Spacing.xl,
+    paddingTop: Spacing.lg,
   },
   title: {
     fontSize: FontSize.xxl,

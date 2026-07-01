@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput,
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import ScreenHeader from '../../components/ScreenHeader';
 
 import { getCommunities, getStories, getDiscussions, getPeopleYouMayKnow } from '../../services/communityService';
 import { Community, CommunityStory, CommunityDiscussion, Profile } from '../../types/community';
@@ -69,22 +70,12 @@ export default function CommunityScreen() {
       >
         
         {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Community</Text>
-            <Text style={styles.headerSubtitle}>Meet people. Share stories. Travel together.</Text>
-          </View>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.bellIconContainer}>
-              <Ionicons name="notifications-outline" size={24} color="#1f2937" />
-              <View style={styles.notificationDot} />
-            </TouchableOpacity>
-            <Image 
-              source={{ uri: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=100&q=80' }} 
-              style={styles.userAvatar} 
-            />
-          </View>
-        </View>
+        <ScreenHeader 
+          title="Community"
+          subtitle="Meet people. Share stories. Travel together."
+          showAvatar={true}
+        />
+
 
         {/* Search Bar */}
         <View style={styles.searchContainer}>
@@ -96,46 +87,19 @@ export default function CommunityScreen() {
               style={styles.searchInput}
             />
           </View>
-          <TouchableOpacity style={styles.createButton}>
-            <Feather name="plus" size={16} color="#16a34a" />
-            <Text style={styles.createButtonText}>Create</Text>
-          </TouchableOpacity>
+
         </View>
 
-        {/* Stories
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.storiesContainer}>
-          <View style={styles.storyItem}>
-            <View style={[styles.storyAvatarRing, { borderColor: 'transparent' }]}>
-              <View style={styles.addStoryContainer}>
-                <Feather name="plus" size={24} color="#fff" />
-              </View>
-            </View>
-            <Text style={styles.storyTitle} numberOfLines={2}>Your Story</Text>
-          </View>
-
-          {stories.map((story) => (
-            <View key={story.id} style={styles.storyItem}>
-              <View style={[styles.storyAvatarRing, { borderColor: story.ring_color }]}>
-                <Image source={{ uri: story.image_url }} style={styles.storyAvatar} />
-                {story.is_live && (
-                  <View style={styles.liveBadge}>
-                    <Text style={styles.liveBadgeText}>LIVE</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.storyTitle} numberOfLines={2}>{story.title || 'Story'}</Text>
-            </View>
-          ))}
-        </ScrollView> */}
+      
 
         {/* Featured Communities */}
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Featured Communities</Text>
-            <TouchableOpacity style={styles.seeAllButton}>
+            {/* <TouchableOpacity style={styles.seeAllButton}>
               <Text style={styles.seeAllText}>See all</Text>
               <Feather name="arrow-right" size={14} color="#16a34a" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
           {communities.length > 0 ? (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalListContent}>
@@ -151,7 +115,7 @@ export default function CommunityScreen() {
                   </View>
                   <View style={styles.communityCardContent}>
                     <Text style={styles.communityCardTitle}>{community.name}</Text>
-                    <Text style={styles.communityCardMembers}>{community.member_count} Members</Text>
+
                     <Text style={styles.communityCardTags}>{community.tags}</Text>
                     <View style={styles.communityCardFooter}>
                       <View style={styles.memberFaces}>
@@ -183,14 +147,18 @@ export default function CommunityScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Popular Discussions</Text>
-            <TouchableOpacity style={styles.seeAllButton}>
+            {/* <TouchableOpacity style={styles.seeAllButton}>
               <Text style={styles.seeAllText}>See all</Text>
               <Feather name="arrow-right" size={14} color="#16a34a" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
           <View style={styles.discussionsContainer}>
             {discussions.length > 0 ? discussions.map((discussion, index) => (
-              <View key={discussion.id} style={[styles.discussionItem, index !== discussions.length - 1 && styles.discussionItemBorder]}>
+              <TouchableOpacity 
+                key={discussion.id} 
+                style={[styles.discussionItem, index !== discussions.length - 1 && styles.discussionItemBorder]}
+                onPress={() => router.push(`/community/${discussion.community_id}` as any)}
+              >
                 <Image source={{ uri: discussion.image_url || discussion.community?.image_url || 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=100&q=80' }} style={styles.discussionImage} />
                 <View style={styles.discussionContent}>
                   <Text style={styles.discussionTitle} numberOfLines={2}>{discussion.title}</Text>
@@ -217,7 +185,7 @@ export default function CommunityScreen() {
                     <Text style={styles.repliesBadgeText}>{discussion.replies_count}</Text>
                   </View>
                 </View>
-              </View>
+              </TouchableOpacity>
             )) : (
               <Text style={styles.emptyText}>No discussions found.</Text>
             )}
@@ -248,7 +216,10 @@ export default function CommunityScreen() {
                         <Text style={styles.personTagText}>{person.tag || 'Explorer'}</Text>
                       </View>
                       <Text style={styles.personStats}>{person.trips_count} Trips • {person.rating} <Ionicons name="star" size={10} color="#eab308" /></Text>
-                      <TouchableOpacity style={styles.connectButton}>
+                      <TouchableOpacity 
+                        style={styles.connectButton}
+                        onPress={() => router.push(`/organizer/${person.id}` as any)}
+                      >
                         <Text style={styles.connectButtonText}>Connect</Text>
                       </TouchableOpacity>
                     </View>

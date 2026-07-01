@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { BottomTabBar } from '@react-navigation/bottom-tabs';
-import { Tabs, useRouter } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
@@ -32,7 +32,6 @@ function CustomTabBar(props: React.ComponentProps<typeof BottomTabBar>) {
 }
 
 export default function TabLayout() {
-  const router = useRouter();
   const insets = useSafeAreaInsets();
   const bottomPadding = insets.bottom > 0 ? insets.bottom : 10;
   const tabHeight = 55 + bottomPadding;
@@ -86,11 +85,11 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="HotelListings"
+        name="Community"
         options={{
-          title: 'Hotels',
+          title: 'Community',
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? 'bed' : 'bed-outline'} color={color} focused={focused} />
+            <TabIcon name={focused ? 'people' : 'people-outline'} color={color} focused={focused} />
           ),
         }}
       />
@@ -102,31 +101,21 @@ export default function TabLayout() {
             <TabIcon name={focused ? 'calendar' : 'calendar-outline'} color={color} focused={focused} />
           ),
         }}
-        listeners={{
-          tabPress: (e) => {
-            e.preventDefault();
-            router.push('/more/MyBookings');
-          },
-        }}
       />
       <Tabs.Screen
-        name="Community"
+        name="Profile"
         options={{
-          title: 'Community',
+          title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? 'people' : 'people-outline'} color={color} focused={focused} />
+            <TabIcon name={focused ? 'person' : 'person-outline'} color={color} focused={focused} />
           ),
         }}
       />
-      <Tabs.Screen
-        name="AllGuides"
-        options={{
-          title: 'Guides',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon name={focused ? 'people' : 'people-outline'} color={color} focused={focused} />
-          ),
-        }}
-      />
+
+      {/* Hidden screens — not shown in tab bar */}
+      <Tabs.Screen name="HotelListings" options={{ href: null }} />
+      <Tabs.Screen name="AllGuides" options={{ href: null }} />
+      <Tabs.Screen name="RentAVehicle" options={{ href: null }} />
 
     </Tabs>
   );

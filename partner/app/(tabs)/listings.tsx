@@ -27,7 +27,7 @@ import {
   deleteListing,
   updateListing,
   type Listing,
-} from '../../services/firestore';
+} from '../../services/database';
 import { Compass, Hotel, Bike, Plus, Trash2, X, FileText, Image as ImageIcon, Camera, Edit2, DollarSign, Clock, Play, Upload } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadToSupabase } from '../../services/storage';

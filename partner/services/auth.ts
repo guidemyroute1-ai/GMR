@@ -3,7 +3,15 @@ import { supabase } from './supabase';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { Platform } from 'react-native';
 
-export type UserRole = 'guide' | 'hotel' | 'rental';
+const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '56738663423-0l2ojldhf8l71rjr4k78j4a9p16ocl08.apps.googleusercontent.com';
+const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
+
+GoogleSignin.configure({
+  webClientId,
+  ...(iosClientId ? { iosClientId } : {}),
+});
+
+export type UserRole = 'guide' | 'hotel' | 'rental' | 'admin';
 
 export interface PartnerAuthUser {
   uid: string;
@@ -49,6 +57,13 @@ export async function signInUser(email: string, password: string): Promise<Partn
   if (error) throw error;
   if (!data.user) throw new Error('Authentication failed: No user data returned');
   return toPartnerUser(data.user);
+}
+
+export async function resetPassword(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: 'guidemyroute://reset-password',
+  });
+  if (error) throw error;
 }
 
 export async function registerUser(email: string, password: string): Promise<PartnerAuthUser> {
@@ -119,25 +134,37 @@ export async function createUserDoc(uid: string, name: string, email: string, ph
   const wasNonPartner = existingUser && !partnerRoles.includes(existingUser.role);
   const isUpgradingToPartner = partnerRoles.includes(role);
 
-  const { error } = await supabase.from('users').upsert({
-    id: uid,
-    name,
-    email,
-    phone,
-    role, // Keep their role updated to partner role
-    is_onboarded: (wasNonPartner && isUpgradingToPartner) ? false : (existingUser?.is_onboarded ?? false),
-    is_approved: existingUser?.is_approved ?? false,
-    has_uploaded_docs: existingUser?.has_uploaded_docs ?? false,
-    profile_data: existingUser?.profile_data || {},
-    documents: existingUser?.documents || [],
-    kyc_video_url: existingUser?.kyc_video_url || null,
-    photo_url: existingUser?.photo_url || null,
-    updated_at: new Date().toISOString(),
-  }, { onConflict: 'id' });
-  
-  if (error) {
-    console.error('Error creating partner profile:', error.message);
-    throw error;
+  if (existingUser) {
+    const { error } = await supabase.from('users').update({
+      name,
+      email,
+      phone,
+      role,
+      is_onboarded: (wasNonPartner && isUpgradingToPartner) ? false : existingUser.is_onboarded,
+    }).eq('id', uid);
+    if (error) {
+      console.error('Error updating partner profile:', error.message);
+      throw error;
+    }
+  } else {
+    const { error } = await supabase.from('users').insert({
+      id: uid,
+      name,
+      email,
+      phone,
+      role,
+      is_onboarded: false,
+      is_approved: false,
+      has_uploaded_docs: false,
+      profile_data: {},
+      documents: [],
+      kyc_video_url: null,
+      photo_url: null,
+    });
+    if (error) {
+      console.error('Error creating partner profile:', error.message);
+      throw error;
+    }
   }
 }
 
@@ -152,14 +179,6 @@ export async function signInWithGoogle(): Promise<PartnerAuthUser | null> {
     if (error) throw error;
     return null;
   }
-
-  const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID || '56738663423-0l2ojldhf8l71rjr4k78j4a9p16ocl08.apps.googleusercontent.com';
-  const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || '';
-
-  GoogleSignin.configure({
-    webClientId,
-    ...(iosClientId ? { iosClientId } : {}),
-  });
 
   try {
     if (Platform.OS === 'android') {
@@ -230,7 +249,6 @@ export async function updateUserProfile(uid: string, updates: Partial<PartnerPro
   if (updates.documents !== undefined) dbUpdates.documents = updates.documents;
   if (updates.kycVideoUrl !== undefined) dbUpdates.kyc_video_url = updates.kycVideoUrl;
   if (updates.photoUrl !== undefined) dbUpdates.photo_url = updates.photoUrl;
-  if (updates.createdAt !== undefined) dbUpdates.created_at = updates.createdAt;
   if (updates.latitude !== undefined) dbUpdates.latitude = updates.latitude;
   if (updates.longitude !== undefined) dbUpdates.longitude = updates.longitude;
 
@@ -239,6 +257,27 @@ export async function updateUserProfile(uid: string, updates: Partial<PartnerPro
     console.error('Error updating profile:', error.message);
     throw error;
   }
+}
+
+import * as FileSystem from 'expo-file-system';
+import { decode } from 'base64-arraybuffer';
+
+export async function uploadToSupabase(
+  uri: string,
+  mimeType: string,
+  fileName: string,
+  bucketName: string
+): Promise<string> {
+  const base64 = await FileSystem.readAsStringAsync(uri, { encoding: 'base64' as any });
+  const { data, error } = await supabase.storage.from(bucketName).upload(fileName, decode(base64), {
+    contentType: mimeType,
+    upsert: true
+  });
+  if (error) {
+    throw error;
+  }
+  const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(fileName);
+  return publicUrl;
 }
 
 export function listenToUserDoc(uid: string, callback: (profile: PartnerProfile | null) => void) {

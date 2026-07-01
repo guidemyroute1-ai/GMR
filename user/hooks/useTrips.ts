@@ -9,6 +9,14 @@ export interface TripOrganizer {
   rating?: number;
 }
 
+export interface DayPlan {
+  day: number;
+  title: string;
+  activities: string;
+  accommodation?: string;
+  meals?: string;
+}
+
 export interface Trip {
   id: string;
   title: string;
@@ -18,12 +26,18 @@ export interface Trip {
   category?: string;
   interests: string[];
   trip_date: string;
+  end_date?: string;
   price: number;
   original_price?: number;
   capacity: number;
   joined_count: number;
   city?: string;
   location_text?: string;
+  meeting_lat?: number;
+  meeting_lng?: number;
+  difficulty?: 'Easy' | 'Moderate' | 'Hard';
+  what_to_bring?: string;
+  day_plans?: DayPlan[];
   images: string[];
   is_active: boolean;
   is_featured: boolean;
@@ -81,6 +95,7 @@ export function useTrips() {
           .select('*, organizer:organizer_id(name, photo_url, rating)')
           .eq('is_featured', true)
           .eq('is_active', true)
+          .gte('trip_date', now)
           .limit(5),
         supabase
           .from('trips')
@@ -95,12 +110,14 @@ export function useTrips() {
           .select('*, organizer:organizer_id(name, photo_url, rating)')
           .eq('trip_type', 'official')
           .eq('is_active', true)
+          .gte('trip_date', now)
           .limit(3),
         supabase
           .from('trips')
           .select('*, organizer:organizer_id(name, photo_url, rating)')
           .eq('trip_type', 'community')
           .eq('is_active', true)
+          .gte('trip_date', now)
           .order('created_at', { ascending: false })
           .limit(6),
         selectedCity
@@ -109,6 +126,7 @@ export function useTrips() {
               .select('*, organizer:organizer_id(name, photo_url, rating)')
               .eq('city', selectedCity)
               .eq('is_active', true)
+              .gte('trip_date', now)
               .limit(4)
           : Promise.resolve({ data: [] }),
         supabase
@@ -116,6 +134,7 @@ export function useTrips() {
           .select('*, organizer:organizer_id(name, photo_url, rating)')
           .eq('trip_type', 'last_minute')
           .eq('is_active', true)
+          .gte('trip_date', now)
           .limit(4),
         user
           ? supabase

@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
 import { Text } from '../../components/Text';
-import AppBar from '../../components/AppBar';
+import ScreenHeader from '../../components/ScreenHeader';
 import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../utils/supabase';
 
@@ -346,7 +346,11 @@ export default function ProfileScreen() {
           />
         }
       >
-        <AppBar />
+        <ScreenHeader 
+          title="Profile"
+          showAvatar={false}
+          showLocation={false}
+        />
         {/* ── Profile Card ── */}
         <View style={styles.profileCard}>
           {/* Avatar */}

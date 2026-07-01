@@ -15,9 +15,44 @@ import { Image as ExpoImage } from 'expo-image';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../utils/supabase';
+import { LinearGradient } from 'expo-linear-gradient';
 
 const { width } = Dimensions.get('window');
 const HEADER_IMAGE_HEIGHT = 380;
+
+const C = {
+  green: '#10B981',
+  greenDark: '#047857',
+  greenLight: '#D1FAE5',
+  greenTint: '#F0FDF4',
+  ink: '#111827',
+  inkSoft: '#4B5563',
+  muted: '#6B7280',
+  mutedLight: '#9CA3AF',
+  border: '#E5E7EB',
+  surface: '#FFFFFF',
+  base: '#FAFAFA',
+  white: '#FFFFFF',
+  gold: '#FBBF24',
+};
+
+const SHADOW = {
+  sm: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  md: {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+};
+
 
 interface Vehicle {
   id: string;
@@ -51,7 +86,7 @@ export default function VehicleDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams();
   const insets = useSafeAreaInsets();
-  
+
   const [isSaved, setIsSaved] = useState(false);
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [reviewsList, setReviewsList] = useState<ReviewItem[]>([]);
@@ -72,7 +107,7 @@ export default function VehicleDetailScreen() {
         if (!error && row) {
           const propertyType = row.category || 'Bike';
           const details = row.details || {};
-          
+
           setVehicle({
             id: row.id,
             name: row.title || details.vehicleMake || 'Unknown Vehicle',
@@ -145,8 +180,8 @@ export default function VehicleDetailScreen() {
   if (loading) {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
-        <LoadingSpinner size="large" color="#16A34A" />
+        <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
+        <LoadingSpinner size="large" color={C.green} />
       </View>
     );
   }
@@ -154,7 +189,7 @@ export default function VehicleDetailScreen() {
   if (!vehicle) {
     return (
       <View style={[styles.loadingContainer, { paddingTop: insets.top }]}>
-        <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+        <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
         <Ionicons name="alert-circle-outline" size={64} color="#EF4444" />
         <Text style={styles.notFoundText}>Vehicle not found</Text>
         <Text style={styles.notFoundSub}>This listing might have been removed or is currently unavailable.</Text>
@@ -167,8 +202,8 @@ export default function VehicleDetailScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" translucent />
-      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: '#FFFFFF', zIndex: 20 }} />
+      <StatusBar barStyle="dark-content" backgroundColor={C.surface} translucent />
+      <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: insets.top, backgroundColor: C.surface, zIndex: 20 }} />
 
       {/* ── Image Header ── */}
       <View style={[styles.imageContainer, { position: 'absolute', top: insets.top, left: 0, right: 0, height: HEADER_IMAGE_HEIGHT, zIndex: 0 }]}>
@@ -181,7 +216,7 @@ export default function VehicleDetailScreen() {
                   style={styles.image}
                   contentFit="cover"
                 />
-                <View style={styles.imageOverlay} />
+                <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.8)']} style={styles.imageOverlay} />
               </View>
             ))}
           </ScrollView>
@@ -192,7 +227,7 @@ export default function VehicleDetailScreen() {
               style={styles.image}
               contentFit="cover"
             />
-            <View style={styles.imageOverlay} />
+            <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.8)']} style={styles.imageOverlay} />
           </View>
         ) : (
           <View style={[styles.image, styles.fallbackImage]}>
@@ -202,49 +237,49 @@ export default function VehicleDetailScreen() {
 
         {/* Floating Action Buttons */}
         <View style={[styles.floatingHeader, { top: insets.top + 16, zIndex: 10 }]}>
-          <TouchableOpacity 
-            style={styles.glassButton} 
-            onPress={() => router.back()} 
+          <TouchableOpacity
+            style={styles.glassButton}
+            onPress={() => router.back()}
             activeOpacity={0.7}
           >
             <Ionicons name="chevron-back" size={24} color="#FFFFFF" />
           </TouchableOpacity>
-          
+
           <View style={styles.floatingRight}>
             <TouchableOpacity style={styles.glassButton} activeOpacity={0.7}>
               <Ionicons name="share-outline" size={22} color="#FFFFFF" />
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.glassButton, { marginLeft: 12 }]} 
+            <TouchableOpacity
+              style={[styles.glassButton, { marginLeft: 12 }]}
               onPress={() => setIsSaved(!isSaved)}
               activeOpacity={0.7}
             >
-              <Ionicons 
-                name={isSaved ? "heart" : "heart-outline"} 
-                size={22} 
-                color={isSaved ? "#EF4444" : "#FFFFFF"} 
+              <Ionicons
+                name={isSaved ? "heart" : "heart-outline"}
+                size={22}
+                color={isSaved ? "#EF4444" : "#FFFFFF"}
               />
             </TouchableOpacity>
           </View>
         </View>
       </View>
 
-      <ScrollView 
-        style={[styles.scroll, { zIndex: 1 }]} 
-        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_IMAGE_HEIGHT + insets.top - 30 }]} 
+      <ScrollView
+        style={[styles.scroll, { zIndex: 1 }]}
+        contentContainerStyle={[styles.scrollContent, { paddingTop: HEADER_IMAGE_HEIGHT + insets.top - 30 }]}
         showsVerticalScrollIndicator={false}
         bounces={false}
       >
         {/* ── Content Container (Overlapping Image) ── */}
         <View style={styles.contentContainer}>
-          
+
           {/* Title & Type */}
           <Animated.View style={styles.headerSection} entering={FadeInDown.delay(100).springify()}>
             <View style={styles.typeBadge}>
               <Text style={styles.typeText}>{vehicle.type.toUpperCase()}</Text>
             </View>
             <Text style={styles.vehicleName}>{vehicle.name}</Text>
-            
+
             <View style={styles.metaRow}>
               <View style={styles.ratingBadge}>
                 <Ionicons name="star" size={14} color="#FFFFFF" />
@@ -255,7 +290,7 @@ export default function VehicleDetailScreen() {
               {vehicle.rating > 0 && (
                 <Text style={styles.reviewCount}>({vehicle.reviews} reviews)</Text>
               )}
-              
+
               {vehicle.location ? (
                 <>
                   <View style={styles.metaDot} />
@@ -275,7 +310,7 @@ export default function VehicleDetailScreen() {
               {!!vehicle.fuelType && (
                 <View style={styles.highlightCard}>
                   <View style={styles.highlightIconBg}>
-                    <Ionicons name="water" size={22} color="#16A34A" />
+                    <Ionicons name="water" size={22} color={C.green} />
                   </View>
                   <Text style={styles.highlightLabel}>Fuel Type</Text>
                   <Text style={styles.highlightValue}>{vehicle.fuelType}</Text>
@@ -309,7 +344,7 @@ export default function VehicleDetailScreen() {
                 </View>
               )}
             </View>
-            
+
             {/* Fallback if no highlights */}
             {(!vehicle.fuelType && !vehicle.helmet && !vehicle.minDuration && !vehicle.deposit) && (
               <Text style={styles.emptyText}>Standard vehicle conditions apply.</Text>
@@ -331,7 +366,7 @@ export default function VehicleDetailScreen() {
               <View style={styles.amenitiesList}>
                 {vehicle.specs.map((item, index) => (
                   <View key={index} style={styles.amenityItem}>
-                    <Ionicons name="checkmark-circle" size={20} color="#16A34A" />
+                    <Ionicons name="checkmark-circle" size={20} color={C.green} />
                     <Text style={styles.amenityText}>{item.label}: {item.value}</Text>
                   </View>
                 ))}
@@ -343,23 +378,23 @@ export default function VehicleDetailScreen() {
           {vehicle.images && vehicle.images.length > 0 && (
             <Animated.View style={styles.section} entering={FadeInDown.delay(500).springify()}>
               <Text style={styles.sectionTitle}>Photo Gallery</Text>
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
                 contentContainerStyle={styles.galleryContainer}
               >
                 {vehicle.images.map((img: string, index: number) => (
-                  <ExpoImage 
-                    key={index} 
-                    source={{ uri: img }} 
-                    style={styles.galleryImage} 
-                    contentFit="cover" 
+                  <ExpoImage
+                    key={index}
+                    source={{ uri: img }}
+                    style={styles.galleryImage}
+                    contentFit="cover"
                   />
                 ))}
               </ScrollView>
             </Animated.View>
           )}
-             
+
           {/* ── More from this Partner ── */}
           {moreListings.length > 0 && (
             <Animated.View style={styles.section} entering={FadeInDown.delay(600).springify()}>
@@ -403,7 +438,7 @@ export default function VehicleDetailScreen() {
             <View style={styles.reviewsList}>
               {reviewsList.length > 0 ? (
                 reviewsList.map((item, index) => {
-                  const dateStr = item.created_at 
+                  const dateStr = item.created_at
                     ? new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
                     : 'Recently';
                   return (
@@ -432,7 +467,7 @@ export default function VehicleDetailScreen() {
               )}
             </View>
           </Animated.View>
-       
+
 
           <View style={styles.bottomSpacer} />
         </View>
@@ -454,7 +489,7 @@ export default function VehicleDetailScreen() {
               <Text style={styles.priceText}>Price on request</Text>
             )}
           </View>
-          
+
           <TouchableOpacity
             style={styles.bookButton}
             activeOpacity={0.8}
@@ -486,36 +521,36 @@ export default function VehicleDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
   },
   notFoundText: {
     fontSize: 20,
-    fontWeight: '700',
-    color: '#1F2937',
+    fontWeight: '800',
+    color: C.ink,
     marginTop: 16,
   },
   notFoundSub: {
     fontSize: 14,
-    color: '#6B7280',
+    color: C.muted,
     textAlign: 'center',
     marginTop: 8,
     marginBottom: 24,
   },
   goBackButton: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.base,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 8,
   },
   goBackText: {
-    color: '#4B5563',
+    color: C.inkSoft,
     fontWeight: '600',
     fontSize: 16,
   },
@@ -544,7 +579,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.25)',
   },
   fallbackImage: {
-    backgroundColor: '#E5E7EB',
+    backgroundColor: C.border,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -574,20 +609,20 @@ const styles = StyleSheet.create({
   // Content Container
   contentContainer: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    backgroundColor: C.surface,
+    borderTopLeftRadius: 32,
+    borderTopRightRadius: 32,
     marginTop: -30,
     paddingHorizontal: 20,
     paddingTop: 28,
   },
-  
+
   // Header Section
   headerSection: {
     marginBottom: 28,
   },
   typeBadge: {
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.base,
     alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -596,14 +631,14 @@ const styles = StyleSheet.create({
   },
   typeText: {
     fontSize: 12,
-    fontWeight: '700',
-    color: '#4B5563',
+    fontWeight: '800',
+    color: C.inkSoft,
     letterSpacing: 0.5,
   },
   vehicleName: {
     fontSize: 28,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: '900',
+    color: C.ink,
     lineHeight: 34,
     marginBottom: 12,
   },
@@ -615,19 +650,19 @@ const styles = StyleSheet.create({
   ratingBadge: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#111827',
+    backgroundColor: C.ink,
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
   ratingTextMain: {
-    color: '#FFFFFF',
-    fontWeight: '700',
+    color: C.white,
+    fontWeight: '800',
     fontSize: 13,
     marginLeft: 4,
   },
   reviewCount: {
-    color: '#6B7280',
+    color: C.muted,
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 8,
@@ -640,7 +675,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 10,
   },
   locationText: {
-    color: '#4B5563',
+    color: C.inkSoft,
     fontSize: 14,
     fontWeight: '500',
     marginLeft: 4,
@@ -653,8 +688,8 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: '900',
+    color: C.ink,
     marginBottom: 16,
   },
 
@@ -670,17 +705,17 @@ const styles = StyleSheet.create({
   },
   highlightCard: {
     width: '48%',
-    backgroundColor: '#F9FAFB',
+    backgroundColor: C.base,
     borderRadius: 16,
     padding: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: C.border,
   },
   highlightIconBg: {
     width: 40,
     height: 40,
     borderRadius: 10,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
@@ -692,18 +727,18 @@ const styles = StyleSheet.create({
   },
   highlightLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.muted,
     fontWeight: '500',
     marginBottom: 4,
   },
   highlightValue: {
     fontSize: 14,
-    color: '#111827',
-    fontWeight: '700',
+    color: C.ink,
+    fontWeight: '800',
   },
   emptyText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: C.muted,
     fontStyle: 'italic',
   },
 
@@ -711,7 +746,7 @@ const styles = StyleSheet.create({
   aboutText: {
     fontSize: 15,
     lineHeight: 24,
-    color: '#4B5563',
+    color: C.inkSoft,
   },
 
   // Amenities
@@ -728,7 +763,7 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginLeft: 12,
   },
-  
+
   // Gallery
   galleryContainer: {
     gap: 12,
@@ -750,7 +785,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     left: 0,
     right: 0,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderTopWidth: 1,
     borderTopColor: '#F3F4F6',
     paddingHorizontal: 20,
@@ -772,28 +807,28 @@ const styles = StyleSheet.create({
   },
   priceLabel: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.muted,
     fontWeight: '600',
     marginBottom: 2,
   },
   priceText: {
     fontSize: 22,
-    fontWeight: '800',
-    color: '#111827',
+    fontWeight: '900',
+    color: C.ink,
   },
   perDay: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#6B7280',
+    color: C.muted,
   },
   priceSubtext: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: C.mutedLight,
     marginTop: 2,
     textDecorationLine: 'underline',
   },
   bookButton: {
-    backgroundColor: '#16A34A',
+    backgroundColor: C.green,
     paddingHorizontal: 32,
     paddingVertical: 16,
     borderRadius: 14,
@@ -804,9 +839,9 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   bookButtonText: {
-    color: '#FFFFFF',
+    color: C.white,
     fontSize: 16,
-    fontWeight: '800',
+    fontWeight: '900',
     letterSpacing: 0.5,
   },
 
@@ -815,11 +850,11 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   reviewCard: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: C.base,
     padding: 16,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: C.border,
   },
   reviewHeader: {
     flexDirection: 'row',
@@ -830,7 +865,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: C.border,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -838,7 +873,7 @@ const styles = StyleSheet.create({
   reviewerInitials: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#4B5563',
+    color: C.inkSoft,
   },
   reviewerInfo: {
     flex: 1,
@@ -846,35 +881,35 @@ const styles = StyleSheet.create({
   reviewerName: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#111827',
+    color: C.ink,
   },
   reviewDate: {
     fontSize: 12,
-    color: '#6B7280',
+    color: C.muted,
     marginTop: 2,
   },
   reviewRating: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FEF3C7',
+    backgroundColor: C.gold + '20',
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
   },
   reviewRatingText: {
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '800',
     color: '#92400E',
     marginLeft: 4,
   },
   reviewText: {
     fontSize: 14,
-    color: '#4B5563',
+    color: C.inkSoft,
     lineHeight: 22,
   },
   emptyReviewsText: {
     fontSize: 14,
-    color: '#6B7280',
+    color: C.muted,
     fontStyle: 'italic',
     textAlign: 'center',
     paddingVertical: 16,
@@ -885,11 +920,11 @@ const styles = StyleSheet.create({
   },
   moreCard: {
     width: 150,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.surface,
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: C.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.06,
@@ -917,17 +952,17 @@ const styles = StyleSheet.create({
   moreCardName: {
     fontSize: 13,
     fontWeight: '600',
-    color: '#111827',
+    color: C.ink,
     lineHeight: 18,
   },
   moreCardPrice: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#16A34A',
+    fontWeight: '800',
+    color: C.green,
   },
   moreCardPerDay: {
     fontSize: 11,
     fontWeight: '400',
-    color: '#6B7280',
+    color: C.muted,
   },
 });

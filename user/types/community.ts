@@ -68,3 +68,22 @@ export interface Profile {
   trips_count: number;
   rating: number;
 }
+
+export interface DirectMessage {
+  id: string;
+  sender_id: string;
+  receiver_id: string;
+  message: string;
+  created_at: string;
+  sender?: Profile; // Joined
+  receiver?: Profile; // Joined
+}
+
+export interface TripChatMessage {
+  id: string;
+  trip_id: string;
+  user_id: string;
+  message: string;
+  created_at: string;
+  profiles?: Profile; // Joined for avatar and name
+}

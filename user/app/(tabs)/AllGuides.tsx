@@ -15,7 +15,7 @@ import {
   View
 } from 'react-native';
 import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
-import AppBar from '../../components/AppBar';
+import ScreenHeader from '../../components/ScreenHeader';
 import { Text } from '../../components/Text';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { useAuth } from '../../contexts/AuthContext';
@@ -23,21 +23,43 @@ import { useLocation } from '../../contexts/LocationContext';
 import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
 import { supabase } from '../../utils/supabase';
 
+
+// ─── Design Tokens ─────────────────────────────────────────────────────────────
+const C = {
+  green:       '#16A34A',
+  greenDark:   '#14532D',
+  greenLight:  '#DCFCE7',
+  greenTint:   '#F0FDF4',
+  ink:         '#0F172A',
+  inkMid:      '#374151',
+  muted:       '#6B7280',
+  mutedLight:  '#9CA3AF',
+  border:      '#E2E8F0',
+  borderLight: '#F1F5F9',
+  surface:     '#FFFFFF',
+  base:        '#EEF2EF',
+  amber:       '#F59E0B',
+  amberLight:  '#FEF3C7',
+  sky:         '#0EA5E9',
+  skyLight:    '#E0F2FE',
+  coral:       '#F97316',
+  coralLight:  '#FFF7ED',
+  rose:        '#F43F5E',
+  roseLight:   '#FFF1F2',
+  gold:        '#FBBF24',
+  white:       '#FFFFFF',
+};
+
+const SHADOW = {
+  xs: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  sm: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.09, shadowRadius: 8, elevation: 3 },
+  md: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 14, elevation: 6 },
+  green: { shadowColor: '#16A34A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 10, elevation: 6 },
+};
+
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const CARD_WIDTH = (SCREEN_WIDTH - 16 * 2 - 12) / 2; // 2-column grid
 
-const COLORS = {
-  primary: '#16A34A',
-  primaryLight: '#DCFCE7',
-  white: '#FFFFFF',
-  lightGray: '#F1F5F9',
-  darkGray: '#111827',
-  mediumGray: '#6B7280',
-  borderGray: '#E2E8F0',
-  skyBlue: '#0EA5E9',
-  star: '#FBBF24',
-  cardBg: '#FFFFFF',
-};
 
 const firstPositiveNumber = (...values: unknown[]) => {
   for (const value of values) {
@@ -47,22 +69,6 @@ const firstPositiveNumber = (...values: unknown[]) => {
   return 0;
 };
 
-const SHADOWS = {
-  card: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-  small: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-};
 
 interface Destination {
   id: string;
@@ -137,7 +143,7 @@ const StarRating = ({ rating }: { rating: number }) => (
         key={s}
         name={s <= Math.round(rating) ? 'star' : 'star-outline'}
         size={11}
-        color={COLORS.star}
+        color={C.gold}
       />
     ))}
     <Text style={styles.ratingValue}>{rating?.toFixed(1) || '0.0'}</Text>
@@ -171,7 +177,7 @@ const GuideCard = ({ item, onPress }: { item: Guide; onPress: () => void }) => {
           />
         ) : (
           <View style={styles.coverPlaceholder}>
-            <Ionicons name="person" size={48} color={COLORS.mediumGray} style={{ opacity: 0.35 }} />
+            <Ionicons name="person" size={48} color={C.muted} style={{ opacity: 0.35 }} />
           </View>
         )}
 
@@ -223,7 +229,7 @@ const GuideCard = ({ item, onPress }: { item: Guide; onPress: () => void }) => {
         {/* CTA */}
         <TouchableOpacity style={styles.ctaBtn} activeOpacity={0.85} onPress={onPress}>
           <Text style={styles.ctaBtnText}>View Profile</Text>
-          <Ionicons name="arrow-forward" size={14} color={COLORS.white} style={{ marginLeft: 4 }} />
+          <Ionicons name="arrow-forward" size={14} color={C.surface} style={{ marginLeft: 4 }} />
         </TouchableOpacity>
       </View>
     </TouchableOpacity>
@@ -253,7 +259,7 @@ const DestinationCard = ({
     <View style={styles.destinationOverlay}>
       <Text style={styles.destinationName}>{dest.name}</Text>
       <View style={styles.destinationMeta}>
-        <Ionicons name="location" size={12} color={COLORS.white} style={{ marginRight: 2 }} />
+        <Ionicons name="location" size={12} color={C.surface} style={{ marginRight: 2 }} />
         <Text style={styles.destinationState}>{dest.state}</Text>
       </View>
       <View style={styles.destinationGuideCount}>
@@ -267,7 +273,7 @@ const SupportBanner = () => (
   <View style={styles.supportBanner}>
     <View style={styles.supportBannerGridItem}>
       <View style={styles.supportBannerIconBox}>
-        <Ionicons name="shield-checkmark-outline" size={28} color={COLORS.primary} />
+        <Ionicons name="shield-checkmark-outline" size={28} color={C.green} />
       </View>
       <View style={styles.supportBannerTexts}>
         <Text style={styles.supportBannerTitle}>Verified & Trusted Guides</Text>
@@ -279,7 +285,7 @@ const SupportBanner = () => (
 
     <View style={styles.supportBannerGridItem}>
       <View style={styles.supportBannerIconBox}>
-        <Ionicons name="headset-outline" size={28} color={COLORS.primary} />
+        <Ionicons name="headset-outline" size={28} color={C.green} />
       </View>
       <View style={styles.supportBannerTexts}>
         <Text style={styles.supportBannerTitle}>24/7 Support</Text>
@@ -472,32 +478,36 @@ export default function AllGuidesScreen() {
 
   return (
     <SafeAreaContextView edges={['top', 'bottom']} style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
 
       <ScrollView
         stickyHeaderIndices={[1]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.green} colors={[C.green]} />
         }
         contentContainerStyle={{ flexGrow: 1 }}
       >
-        <AppBar />
+        <ScreenHeader 
+          title="All Guides" 
+          showLocation={true} 
+          location={selectedCity || 'Faridabad'} 
+        />
 
         {/* Search + Filter bar */}
         <View style={styles.searchFilterContainer}>
           <View style={styles.searchBox}>
-            <Ionicons name="search" size={18} color={COLORS.mediumGray} style={{ marginRight: 8 }} />
+            <Ionicons name="search" size={18} color={C.muted} style={{ marginRight: 8 }} />
             <TextInput
               style={styles.searchInput}
               placeholder="Search guides"
-              placeholderTextColor={COLORS.mediumGray}
+              placeholderTextColor={C.muted}
               value={searchText}
               onChangeText={setSearchText}
             />
             {searchText.length > 0 && (
               <TouchableOpacity onPress={() => setSearchText('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={18} color={COLORS.mediumGray} />
+                <Ionicons name="close-circle" size={18} color={C.muted} />
               </TouchableOpacity>
             )}
 
@@ -506,7 +516,7 @@ export default function AllGuidesScreen() {
               activeOpacity={0.8}
               onPress={() => setShowFilters(true)}
             >
-              <Ionicons name="options-outline" size={21} color={COLORS.darkGray} />
+              <Ionicons name="options-outline" size={21} color={C.ink} />
               {activeFilterCount > 0 && (
                 <View style={styles.filterBadge}>
                   <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
@@ -528,11 +538,11 @@ export default function AllGuidesScreen() {
         {/* Content */}
         {loading ? (
           <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
-            <LoadingSpinner size="large" color={COLORS.primary} />
+            <LoadingSpinner size="large" color={C.green} />
           </View>
         ) : fetchError ? (
           <View style={styles.emptyStateWrap}>
-            <Ionicons name="cloud-offline-outline" size={52} color={COLORS.mediumGray} style={{ opacity: 0.5, marginBottom: 12 }} />
+            <Ionicons name="cloud-offline-outline" size={52} color={C.muted} style={{ opacity: 0.5, marginBottom: 12 }} />
             <Text style={styles.emptyStateTitle}>Could not load guides</Text>
             <Text style={styles.emptyStateText}>{fetchError}</Text>
           </View>
@@ -542,7 +552,7 @@ export default function AllGuidesScreen() {
             
             {filteredGuides.length === 0 ? (
               <View style={styles.emptyStateWrap}>
-                <Ionicons name="person-outline" size={52} color={COLORS.mediumGray} style={{ opacity: 0.4, marginBottom: 12 }} />
+                <Ionicons name="person-outline" size={52} color={C.muted} style={{ opacity: 0.4, marginBottom: 12 }} />
                 <Text style={styles.emptyStateTitle}>No guides found</Text>
                 <Text style={styles.emptyStateText}>Try a different search term or city.</Text>
               </View>
@@ -576,7 +586,7 @@ export default function AllGuidesScreen() {
             <View style={styles.filterSheetHeader}>
               <Text style={styles.filterSheetTitle}>Guide filters</Text>
               <TouchableOpacity onPress={() => setShowFilters(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close" size={22} color={COLORS.darkGray} />
+                <Ionicons name="close" size={22} color={C.ink} />
               </TouchableOpacity>
             </View>
 
@@ -694,7 +704,7 @@ export default function AllGuidesScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: C.base,
   },
 
   /* ── Search bar ── */
@@ -706,27 +716,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
 
     paddingVertical: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
+    borderBottomColor: C.border,
   },
   searchBox: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: C.base,
     borderRadius: 12,
 
     paddingHorizontal: 12,
     height: 48,
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: C.border,
     marginRight: 12,
   },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: COLORS.darkGray,
+    color: C.ink,
     paddingVertical: 0,
     height: '100%',
     textAlignVertical: 'center',
@@ -742,8 +752,8 @@ const styles = StyleSheet.create({
     borderColor: '#b2b6bf',
   },
   filterBtnActive: {
-    backgroundColor: COLORS.primaryLight,
-    borderColor: COLORS.primary,
+    backgroundColor: C.greenLight,
+    borderColor: C.green,
   },
   filterBadge: {
     position: 'absolute',
@@ -752,13 +762,13 @@ const styles = StyleSheet.create({
     minWidth: 18,
     height: 18,
     borderRadius: 9,
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.green,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 4,
   },
   filterBadgeText: {
-    color: COLORS.white,
+    color: C.surface,
     fontSize: 10,
     fontWeight: '800',
   },
@@ -766,7 +776,7 @@ const styles = StyleSheet.create({
   /* ── Results count ── */
   resultsCount: {
     fontSize: 12,
-    color: COLORS.mediumGray,
+    color: C.muted,
     fontWeight: '500',
     paddingHorizontal: 16,
     paddingTop: 10,
@@ -784,7 +794,7 @@ const styles = StyleSheet.create({
   allGuidesTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.darkGray,
+    color: C.ink,
     letterSpacing: -0.3,
   },
   popularSection: {
@@ -801,13 +811,13 @@ const styles = StyleSheet.create({
   popularSectionTitle: {
     fontSize: 17,
     fontWeight: '800',
-    color: COLORS.darkGray,
+    color: C.ink,
     letterSpacing: -0.3,
   },
   popularSectionSeeAll: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: C.green,
   },
   popularScrollContent: {
     paddingHorizontal: 6,
@@ -853,7 +863,7 @@ const styles = StyleSheet.create({
   destinationName: {
     fontSize: 13,
     fontWeight: '800',
-    color: COLORS.white,
+    color: C.surface,
     letterSpacing: -0.2,
     textShadowColor: 'rgba(0,0,0,0.4)',
     textShadowOffset: { width: 0, height: 1 },
@@ -882,7 +892,7 @@ const styles = StyleSheet.create({
   destinationGuideCountText: {
     fontSize: 9,
     fontWeight: '700',
-    color: COLORS.white,
+    color: C.surface,
     letterSpacing: 0.2,
   },
 
@@ -915,12 +925,12 @@ const styles = StyleSheet.create({
   supportBannerTitle: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.primary,
+    color: C.green,
     marginBottom: 2,
   },
   supportBannerSubtitle: {
     fontSize: 10,
-    color: COLORS.darkGray,
+    color: C.ink,
     lineHeight: 13,
   },
   supportBannerDivider: {
@@ -944,10 +954,10 @@ const styles = StyleSheet.create({
   /* ── Card ── */
   guideCard: {
     width: CARD_WIDTH,
-    backgroundColor: COLORS.cardBg,
+    backgroundColor: C.surface,
     borderRadius: 18,
     overflow: 'hidden',
-    ...SHADOWS.card,
+    ...SHADOW.md,
   },
 
   /* Cover */
@@ -995,7 +1005,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#22C55E',
   },
   onlinePillText: {
-    color: COLORS.white,
+    color: C.surface,
     fontSize: 10,
     fontWeight: '700',
   },
@@ -1016,7 +1026,7 @@ const styles = StyleSheet.create({
   guideName: {
     fontSize: 15,
     fontWeight: '800',
-    color: COLORS.white,
+    color: C.surface,
     flex: 1,
     letterSpacing: -0.2,
   },
@@ -1066,18 +1076,18 @@ const styles = StyleSheet.create({
   ratingValue: {
     fontSize: 11,
     fontWeight: '700',
-    color: COLORS.darkGray,
+    color: C.ink,
     marginLeft: 3,
   },
   reviewCount: {
     fontSize: 11,
-    color: COLORS.mediumGray,
+    color: C.muted,
     fontWeight: '500',
   },
 
   /* CTA */
   ctaBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.green,
     borderRadius: 10,
     paddingVertical: 9,
     flexDirection: 'row',
@@ -1086,14 +1096,14 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   ctaBtnText: {
-    color: COLORS.white,
+    color: C.surface,
     fontSize: 13,
     fontWeight: '700',
   },
 
   /* Loading */
   loadingText: {
-    color: COLORS.mediumGray,
+    color: C.muted,
     marginTop: 12,
     fontSize: 14,
   },
@@ -1109,13 +1119,13 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: COLORS.darkGray,
+    color: C.ink,
     marginBottom: 6,
     textAlign: 'center',
   },
   emptyStateText: {
     fontSize: 13,
-    color: COLORS.mediumGray,
+    color: C.muted,
     textAlign: 'center',
     lineHeight: 19,
   },
@@ -1125,7 +1135,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.45)',
   },
   filterSheet: {
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderTopLeftRadius: 22,
     borderTopRightRadius: 22,
     paddingHorizontal: 18,
@@ -1141,7 +1151,7 @@ const styles = StyleSheet.create({
   filterSheetTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.darkGray,
+    color: C.ink,
   },
   filterSection: {
     marginBottom: 16,
@@ -1149,7 +1159,7 @@ const styles = StyleSheet.create({
   filterSectionTitle: {
     fontSize: 13,
     fontWeight: '800',
-    color: COLORS.darkGray,
+    color: C.ink,
     marginBottom: 8,
   },
   filterChipRow: {
@@ -1159,23 +1169,23 @@ const styles = StyleSheet.create({
   },
   filterChipBtn: {
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
-    backgroundColor: '#F8FAFC',
+    borderColor: C.border,
+    backgroundColor: C.borderLight,
     borderRadius: 18,
     paddingHorizontal: 13,
     paddingVertical: 8,
   },
   filterChipBtnActive: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primaryLight,
+    borderColor: C.green,
+    backgroundColor: C.greenLight,
   },
   filterChipText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.mediumGray,
+    color: C.muted,
   },
   filterChipTextActive: {
-    color: COLORS.primary,
+    color: C.green,
   },
   filterActions: {
     flexDirection: 'row',
@@ -1187,15 +1197,15 @@ const styles = StyleSheet.create({
     height: 46,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.borderGray,
+    borderColor: C.border,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
   },
   resetFilterText: {
     fontSize: 14,
     fontWeight: '800',
-    color: COLORS.darkGray,
+    color: C.ink,
   },
   applyFilterBtn: {
     flex: 1.5,
@@ -1203,11 +1213,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.green,
   },
   applyFilterText: {
     fontSize: 14,
     fontWeight: '800',
-    color: COLORS.white,
+    color: C.surface,
   },
 });

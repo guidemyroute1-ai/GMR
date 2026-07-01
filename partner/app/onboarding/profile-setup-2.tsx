@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { updateUserProfile } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { TextField, MultiSelectDropdown, SingleSelectDropdown } from '../../components/FormFields';
@@ -126,19 +127,20 @@ function RentalFormPart2({ data, onChange }: { data: any; onChange: (d: any) => 
   );
 }
 
-export default function ProfileSetupScreen2() {
+export default function ProfileSetup2Screen() {
   const { user, profile, setProfile } = useAuthStore();
-  const params = useLocalSearchParams();
-  const [formData, setFormData] = useState<Record<string, any>>(params.formData ? JSON.parse(params.formData as string) : {});
+  const { data: storeData, updateData: setStoreData } = useOnboardingStore();
+  
+  const role = storeData.role || profile?.role || 'guide';
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
+  const [formData, setFormData] = useState<any>(storeData);
 
-  // Location passed from location-picker screen
-  const lat = params.lat ? parseFloat(params.lat as string) : null;
-  const lng = params.lng ? parseFloat(params.lng as string) : null;
-  const locationAddress = (params.locationAddress as string) || null;
-
-  const role = profile?.role ?? 'guide';
+  useEffect(() => {
+    return () => {
+      setStoreData(formData);
+    };
+  }, [formData]);
 
   const isFormValid = () => {
     if (role === 'guide') {
@@ -180,27 +182,22 @@ export default function ProfileSetupScreen2() {
 
     setLoading(true);
     try {
-      if (role === 'hotel') {
-        await updateUserProfile(user.uid, {
-          profileData: formData,
-          isOnboarded: true,
-          ...(lat != null ? { latitude: lat } : {}),
-          ...(lng != null ? { longitude: lng } : {}),
-        });
-        setProfile({ ...profile!, profileData: formData, isOnboarded: true });
-        router.replace('/(tabs)/dashboard');
+      // Sync local form data to store first
+      setStoreData(formData);
+      
+      const mergedProfileData = { ...storeData, ...formData };
+      
+      await updateUserProfile(user.uid, {
+        profileData: mergedProfileData,
+        ...(storeData.latitude != null ? { latitude: storeData.latitude } : {}),
+        ...(storeData.longitude != null ? { longitude: storeData.longitude } : {}),
+      });
+      setProfile({ ...profile!, profileData: mergedProfileData });
+      
+      if (role === 'guide') {
+        router.push('/onboarding/profile-photo');
       } else {
-        await updateUserProfile(user.uid, {
-          profileData: formData,
-          ...(lat != null ? { latitude: lat } : {}),
-          ...(lng != null ? { longitude: lng } : {}),
-        });
-        setProfile({ ...profile!, profileData: formData });
-        if (role === 'guide') {
-          router.push('/onboarding/profile-photo');
-        } else {
-          router.push('/onboarding/upload-docs');
-        }
+        router.push('/onboarding/upload-docs');
       }
     } catch (err) {
       Alert.alert('Error', 'Failed to save profile. Please try again.');
@@ -218,7 +215,7 @@ export default function ProfileSetupScreen2() {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.stepBadge}>
-          <Text style={styles.stepText}>Step 5 of 6</Text>
+          <Text style={styles.stepText}>Step 4 of 6</Text>
         </View>
       </View>
 

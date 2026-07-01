@@ -1,13 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, ViewStyle, Image, Text } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withRepeat,
-  withSequence,
-  withTiming,
-  Easing,
-} from 'react-native-reanimated';
+import React from 'react';
+import { View, ViewStyle, ActivityIndicator, StyleSheet, Text } from 'react-native';
 
 interface LoadingSpinnerProps {
   color?: string; // Kept for backwards compatibility
@@ -15,45 +7,42 @@ interface LoadingSpinnerProps {
   style?: ViewStyle;
 }
 
-export default function LoadingSpinner({ size = 'large', style }: LoadingSpinnerProps) {
-  const scale = useSharedValue(1);
+export default function LoadingSpinner({ size = 'large', color = '#10B981', style }: LoadingSpinnerProps) {
+  const isSmall = size === 'small';
 
-  useEffect(() => {
-    // Heartbeat animation: lub-dub
-    scale.value = withRepeat(
-      withSequence(
-        withTiming(1.2, { duration: 150, easing: Easing.out(Easing.ease) }),
-        withTiming(1, { duration: 150, easing: Easing.in(Easing.ease) }),
-        withTiming(1.2, { duration: 150, easing: Easing.out(Easing.ease) }),
-        withTiming(1, { duration: 600, easing: Easing.in(Easing.ease) })
-      ),
-      -1,
-      false
+  // React Native ActivityIndicator accepts 'small' or 'large' (and numbers on some platforms)
+  const indicatorSize = typeof size === 'number' ? size : size;
+
+  if (isSmall) {
+    return (
+      <View style={[styles.smallContainer, style]}>
+        <ActivityIndicator size={indicatorSize as any} color={color} />
+      </View>
     );
-  }, []);
-
-  const animatedStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: scale.value }],
-    };
-  });
-
-  const numericSize = size === 'small' ? 24 : size === 'large' ? 64 : (typeof size === 'number' ? size : 48);
+  }
 
   return (
-    <View style={[{ justifyContent: 'center', alignItems: 'center' }, style]}>
-      <Animated.View style={[animatedStyle, { width: numericSize, height: numericSize }]}>
-        <Image 
-          source={require('../assets/images/gmr_logo.png')} 
-          style={{ width: '100%', height: '100%', borderRadius: numericSize / 4 }}
-          resizeMode="contain"
-        />
-      </Animated.View>
-      {size !== 'small' && (
-        <Text style={{ marginTop: 16, fontSize: 15, fontWeight: '600', color: '#6B7280' }}>
-          Loading, just a sec...
-        </Text>
-      )}
+    <View style={[styles.container, style]}>
+      <ActivityIndicator size={indicatorSize as any} color={color} />
+      <Text style={styles.loadingText}>Loading, just a sec...</Text>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  smallContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#6B7280',
+    letterSpacing: 0.3,
+  },
+});

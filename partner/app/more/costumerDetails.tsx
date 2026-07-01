@@ -6,7 +6,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { ArrowLeft, User, CalendarDays, FileText, IndianRupee, Tag, Phone, MapPin, Package, CreditCard, Clock, CheckCircle2, Eye } from 'lucide-react-native';
 import { supabase } from '../../services/supabase';
-import { updateBookingStatus } from '../../services/firestore';
+import { updateBookingStatus } from '../../services/database';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 export default function CustomerDetailsScreen() {

@@ -288,7 +288,7 @@ export async function updateBookingStatus(id: string, status: BookingStatus) {
 
   const { error } = await supabase
     .from('bookings')
-    .update({ status, updated_at: new Date().toISOString() })
+    .update({ status })
     .eq('id', id);
   if (error) throw error;
 
@@ -321,13 +321,32 @@ export async function getListings(partnerId: string): Promise<Listing[]> {
 
 export function listenToListings(partnerId: string, callback: (listings: Listing[]) => void) {
   let active = true;
-  getListings(partnerId)
-    .then((rows) => {
-      if (active) callback(rows);
-    })
-    .catch(console.warn);
+  const refresh = () => {
+    getListings(partnerId)
+      .then((rows) => {
+        if (active) callback(rows);
+      })
+      .catch(console.warn);
+  };
+  refresh();
+
+  const channel = supabase
+    .channel(`partner_listings_${partnerId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: '*',
+        schema: 'public',
+        table: 'listings',
+        filter: `partner_id=eq.${partnerId}`,
+      },
+      refresh
+    )
+    .subscribe();
+
   return () => {
     active = false;
+    supabase.removeChannel(channel);
   };
 }
 
@@ -423,7 +442,6 @@ async function ensurePartnerCanManageListings(
       is_approved: false,
       has_uploaded_docs: false,
       profile_data: {},
-      updated_at: new Date().toISOString(),
     });
     if (error) throw error;
     return;
@@ -432,14 +450,14 @@ async function ensurePartnerCanManageListings(
   if (!['guide', 'hotel', 'rental'].includes(profile.role)) {
     const { error } = await supabase
       .from('users')
-      .update({ role, updated_at: new Date().toISOString() })
+      .update({ role })
       .eq('id', userId);
     if (error) throw error;
   }
 }
 
 export async function updateListing(id: string, listing: Partial<Listing>) {
-  const row: Record<string, any> = { updated_at: new Date().toISOString() };
+  const row: Record<string, any> = {};
   if ('title' in listing) row.title = listing.title;
   if ('description' in listing) row.description = listing.description;
   if ('price' in listing) row.price = listing.price;

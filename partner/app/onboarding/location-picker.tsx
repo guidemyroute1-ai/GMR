@@ -21,6 +21,7 @@ import {
   Navigation,
   MapPin,
 } from 'lucide-react-native';
+import { useOnboardingStore } from '../../store/useOnboardingStore';
 
 interface PickedLocation {
   latitude: number;
@@ -143,7 +144,7 @@ const LEAFLET_HTML = `
 `;
 
 export default function LocationPickerScreen() {
-  const params = useLocalSearchParams();
+  const { data: formData, updateData } = useOnboardingStore();
   const insets = useSafeAreaInsets();
   const webViewRef = useRef<WebView>(null);
 
@@ -216,15 +217,12 @@ export default function LocationPickerScreen() {
 
   const handleConfirm = () => {
     if (!picked) return;
-    router.push({
-      pathname: '/onboarding/profile-setup-2',
-      params: {
-        formData: params.formData as string,
-        lat: picked.latitude.toString(),
-        lng: picked.longitude.toString(),
-        locationAddress: picked.address,
-      },
+    updateData({
+      latitude: picked.latitude,
+      longitude: picked.longitude,
+      businessAddress: picked.address,
     });
+    router.push('/onboarding/profile-setup-2');
   };
 
   return (
@@ -236,7 +234,7 @@ export default function LocationPickerScreen() {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.stepBadge}>
-          <Text style={styles.stepText}>Step 4 of 6</Text>
+          <Text style={styles.stepText}>Step 3 of 6</Text>
         </View>
       </View>
 

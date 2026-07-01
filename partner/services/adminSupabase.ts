@@ -1,5 +1,4 @@
 import 'react-native-url-polyfill/auto';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl =
@@ -17,7 +16,6 @@ export const adminSupabase = serviceKey
   ? createClient(supabaseUrl, serviceKey, {
       auth: {
         // Do not persist the service role session to storage
-        storage: AsyncStorage,
         autoRefreshToken: false,
         persistSession: false,
         detectSessionInUrl: false,

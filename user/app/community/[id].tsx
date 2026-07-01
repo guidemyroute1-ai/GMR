@@ -120,9 +120,9 @@ export default function CommunityChatScreen() {
         </View>
       ) : (
         <KeyboardAvoidingView 
-          style={styles.chatContainer} 
+          style={styles.chatContainer}
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-          keyboardVerticalOffset={0}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 10}
         >
           <FlatList
             data={messages}

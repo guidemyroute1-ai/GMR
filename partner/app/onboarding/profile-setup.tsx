@@ -12,6 +12,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 import { TextField, MultiSelectDropdown, SingleSelectDropdown } from '../../components/FormFields';
@@ -122,12 +123,10 @@ function RentalFormPart1({ data, onChange, cityOptions }: { data: any; onChange:
 // ─── Main screen ─────────────────────────────────────────
 export default function ProfileSetupScreen() {
   const { profile } = useAuthStore();
-  const params = useLocalSearchParams();
-  const initialData = params.formData ? JSON.parse(params.formData as string) : {};
-  const [formData, setFormData] = useState<Record<string, any>>(initialData);
+  const { data: formData, updateData: setFormData } = useOnboardingStore();
   const [cityOptions, setCityOptions] = useState<string[]>(DEFAULT_CITIES);
 
-  const role = profile?.role ?? 'guide';
+  const role = formData.role || profile?.role || 'guide';
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -135,7 +134,7 @@ export default function ProfileSetupScreen() {
     fetchAvailableCities().then((cities) => {
       if (!active) return;
       setCityOptions(cities);
-      setFormData((current) => {
+      setFormData((current: any)  => {
         const currentCity = current.city || current.location;
         if (currentCity && cities.includes(currentCity)) return current;
         if (cities.length === 0) return current;
@@ -181,10 +180,7 @@ export default function ProfileSetupScreen() {
 
   const handleNext = () => {
     if (!isValid) return;
-    router.push({
-      pathname: '/onboarding/location-picker',
-      params: { formData: JSON.stringify(formData) }
-    });
+    router.push('/onboarding/location-picker');
   };
 
   return (
@@ -196,7 +192,7 @@ export default function ProfileSetupScreen() {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.stepBadge}>
-          <Text style={styles.stepText}>Step 3 of 6</Text>
+          <Text style={styles.stepText}>Step 2 of 6</Text>
         </View>
       </View>
 

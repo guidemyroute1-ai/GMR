@@ -4,6 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTrips } from '../../hooks/useTrips';
+import { useLocation } from '../../contexts/LocationContext';
+import ScreenHeader from '../../components/ScreenHeader';
 
 
 const { width } = Dimensions.get('window');
@@ -42,6 +44,7 @@ export default function TripsScreen() {
     refreshing,
     refresh
   } = useTrips();
+  const { selectedCity } = useLocation();
 
   const renderFaces = (count: number, size: number = 24, startingIndex: number = 0) => {
     return (
@@ -80,21 +83,13 @@ export default function TripsScreen() {
       >
         
         {/* Header */}
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Trips</Text>
-          <View style={styles.headerRight}>
-            <TouchableOpacity style={styles.bellIconContainer}>
-              <Ionicons name="notifications-outline" size={24} color="#1f2937" />
-              <View style={styles.notificationDot} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.locationSelector}>
-              <Ionicons name="location" size={14} color="#16a34a" />
-              <Text style={styles.locationText}>Faridabad</Text>
-              <Feather name="chevron-down" size={16} color="#1f2937" />
-            </TouchableOpacity>
-          </View>
-        </View>
+        <ScreenHeader 
+          title="Trips" 
+          showLocation={true} 
+          location={selectedCity || 'Faridabad'} 
+        />
 
+          
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <View style={styles.searchInputContainer}>
@@ -217,7 +212,10 @@ export default function TripsScreen() {
                       </View>
                     )}
                   </View>
-                  <TouchableOpacity style={styles.openChatButton}>
+                  <TouchableOpacity 
+                    style={styles.openChatButton}
+                    onPress={() => router.push(`/trips/chat/${upcomingTrip.id}` as any)}
+                  >
                     <Ionicons name="chatbubble-outline" size={14} color="#16a34a" />
                     <Text style={styles.openChatButtonText}>Open Chat</Text>
                   </TouchableOpacity>

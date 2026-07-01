@@ -38,40 +38,45 @@ export default function LoginScreen() {
       return;
     }
 
-
     setLoading(true);
     try {
       const user = await signInUser(email.trim(), password);
       setUser(user);
-
-      // Check if the signed-in user is the admin by email
+      
       const isAdminUser = email.trim().toLowerCase() === ADMIN_EMAIL;
       if (isAdminUser) {
         setIsAdmin(true);
-        // _layout.tsx will handle redirect to /(admin)/dashboard
         return;
       }
 
-      // The profile will be picked up by the listener in _layout.tsx,
-      // but we fetch it once here for immediate navigation if possible.
       const profile = await getUserDoc(user.uid);
       setProfile(profile);
-
-      // _layout.tsx handles the actual redirection logic, but we can
-      // trigger an initial push here to speed up the UX.
-      const partnerRoles = ['guide', 'hotel', 'rental'];
-      const isPartnerReady = profile?.isOnboarded && profile?.role && partnerRoles.includes(profile.role);
-      if (!isPartnerReady) {
-        router.replace('/onboarding');
-      } else {
-        router.replace('/(tabs)/dashboard');
+      
+      if (profile?.role === 'admin') {
+        setIsAdmin(true);
       }
+      
+      // _layout.tsx handles the actual redirection logic
     } catch (err: any) {
       console.error("Login failed:", err);
       const errorMsg = err.message || err.error_description || 'Login failed. Please check your credentials.';
       Alert.alert('Login Failed', errorMsg);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      Alert.alert('Missing email', 'Please enter your email address to reset your password.');
+      return;
+    }
+    try {
+      const { resetPassword } = await import('../../services/auth');
+      await resetPassword(email.trim());
+      Alert.alert('Password Reset', 'A password reset link has been sent to your email.');
+    } catch (err: any) {
+      Alert.alert('Error', err.message || 'Failed to send password reset email.');
     }
   };
 
@@ -85,13 +90,11 @@ export default function LoginScreen() {
       const profile = await getUserDoc(user.uid);
       setProfile(profile);
 
-      const partnerRoles = ['guide', 'hotel', 'rental'];
-      const isPartnerReady = profile?.isOnboarded && profile?.role && partnerRoles.includes(profile.role);
-      if (!isPartnerReady) {
-        router.replace('/onboarding');
-      } else {
-        router.replace('/(tabs)/dashboard');
+      if (profile?.role === 'admin') {
+        setIsAdmin(true);
       }
+      
+      // _layout.tsx handles the actual redirection logic
     } catch (err: any) {
       console.error('Google Sign-In Error:', err);
       if (err.code === 'SIGN_IN_CANCELLED') {
@@ -170,6 +173,9 @@ export default function LoginScreen() {
                 onBlur={() => setFocusedField(null)}
                 onSubmitEditing={handleLogin}
               />
+              <TouchableOpacity onPress={handleForgotPassword} style={{ alignSelf: 'flex-end', marginTop: 8 }}>
+                <Text style={{ color: Colors.primary, fontSize: FontSize.sm, fontWeight: '600' }}>Forgot Password?</Text>
+              </TouchableOpacity>
             </View>
 
             {/* Login button */}

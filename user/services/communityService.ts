@@ -72,3 +72,18 @@ export const getPeopleYouMayKnow = async (): Promise<Profile[]> => {
   }
   return data as Profile[];
 };
+
+export const getProfileById = async (id: string): Promise<Profile | null> => {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (error) {
+    console.error('Error fetching profile:', error);
+    return null;
+  }
+  
+  return data as Profile;
+};

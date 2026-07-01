@@ -13,6 +13,7 @@ type AppUser = User & {
   uid: string;
   displayName: string | null;
   phoneNumber: string | null;
+  photoURL: string | null;
   emailVerified: boolean;
   providerData: Array<{ providerId: string }>;
 };
@@ -34,6 +35,7 @@ function toAppUser(user: User | null): AppUser | null {
     uid: user.id,
     displayName: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || null,
     phoneNumber: user.user_metadata?.phone || user.phone || null,
+    photoURL: user.user_metadata?.avatar_url || user.user_metadata?.picture || null,
     emailVerified: Boolean(user.email_confirmed_at),
     providerData: (user.app_metadata?.providers || []).map((providerId: string) => ({ providerId })),
   });

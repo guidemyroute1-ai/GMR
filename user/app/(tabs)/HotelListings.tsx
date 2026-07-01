@@ -11,7 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
-import AppBar from '../../components/AppBar';
+import ScreenHeader from '../../components/ScreenHeader';
 import { Text } from '../../components/Text';
 import LoadingSpinner from '../../components/LoadingSpinner';
 
@@ -21,35 +21,6 @@ import { useLocation } from '../../contexts/LocationContext';
 import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
 import { supabase } from '../../utils/supabase';
 
-// ─── Color Palette ─────────────────────────────────────────────────────────────
-const COLORS = {
-  primary: '#16A34A',
-  teal: '#14B8A6',
-  skyBlue: '#0EA5E9',
-  orange: '#F97316',
-  white: '#FFFFFF',
-  lightGray: '#F1F5F9',
-  darkGray: '#1F2937',
-  mediumGray: '#6B7280',
-  borderGray: '#d3dbe2',
-};
-
-const SHADOWS = {
-  small: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  medium: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-};
 
 // ─── Design Tokens ─────────────────────────────────────────────────────────────
 const C = {
@@ -83,6 +54,8 @@ const SHADOW = {
   md: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 14, elevation: 6 },
   green: { shadowColor: '#16A34A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 10, elevation: 6 },
 };
+
+
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface FeatureTag {
@@ -252,7 +225,7 @@ const HotelCard = ({ hotel }: { hotel: Hotel }) => {
 
         {/* Subtitle: Location and Distance */}
         <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={14} color={COLORS.mediumGray} />
+          <Ionicons name="location-outline" size={14} color={C.muted} />
           <Text style={styles.locationText} numberOfLines={1}>
             {hotel.location || 'Location not listed'}{distance ? <Text style={styles.bullet}> • {distance}</Text> : null}
           </Text>
@@ -261,11 +234,11 @@ const HotelCard = ({ hotel }: { hotel: Hotel }) => {
         {/* Room Info */}
         <View style={styles.roomInfoRow}>
           <View style={styles.roomInfoTag}>
-            <Ionicons name="bed-outline" size={14} color={COLORS.darkGray} />
+            <Ionicons name="bed-outline" size={14} color={C.ink} />
             <Text style={styles.roomInfoText}>{roomType}</Text>
           </View>
           <View style={[styles.roomInfoTag, { backgroundColor: '#ECFDF5' }]}>
-            <Ionicons name="checkmark-circle-outline" size={14} color={COLORS.primary} />
+            <Ionicons name="checkmark-circle-outline" size={14} color={C.green} />
             <Text style={styles.policyText}>{cancellationPolicy}</Text>
           </View>
         </View>
@@ -380,17 +353,21 @@ export default function HotelListingsScreen() {
 
   return (
     <SafeAreaContextView edges={['top', 'bottom']} style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
       
       <ScrollView
         stickyHeaderIndices={[1]}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} colors={[COLORS.primary]} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.green} colors={[C.green]} />
         }
         contentContainerStyle={{ flexGrow: 1 }}
       >
-        <AppBar />
+        <ScreenHeader 
+          title="Hotels" 
+          showLocation={true} 
+          location={activeCity || 'Faridabad'} 
+        />
 
         <FilterHeader
           cityOptions={cityOptions}
@@ -402,12 +379,12 @@ export default function HotelListingsScreen() {
 
       {loading ? (
         <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingTop: 40 }}>
-          <LoadingSpinner size="large" color={COLORS.primary} />
+          <LoadingSpinner size="large" color={C.green} />
           <Text style={styles.loaderText}>Finding best stays for you...</Text>
         </View>
       ) : filtered.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <MaterialCommunityIcons name="bed-empty" size={60} color={COLORS.mediumGray} />
+          <MaterialCommunityIcons name="bed-empty" size={60} color={C.muted} />
           <Text style={styles.emptyText}>No stays found</Text>
           <Text style={styles.emptySubText}>Try adjusting your filters</Text>
         </View>
@@ -427,7 +404,7 @@ export default function HotelListingsScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: C.base,
   },
 
   // ── Filter Box ──
@@ -484,7 +461,7 @@ const styles = StyleSheet.create({
   loaderText: {
     marginTop: 12,
     fontSize: 16,
-    color: COLORS.mediumGray,
+    color: C.muted,
     fontWeight: '500',
   },
   emptyContainer: {
@@ -496,12 +473,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.darkGray,
+    color: C.ink,
     marginTop: 16,
   },
   emptySubText: {
     fontSize: 14,
-    color: COLORS.mediumGray,
+    color: C.muted,
     marginTop: 4,
   },
   listContent: {
@@ -509,17 +486,17 @@ const styles = StyleSheet.create({
     gap: 20,
   },
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: C.borderLight,
     overflow: 'hidden',
-    ...SHADOWS.small,
+    ...SHADOW.sm,
   },
   imageContainer: {
     width: '100%',
     height: 155,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: C.base,
     position: 'relative',
   },
   emojiContainer: {
@@ -570,7 +547,7 @@ const styles = StyleSheet.create({
     backdropFilter: 'blur(4px)',
   },
   geniusText: {
-    color: '#FBBF24',
+    color: C.gold,
     fontSize: 12,
     fontWeight: '700',
     textTransform: 'uppercase',
@@ -593,13 +570,13 @@ const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   dealBadge: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.green,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
   },
   dealText: {
-    color: COLORS.white,
+    color: C.surface,
     fontSize: 12,
     fontWeight: '700',
   },
@@ -617,7 +594,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
   },
   ratingTextImage: {
-    color: COLORS.darkGray,
+    color: C.ink,
     fontWeight: '800',
     fontSize: 14,
   },
@@ -634,7 +611,7 @@ const styles = StyleSheet.create({
   hotelName: {
     fontSize: 20,
     fontWeight: '800',
-    color: COLORS.darkGray,
+    color: C.ink,
     flex: 1,
   },
   locationRow: {
@@ -645,11 +622,11 @@ const styles = StyleSheet.create({
   },
   locationText: {
     fontSize: 14,
-    color: COLORS.mediumGray,
+    color: C.muted,
     fontWeight: '500',
   },
   bullet: {
-    color: COLORS.borderGray,
+    color: C.border,
     marginHorizontal: 4,
   },
   roomInfoRow: {
@@ -661,7 +638,7 @@ const styles = StyleSheet.create({
   roomInfoTag: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: C.base,
     paddingHorizontal: 6,
     paddingVertical: 4,
     borderRadius: 8,
@@ -669,12 +646,12 @@ const styles = StyleSheet.create({
   },
   roomInfoText: {
     fontSize: 13,
-    color: COLORS.darkGray,
+    color: C.ink,
     fontWeight: '600',
   },
   policyText: {
     fontSize: 13,
-    color: COLORS.primary,
+    color: C.green,
     fontWeight: '600',
   },
   footerRow: {
@@ -682,7 +659,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
     borderTopWidth: 1,
-    borderTopColor: COLORS.lightGray,
+    borderTopColor: C.base,
     paddingTop: 10,
     paddingBottom: 10,
   },
@@ -692,12 +669,12 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.darkGray,
+    color: C.ink,
     marginBottom: 2,
   },
   reviewCountText: {
     fontSize: 12,
-    color: COLORS.mediumGray,
+    color: C.muted,
     fontWeight: '500',
   },
   priceContainer: {
@@ -710,18 +687,18 @@ const styles = StyleSheet.create({
   },
   originalPrice: {
     fontSize: 13,
-    color: COLORS.mediumGray,
+    color: C.muted,
     textDecorationLine: 'line-through',
     fontWeight: '500',
   },
   currentPrice: {
     fontSize: 24,
     fontWeight: '800',
-    color: COLORS.darkGray,
+    color: C.ink,
   },
   taxesText: {
     fontSize: 12,
-    color: COLORS.mediumGray,
+    color: C.muted,
     marginTop: 2,
     fontWeight: '500',
   },

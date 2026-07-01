@@ -12,49 +12,47 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
-import AppBar from '../../components/AppBar';
+import ScreenHeader from '../../components/ScreenHeader';
 import LoadingSpinner from '../../components/LoadingSpinner';
 import { Text } from '../../components/Text';
 import { useLocation } from '../../contexts/LocationContext';
 import { DEFAULT_CITIES, fetchAvailableCities, normalizeCity } from '../../utils/cities';
 import { supabase } from '../../utils/supabase';
 
-// ─── Color Palette ─────────────────────────────────────────────────────────────
-const COLORS = {
-  primary: '#16A34A',
-  teal: '#14B8A6',
-  skyBlue: '#0EA5E9',
-  orange: '#F97316',
-  white: '#FFFFFF',
-  lightGray: '#F1F5F9',
-  darkGray: '#1F2937',
-  mediumGray: '#6B7280',
-  borderGray: '#d3dbe2',
+
+// ─── Design Tokens ─────────────────────────────────────────────────────────────
+const C = {
+  green:       '#16A34A',
+  greenDark:   '#14532D',
+  greenLight:  '#DCFCE7',
+  greenTint:   '#F0FDF4',
+  ink:         '#0F172A',
+  inkMid:      '#374151',
+  muted:       '#6B7280',
+  mutedLight:  '#9CA3AF',
+  border:      '#E2E8F0',
+  borderLight: '#F1F5F9',
+  surface:     '#FFFFFF',
+  base:        '#EEF2EF',
+  amber:       '#F59E0B',
+  amberLight:  '#FEF3C7',
+  sky:         '#0EA5E9',
+  skyLight:    '#E0F2FE',
+  coral:       '#F97316',
+  coralLight:  '#FFF7ED',
+  rose:        '#F43F5E',
+  roseLight:   '#FFF1F2',
+  gold:        '#FBBF24',
+  white:       '#FFFFFF',
 };
 
-const SHADOWS = {
-  small: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  medium: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    elevation: 4,
-  },
-  large: {
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 8,
-  }
+const SHADOW = {
+  xs: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+  sm: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.09, shadowRadius: 8, elevation: 3 },
+  md: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 14, elevation: 6 },
+  green: { shadowColor: '#16A34A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 10, elevation: 6 },
 };
+
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 interface FeatureTag {
@@ -82,38 +80,6 @@ interface Vehicle {
 
 const FILTER_TABS = ['All', 'Scooty', 'Bike', 'Car'];
 
-// ─── Design Tokens ─────────────────────────────────────────────────────────────
-const C = {
-  green: '#16A34A',
-  greenDark: '#14532D',
-  greenLight: '#DCFCE7',
-  greenTint: '#F0FDF4',
-  ink: '#0F172A',
-  inkMid: '#374151',
-  muted: '#6B7280',
-  mutedLight: '#9CA3AF',
-  border: '#E2E8F0',
-  borderLight: '#F1F5F9',
-  surface: '#FFFFFF',
-  base: '#EEF2EF',
-  amber: '#F59E0B',
-  amberLight: '#FEF3C7',
-  sky: '#0EA5E9',
-  skyLight: '#E0F2FE',
-  coral: '#F97316',
-  coralLight: '#FFF7ED',
-  rose: '#F43F5E',
-  roseLight: '#FFF1F2',
-  gold: '#FBBF24',
-  white: '#FFFFFF',
-};
-
-const SHADOW = {
-  xs: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  sm: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.09, shadowRadius: 8, elevation: 3 },
-  md: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.12, shadowRadius: 14, elevation: 6 },
-  green: { shadowColor: '#16A34A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.30, shadowRadius: 10, elevation: 6 },
-};
 
 const normalizeVehicleType = (...values: unknown[]) => {
   const text = values
@@ -240,25 +206,25 @@ const VehicleCard = ({ vehicle }: { vehicle: Vehicle }) => {
           <View style={styles.detailsGrid}>
             {vehicle.fuelType && (
               <View style={styles.detailItem}>
-                <MaterialCommunityIcons name="gas-station" size={14} color={COLORS.mediumGray} />
+                <MaterialCommunityIcons name="gas-station" size={14} color={C.muted} />
                 <Text style={styles.detailText}>{vehicle.fuelType}</Text>
               </View>
             )}
             {vehicle.helmet && (
               <View style={styles.detailItem}>
-                <MaterialCommunityIcons name="racing-helmet" size={14} color={COLORS.mediumGray} />
+                <MaterialCommunityIcons name="racing-helmet" size={14} color={C.muted} />
                 <Text style={styles.detailText}>{vehicle.helmet}</Text>
               </View>
             )}
             {vehicle.minDuration && (
               <View style={styles.detailItem}>
-                <MaterialCommunityIcons name="clock-outline" size={14} color={COLORS.mediumGray} />
+                <MaterialCommunityIcons name="clock-outline" size={14} color={C.muted} />
                 <Text style={styles.detailText}>{vehicle.minDuration}</Text>
               </View>
             )}
             {vehicle.deposit && (
               <View style={styles.detailItem}>
-                <MaterialCommunityIcons name="shield-check-outline" size={14} color={COLORS.mediumGray} />
+                <MaterialCommunityIcons name="shield-check-outline" size={14} color={C.muted} />
                 <Text style={styles.detailText}>{vehicle.deposit}</Text>
               </View>
             )}
@@ -410,8 +376,12 @@ export default function RentAVehicleScreen() {
 
   return (
     <SafeAreaContextView edges={['top', 'bottom']} style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
-      <AppBar />
+      <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
+      <ScreenHeader 
+        title="Rentals" 
+        showLocation={true} 
+        location={activeCity || 'Faridabad'} 
+      />
       <FilterHeader
         cityOptions={cityOptions}
         activeCity={activeCity}
@@ -430,12 +400,12 @@ export default function RentAVehicleScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={COLORS.primary}
-              colors={[COLORS.primary]}
+              tintColor={C.green}
+              colors={[C.green]}
             />
           }
         >
-          <LoadingSpinner size="large" color={COLORS.primary} />
+          <LoadingSpinner size="large" color={C.green} />
           <Text style={styles.loaderText}>Finding best vehicles for you...</Text>
         </ScrollView>
       ) : filtered.length === 0 ? (
@@ -446,12 +416,12 @@ export default function RentAVehicleScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={COLORS.primary}
-              colors={[COLORS.primary]}
+              tintColor={C.green}
+              colors={[C.green]}
             />
           }
         >
-          <MaterialCommunityIcons name="car-off" size={60} color={COLORS.mediumGray} />
+          <MaterialCommunityIcons name="car-off" size={60} color={C.muted} />
           <Text style={styles.emptyText}>No vehicles found</Text>
           <Text style={styles.emptySubText}>Try adjusting your filters</Text>
         </ScrollView>
@@ -466,8 +436,8 @@ export default function RentAVehicleScreen() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={COLORS.primary}
-              colors={[COLORS.primary]}
+              tintColor={C.green}
+              colors={[C.green]}
             />
           }
         />
@@ -484,7 +454,7 @@ export default function RentAVehicleScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: '#F1F5F9',
+    backgroundColor: C.borderLight,
   },
 
   // ── Filter Box ──
@@ -553,9 +523,9 @@ const styles = StyleSheet.create({
   makePillTxt: { fontSize: 11, fontWeight: '600', color: C.muted },
   makePillTxtActive: { color: C.coral },
   filterTabsContainer: {
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
+    borderBottomColor: C.border,
   },
   cityFilterRow: {
     flexDirection: 'row',
@@ -567,21 +537,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 6,
     borderRadius: 50,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.borderLight,
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
   cityTabActive: {
-    backgroundColor: '#DCFCE7',
-    borderColor: COLORS.primary,
+    backgroundColor: C.greenLight,
+    borderColor: C.green,
   },
   cityTabText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.mediumGray,
+    color: C.muted,
   },
   cityTabTextActive: {
-    color: COLORS.primary,
+    color: C.green,
   },
   makeFilterRow: {
     flexDirection: 'row',
@@ -589,7 +559,7 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     paddingBottom: 10,
     borderTopWidth: 1,
-    borderTopColor: '#F1F5F9',
+    borderTopColor: C.borderLight,
   },
   makeFilterScroll: {
     flexDirection: 'row',
@@ -600,21 +570,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 5,
     borderRadius: 50,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.borderLight,
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
   makeTabActive: {
-    backgroundColor: '#FFF7ED',
-    borderColor: COLORS.orange,
+    backgroundColor: C.coralLight,
+    borderColor: C.coral,
   },
   makeTabText: {
     fontSize: 12,
     fontWeight: '600',
-    color: COLORS.mediumGray,
+    color: C.muted,
   },
   makeTabTextActive: {
-    color: COLORS.orange,
+    color: C.coral,
   },
   filterTabsScroll: {
     paddingHorizontal: 16,
@@ -626,21 +596,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 8,
     borderRadius: 50,
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: C.base,
     borderWidth: 1.5,
     borderColor: 'transparent',
   },
   filterTabActive: {
-    backgroundColor: '#DCFCE7',
-    borderColor: COLORS.primary,
+    backgroundColor: C.greenLight,
+    borderColor: C.green,
   },
   filterTabText: {
     fontSize: 13,
     fontWeight: '600',
-    color: COLORS.mediumGray,
+    color: C.muted,
   },
   filterTabTextActive: {
-    color: COLORS.primary,
+    color: C.green,
   },
 
   bannerWrapper: {
@@ -670,7 +640,7 @@ const styles = StyleSheet.create({
   bannerTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: '#16A34A',
+    color: C.green,
     marginBottom: 6,
   },
   bannerSubtitle: {
@@ -699,7 +669,7 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     justifyContent: 'center',
     alignItems: 'center',
     zIndex: 3,
@@ -717,7 +687,7 @@ const styles = StyleSheet.create({
   loaderText: {
     marginTop: 12,
     fontSize: 16,
-    color: COLORS.mediumGray,
+    color: C.muted,
     fontWeight: '500',
   },
   emptyContainer: {
@@ -729,12 +699,12 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.darkGray,
+    color: C.ink,
     marginTop: 16,
   },
   emptySubText: {
     fontSize: 14,
-    color: COLORS.mediumGray,
+    color: C.muted,
     marginTop: 4,
   },
   listContent: {
@@ -743,12 +713,12 @@ const styles = StyleSheet.create({
     gap: 16,
   },
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: C.surface,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: C.borderLight,
     overflow: 'hidden',
-    ...SHADOWS.large,
+    ...SHADOW.md,
   },
   cardContent: {
     flexDirection: 'row',
@@ -757,12 +727,12 @@ const styles = StyleSheet.create({
   vehicleImagePlaceholder: {
     width: 110,
     height: 110,
-    backgroundColor: '#F8FAFC',
+    backgroundColor: C.borderLight,
     borderRadius: 18,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: '#F1F5F9',
+    borderColor: C.borderLight,
   },
   vehicleImage: {
     width: '100%',
@@ -780,7 +750,7 @@ const styles = StyleSheet.create({
   vehicleName: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.darkGray,
+    color: C.ink,
   },
   ratingChip: {
     flexDirection: 'row',
@@ -794,11 +764,11 @@ const styles = StyleSheet.create({
   ratingValue: {
     fontSize: 14,
     fontWeight: '700',
-    color: COLORS.darkGray,
+    color: C.ink,
   },
   ratingCount: {
     fontSize: 12,
-    color: COLORS.mediumGray,
+    color: C.muted,
     marginLeft: 4,
   },
   cardFooter: {
@@ -810,15 +780,15 @@ const styles = StyleSheet.create({
   priceValue: {
     fontSize: 18,
     fontWeight: '800',
-    color: COLORS.primary,
+    color: C.green,
   },
   perDay: {
     fontSize: 12,
-    color: COLORS.mediumGray,
+    color: C.muted,
     fontWeight: '500',
   },
   bookNowBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: C.green,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 12,
@@ -826,7 +796,7 @@ const styles = StyleSheet.create({
   bookNowText: {
     fontSize: 13,
     fontWeight: '700',
-    color: COLORS.white,
+    color: C.surface,
   },
   detailsGrid: {
     flexDirection: 'row',
@@ -837,7 +807,7 @@ const styles = StyleSheet.create({
   detailItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: C.base,
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -845,7 +815,7 @@ const styles = StyleSheet.create({
   },
   detailText: {
     fontSize: 11,
-    color: COLORS.darkGray,
+    color: C.ink,
     fontWeight: '500',
   },
 });

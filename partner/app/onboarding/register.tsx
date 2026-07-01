@@ -17,6 +17,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { registerUser, createUserDoc } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
 
@@ -30,6 +31,7 @@ export default function RegisterScreen() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const { user, profile, setUser, setProfile } = useAuthStore();
+  const { updateData } = useOnboardingStore();
   const role = profile?.role ?? 'guide';
   const insets = useSafeAreaInsets();
 
@@ -102,6 +104,12 @@ export default function RegisterScreen() {
           profileData: {},
           createdAt: null as any,
         });
+        updateData({
+          name: name.trim(),
+          email: email.trim(),
+          phone: phone.trim(),
+          role
+        });
         router.push('/onboarding/profile-setup');
       }
     } catch (err: any) {
@@ -121,7 +129,7 @@ export default function RegisterScreen() {
           <Text style={styles.backText}>Back</Text>
         </TouchableOpacity>
         <View style={styles.stepBadge}>
-          <Text style={styles.stepText}>Step 2 of 3</Text>
+          <Text style={styles.stepText}>Step 1 of 6</Text>
         </View>
       </View>
 

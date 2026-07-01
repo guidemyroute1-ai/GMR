@@ -257,8 +257,7 @@ export default function ProfileScreen() {
           setSigningOut(true);
           try {
             await signOutUser();
-            reset();
-            router.replace('/auth/login');
+            // The root layout listener will handle reset and navigation
           } catch {
             Alert.alert('Error', 'Sign out failed. Please try again.');
           } finally {

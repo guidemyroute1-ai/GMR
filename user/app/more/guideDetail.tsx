@@ -89,6 +89,7 @@ export default function GuideDetailScreen() {
   });
 
   useEffect(() => {
+    let isMounted = true;
     if (!id) return;
 
     const fetchGuideAndReviews = async () => {
@@ -173,8 +174,12 @@ export default function GuideDetailScreen() {
           const guideCity = (data.city || profileData.city || effectiveLocation || '').trim();
 
           const videoUrl = data.kyc_video_url || profileData.demo_video || profileData.kycVideoUrl || '';
-          if (videoUrl) {
-            videoPlayer.replace({ uri: videoUrl });
+          if (videoUrl && isMounted) {
+            try {
+              videoPlayer.replaceAsync(videoUrl);
+            } catch (e) {
+              console.log('Video replace failed:', e);
+            }
           }
 
           setGuide({
@@ -222,6 +227,10 @@ export default function GuideDetailScreen() {
     };
 
     fetchGuideAndReviews();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
 
   if (loading) {

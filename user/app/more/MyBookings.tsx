@@ -1,1370 +1,1091 @@
-import { Text } from '../../components/Text';
-import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { Image as ExpoImage } from 'expo-image';
-import { router } from 'expo-router';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
-  ScrollView,
-  RefreshControl,
-  StatusBar,
-  StyleSheet,
-  TouchableOpacity,
   View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
   ActivityIndicator,
   Alert,
-  Animated,
-  Linking,
-  Platform,
+  StatusBar,
+  RefreshControl,
 } from 'react-native';
+import { Image as ExpoImage } from 'expo-image';
+import { router, useNavigation } from 'expo-router';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { supabase } from '../../utils/supabase';
 import { useAuth } from '../../contexts/AuthContext';
+import ScreenHeader from '../../components/ScreenHeader';
 
-// ─── Invoke Helper ─────────────────────────────────────────────────────────────
-async function invokeFunction<T>(name: string, body: unknown): Promise<T> {
-  const result = await supabase.functions.invoke(name, { body: body as any });
-  if (result.error) {
-    let message = result.error.message || `${name} failed.`;
-    const context = (result.error as any).context;
-    if (context && typeof context.json === 'function') {
-      try {
-        const payload = await context.json();
-        message = payload?.error || payload?.message || message;
-      } catch { }
-    } else if (typeof context === 'string') {
-      try {
-        const parsed = JSON.parse(context);
-        message = parsed?.error || parsed?.message || message;
-      } catch {}
-    } else if (context && typeof context === 'object') {
-      message = context.error || context.message || message;
-    }
-    throw new Error(message);
-  }
-  if (!result.data) throw new Error(`${name} returned empty response.`);
-  return result.data as T;
-}
-
-// ─── Color Palette ─────────────────────────────────────────────────────────────
+// Color Palette from Design
 const COLORS = {
   primary: '#16A34A',
   primaryLight: '#DCFCE7',
-  primarySurface: '#F0FDF4',
-  teal: '#14B8A6',
-  tealLight: '#F0FDFA',
-  skyBlue: '#0EA5E9',
-  skyBlueLight: '#E0F2FE',
-  orange: '#F97316',
-  orangeLight: '#FFF7ED',
-  orangeBorder: '#FED7AA',
   white: '#FFFFFF',
   background: '#F8FAFC',
   darkGray: '#0F172A',
-  mediumGray: '#64748B',
-  borderGray: '#E2E8F0',
-  surfaceGray: '#F1F5F9',
-  danger: '#EF4444',
-  dangerLight: '#FEE2E2',
-  dangerBorder: '#FECACA',
-  dangerSurface: '#FEF2F2',
+  gray: '#475569',
+  lightGray: '#94A3B8',
+  border: '#E2E8F0',
+  orange: '#F97316',
+  orangeLight: '#FFF7ED',
+  purple: '#A855F7',
+  purpleLight: '#F3E8FF',
+  blue: '#3B82F6',
+  blueLight: '#EFF6FF',
 };
 
-const SHADOWS = {
-  small: {
-    shadowColor: '#64748B',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  medium: {
-    shadowColor: '#64748B',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.12,
-    shadowRadius: 12,
-    elevation: 5,
-  },
-};
-
-// ─── Types ─────────────────────────────────────────────────────────────────────
-type TabType = 'Upcoming' | 'Completed' | 'Cancelled';
+type FilterType = 'All' | 'Trips' | 'Hotels' | 'Rentals';
 type StatusType = 'Confirmed' | 'Pending' | 'Completed' | 'Cancelled';
-type VehicleType = 'Scooty' | 'Bike' | 'Car';
-type BookingType = 'guide' | 'hotel' | 'vehicle' | 'rental' | string;
 
 interface Booking {
   id: string;
-  vehicleName: string;
-  vehicleNumber: string;
-  vehicleType: VehicleType;
-  listingImage?: string | null;
-  date: string;
-  time: string;
-  duration: string;
-  pickup: string;
-  totalAmount: number;
+  title: string;
+  subtitle: string;
+  type: 'trip' | 'hotel' | 'rental';
+  dateStr: string;
+  timeStr: string;
+  durationStr: string;
   status: StatusType;
-  tab: TabType;
+  image: string | null;
+  amount: number;
+  bookingId: string;
   item_id?: string;
-  pre_payment_status?: string | null;
-  booking_type?: BookingType;
-  partnerLat?: number | null;
-  partnerLng?: number | null;
-  _createdAt?: number;
+  rawDate: number;
 }
 
-// ─── Centralized Configs ───────────────────────────────────────────────────────
-const FILTER_TABS: TabType[] = ['Upcoming', 'Completed', 'Cancelled'];
-
-const STATUS_CONFIG: Record<StatusType, { color: string; bg: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  Confirmed: { color: COLORS.primary, bg: COLORS.primaryLight, icon: 'checkmark-circle' },
-  Pending: { color: COLORS.orange, bg: COLORS.orangeLight, icon: 'time-outline' },
-  Completed: { color: COLORS.skyBlue, bg: COLORS.skyBlueLight, icon: 'checkbox-outline' },
-  Cancelled: { color: COLORS.danger, bg: COLORS.dangerLight, icon: 'close-circle-outline' },
-};
-
-const PRE_PAYMENT_CONFIG: Record<string, { color: string; bg: string; label: string }> = {
-  awaiting_guide: { color: COLORS.orange, bg: COLORS.orangeLight, label: '🔍 Finding Guide…' },
-  awaiting_owner: { color: COLORS.orange, bg: COLORS.orangeLight, label: '⏳ Awaiting Owner Confirmation…' },
-  awaiting_payment: { color: COLORS.teal, bg: COLORS.tealLight, label: '✅ Accepted – Pay Now' },
-  confirmed: { color: COLORS.primary, bg: COLORS.primaryLight, label: '✔ Confirmed' },
-};
-
-// Booking type → icon config
-const BOOKING_TYPE_ICONS: Record<string, { library: 'ionicons' | 'mci'; name: string }> = {
-  guide: { library: 'ionicons', name: 'person-outline' },
-  hotel: { library: 'ionicons', name: 'business-outline' },
-};
-
-const VEHICLE_TYPE_ICONS: Record<string, { library: 'ionicons' | 'mci'; name: string }> = {
-  Bike: { library: 'mci', name: 'motorbike' },
-  Scooty: { library: 'mci', name: 'motorbike' },
-  Car: { library: 'ionicons', name: 'car-outline' },
-};
-
-// Tab empty state config
-const EMPTY_STATE_CONFIG: Record<TabType, {
-  icon: keyof typeof Ionicons.glyphMap;
-  color: string;
-  bg: string;
-  subtitle: string;
-  ctaLabel?: string;
-  ctaRoute?: string;
-}> = {
-  Upcoming: {
-    icon: 'calendar-outline',
-    color: COLORS.primary,
-    bg: COLORS.primaryLight,
-    subtitle: 'Plan your next adventure and book a vehicle!',
-    ctaLabel: 'Browse Listings',
-    ctaRoute: '/(tabs)/Home',
-  },
-  Completed: {
-    icon: 'checkmark-circle-outline',
-    color: COLORS.skyBlue,
-    bg: COLORS.skyBlueLight,
-    subtitle: 'Your completed trips will appear here.',
-    ctaLabel: 'Book a Trip',
-    ctaRoute: '/(tabs)/Home',
-  },
-  Cancelled: {
-    icon: 'close-circle-outline',
-    color: COLORS.danger,
-    bg: COLORS.dangerLight,
-    subtitle: 'Any cancelled bookings will appear here.',
-  },
-};
-
-// Pre-payment states that should be hidden for non-guide bookings
-const HIDE_AWAITING_GUIDE_TYPES: BookingType[] = ['hotel', 'vehicle', 'rental'];
-
-// ─── Animated Card Wrapper ─────────────────────────────────────────────────────
-const AnimatedCard = ({ children, index }: { children: React.ReactNode; index: number }) => {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
-  const slideAnim = useRef(new Animated.Value(18)).current;
-
-  useEffect(() => {
-    const delay = Math.min(index * 80, 400);
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 350,
-        delay,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 350,
-        delay,
-        useNativeDriver: true,
-      }),
-    ]).start();
-  }, [fadeAnim, slideAnim, index]);
-
-  return (
-    <Animated.View style={{ opacity: fadeAnim, transform: [{ translateY: slideAnim }] }}>
-      {children}
-    </Animated.View>
-  );
-};
-
-// ─── Listing Icon ──────────────────────────────────────────────────────────────
-const ListingIcon = ({
-  type,
-  bookingType,
-  size = 28,
-  color = COLORS.mediumGray,
-}: {
-  type: VehicleType;
-  bookingType?: BookingType | null;
-  size?: number;
-  color?: string;
-}) => {
-  // Check booking type first
-  if (bookingType && BOOKING_TYPE_ICONS[bookingType]) {
-    const cfg = BOOKING_TYPE_ICONS[bookingType];
-    if (cfg.library === 'mci') {
-      return <MaterialCommunityIcons name={cfg.name as any} size={size} color={color} />;
-    }
-    return <Ionicons name={cfg.name as any} size={size} color={color} />;
-  }
-
-  // Fallback to vehicle type
-  const vehicleCfg = VEHICLE_TYPE_ICONS[type] || VEHICLE_TYPE_ICONS.Car;
-  if (vehicleCfg.library === 'mci') {
-    return <MaterialCommunityIcons name={vehicleCfg.name as any} size={size} color={color} />;
-  }
-  return <Ionicons name={vehicleCfg.name as any} size={size} color={color} />;
-};
-
-// ─── Action Button Helpers ─────────────────────────────────────────────────────
-const ViewDetailsButton = ({ bookingId }: { bookingId: string }) => (
-  <TouchableOpacity
-    style={styles.secondaryBtn}
-    activeOpacity={0.8}
-    onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: bookingId } })}
-  >
-    <Feather name="file-text" size={14} color={COLORS.darkGray} />
-    <Text style={styles.secondaryBtnText}>View Details</Text>
-  </TouchableOpacity>
-);
-
-const CancelButton = ({ onPress }: { onPress: () => void }) => (
-  <TouchableOpacity style={styles.dangerBtn} activeOpacity={0.85} onPress={onPress}>
-    <Ionicons name="close-circle-outline" size={14} color={COLORS.danger} />
-    <Text style={styles.dangerBtnText}>Cancel</Text>
-  </TouchableOpacity>
-);
-
-// ─── Booking Card ──────────────────────────────────────────────────────────────
-const BookingCard = ({ booking, onCancel }: { booking: Booking; onCancel?: (id: string) => void }) => {
-  const status = STATUS_CONFIG[booking.status];
-  const isUpcoming = booking.tab === 'Upcoming';
-  const isCancelled = booking.tab === 'Cancelled';
-  const isCompleted = booking.tab === 'Completed';
-
-  // Determine effective pre-payment status
-  let prePayStatus = booking.pre_payment_status;
-  if (
-    booking.booking_type &&
-    HIDE_AWAITING_GUIDE_TYPES.includes(booking.booking_type) &&
-    prePayStatus === 'awaiting_guide'
-  ) {
-    prePayStatus = null;
-  }
-
-  const isAwaitingGuide = prePayStatus === 'awaiting_guide';
-  const isAwaitingOwner = prePayStatus === 'awaiting_owner';
-  const isAwaitingPayment = prePayStatus === 'awaiting_payment';
-  const prePayConfig = prePayStatus ? PRE_PAYMENT_CONFIG[prePayStatus] : null;
-
-  const confirmCancel = useCallback(
-    (title: string, message: string) => {
-      if (!onCancel) return;
-      Alert.alert(title, message, [
-        { text: 'No', style: 'cancel' },
-        { text: 'Yes, Cancel', style: 'destructive', onPress: () => onCancel(booking.id) },
-      ]);
-    },
-    [onCancel, booking.id]
-  );
-
-  const handleDirections = useCallback(() => {
-    if (booking.partnerLat && booking.partnerLng) {
-      const lat = booking.partnerLat;
-      const lng = booking.partnerLng;
-      const label = encodeURIComponent(booking.vehicleName || 'Partner Location');
-      const url =
-        Platform.OS === 'ios'
-          ? `maps://?ll=${lat},${lng}&q=${label}`
-          : `geo:${lat},${lng}?q=${lat},${lng}(${label})`;
-      Linking.openURL(url).catch(() => {
-        // Fallback to Google Maps web
-        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
-      });
-      return;
-    }
-
-    if (booking.pickup && booking.pickup !== 'Not specified') {
-      Linking.openURL(
-        `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(booking.pickup)}`
-      );
-    }
-  }, [booking.pickup, booking.partnerLat, booking.partnerLng, booking.vehicleName]);
-
-  const handleRebook = useCallback(() => {
-    if (booking.booking_type === 'hotel' || booking.booking_type === 'guide') {
-      router.push('/(tabs)/Home');
-    } else {
-      router.push('/more/vehicle');
-    }
-  }, [booking.booking_type]);
-
-  // ── Render Actions based on state ──
-  const renderActions = () => {
-    // Guide-first: Awaiting guide
-    if (isAwaitingGuide || isAwaitingOwner) {
-      return (
-        <>
-          <View style={styles.guideStatusBox}>
-            <ActivityIndicator size="small" color={COLORS.orange} />
-            <Text style={styles.guideStatusText}>
-              {isAwaitingOwner ? 'Waiting for owner confirmation…' : 'Finding guide…'}
-            </Text>
-          </View>
-          <CancelButton
-            onPress={() => confirmCancel('Cancel Request', 'Are you sure you want to cancel this booking request?')}
-          />
-        </>
-      );
-    }
-
-    // Guide-first: Pay Now
-    if (isAwaitingPayment) {
-      return (
-        <TouchableOpacity
-          style={styles.tealBtn}
-          activeOpacity={0.85}
-          onPress={() =>
-            router.push({
-              pathname: '/more/payment',
-              params: {
-                bookingId: booking.id,
-                amount: String(booking.totalAmount),
-                description: booking.vehicleName,
-              },
-            })
-          }
-        >
-          <Ionicons name="card" size={16} color={COLORS.white} />
-          <Text style={styles.tealBtnText}>Pay Now ₹{booking.totalAmount.toLocaleString()}</Text>
-        </TouchableOpacity>
-      );
-    }
-
-    // Normal Upcoming – Confirmed
-    if (isUpcoming && booking.status === 'Confirmed') {
-      return (
-        <>
-          <ViewDetailsButton bookingId={booking.id} />
-          <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleDirections}>
-            <Ionicons name="navigate-outline" size={14} color={COLORS.white} />
-            <Text style={styles.primaryBtnText}>Get Directions</Text>
-          </TouchableOpacity>
-        </>
-      );
-    }
-
-    // Normal Upcoming – Pending
-    if (isUpcoming && booking.status === 'Pending') {
-      return (
-        <>
-          <ViewDetailsButton bookingId={booking.id} />
-          <CancelButton
-            onPress={() => confirmCancel('Cancel Booking', 'Are you sure you want to cancel this booking?')}
-          />
-        </>
-      );
-    }
-
-    // Completed
-    if (isCompleted) {
-      return (
-        <>
-          <ViewDetailsButton bookingId={booking.id} />
-          <TouchableOpacity
-            style={styles.tealBtn}
-            activeOpacity={0.85}
-            onPress={() =>
-              router.push({
-                pathname: '/more/RateAndReview',
-                params: { bookingId: booking.id, itemId: booking.item_id },
-              })
-            }
-          >
-            <Ionicons name="star-outline" size={14} color={COLORS.white} />
-            <Text style={styles.tealBtnText}>Rate & Review</Text>
-          </TouchableOpacity>
-        </>
-      );
-    }
-
-    // Cancelled
-    if (isCancelled) {
-      return (
-        <>
-          <ViewDetailsButton bookingId={booking.id} />
-          <TouchableOpacity style={styles.primaryBtn} activeOpacity={0.85} onPress={handleRebook}>
-            <Ionicons name="refresh-outline" size={14} color={COLORS.white} />
-            <Text style={styles.primaryBtnText}>Rebook</Text>
-          </TouchableOpacity>
-        </>
-      );
-    }
-
-    return null;
-  };
-
-  return (
-    <View style={styles.bookingCard}>
-      {/* Guide-first status banner */}
-      {prePayConfig && (
-        <View style={[styles.prePayBanner, { backgroundColor: prePayConfig.bg }]}>
-          <Text style={[styles.prePayBannerText, { color: prePayConfig.color }]}>
-            {prePayConfig.label}
-          </Text>
-        </View>
-      )}
-
-      {/* ── Card Header ── */}
-      <View style={styles.cardHeader}>
-        {/* Listing Image */}
-        {booking.listingImage ? (
-          <ExpoImage
-            source={{ uri: booking.listingImage }}
-            style={styles.vehicleImage}
-            contentFit="cover"
-          />
-        ) : (
-          <View style={styles.vehicleImagePlaceholder}>
-            <ListingIcon
-              type={booking.vehicleType}
-              bookingType={booking.booking_type}
-              size={30}
-              color={COLORS.mediumGray}
-            />
-          </View>
-        )}
-
-        {/* Info */}
-        <View style={styles.cardHeaderInfo}>
-          <Text style={styles.vehicleName} numberOfLines={1}>
-            {booking.vehicleName}
-          </Text>
-          <View style={styles.metaRow}>
-            <Feather name="credit-card" size={11} color={COLORS.mediumGray} />
-            <Text style={styles.metaText}>{booking.vehicleNumber}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Ionicons name="calendar-outline" size={14} color={COLORS.mediumGray} />
-            <Text style={styles.metaText}>{booking.date}</Text>
-          </View>
-          <View style={styles.metaRow}>
-            <Feather name="clock" size={11} color={COLORS.mediumGray} />
-            <Text style={styles.metaText}>
-              {booking.time} · {booking.duration}
-            </Text>
-          </View>
-        </View>
-
-        {/* Status Badge (hidden when pre-pay banner shows) */}
-        {!prePayConfig && (
-          <View style={[styles.statusBadge, { backgroundColor: status.bg }]}>
-            <Ionicons name={status.icon} size={12} color={status.color} style={styles.statusIcon} />
-            <Text style={[styles.statusText, { color: status.color }]}>{booking.status}</Text>
-          </View>
-        )}
-      </View>
-
-      {/* ── Divider ── */}
-      <View style={styles.divider} />
-
-      {/* ── Trip Details ── */}
-      <View style={styles.tripDetailsRow}>
-        <View style={styles.tripDetailItem}>
-          <Text style={styles.tripDetailLabel}>PICKUP</Text>
-          <View style={styles.tripDetailValueRow}>
-            <Ionicons name="location" size={16} color={COLORS.primary} />
-            <Text style={styles.tripDetailValue} numberOfLines={1}>
-              {booking.pickup}
-            </Text>
-          </View>
-        </View>
-        <View style={styles.tripDetailDivider} />
-        <View style={styles.tripDetailItem}>
-          <Text style={styles.tripDetailLabel}>TOTAL</Text>
-          <Text style={[styles.tripDetailValue, styles.totalAmountText]}>
-            ₹{booking.totalAmount.toLocaleString()}
-          </Text>
-        </View>
-      </View>
-
-      {/* ── Divider ── */}
-      <View style={styles.divider} />
-
-      {/* ── Action Buttons ── */}
-      <View style={styles.actionRow}>{renderActions()}</View>
-    </View>
-  );
-};
-
-// ─── Empty State ───────────────────────────────────────────────────────────────
-const EmptyState = ({ tab }: { tab: TabType }) => {
-  const config = EMPTY_STATE_CONFIG[tab];
-
-  return (
-    <View style={styles.emptyState}>
-      <View style={[styles.emptyIconBox, { backgroundColor: config.bg }]}>
-        <Ionicons name={config.icon} size={44} color={config.color} />
-      </View>
-      <Text style={styles.emptyTitle}>No {tab} Bookings</Text>
-      <Text style={styles.emptySubtitle}>{config.subtitle}</Text>
-      {config.ctaLabel && config.ctaRoute && (
-        <TouchableOpacity
-          style={[styles.emptyBtn, { backgroundColor: config.color }]}
-          activeOpacity={0.85}
-          onPress={() => router.push(config.ctaRoute as any)}
-        >
-          <Text style={styles.emptyBtnText}>{config.ctaLabel}</Text>
-        </TouchableOpacity>
-      )}
-    </View>
-  );
-};
-
-// ─── Summary Bar ───────────────────────────────────────────────────────────────
-const SummaryBar = ({ bookings }: { bookings: Booking[] }) => {
-  const counts = FILTER_TABS.reduce(
-    (acc, tab) => {
-      acc[tab] = bookings.filter((b) => b.tab === tab).length;
-      return acc;
-    },
-    {} as Record<TabType, number>
-  );
-
-  const total = bookings.length;
-  if (total === 0) return null;
-
-  return (
-    <View style={styles.summaryBar}>
-      <View style={styles.summaryItem}>
-        <Text style={styles.summaryCount}>{total}</Text>
-        <Text style={styles.summaryLabel}>Total</Text>
-      </View>
-      {FILTER_TABS.map((tab) => {
-        const cfg = STATUS_CONFIG[tab === 'Upcoming' ? 'Confirmed' : tab === 'Completed' ? 'Completed' : 'Cancelled'];
-        return (
-          <View key={tab} style={styles.summaryItem}>
-            <Text style={[styles.summaryCount, { color: cfg.color }]}>{counts[tab]}</Text>
-            <Text style={styles.summaryLabel}>{tab}</Text>
-          </View>
-        );
-      })}
-    </View>
-  );
-};
-
-// ─── Main Screen ───────────────────────────────────────────────────────────────
 export default function MyBookingsScreen() {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
-  const [activeTab, setActiveTab] = useState<TabType>('Upcoming');
+  const navigation = useNavigation();
+  const canGoBack = navigation.canGoBack();
+  
+  const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  // Animated underline for tabs
-  const tabIndicatorAnim = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    const toIndex = FILTER_TABS.indexOf(activeTab);
-    Animated.spring(tabIndicatorAnim, {
-      toValue: toIndex,
-      useNativeDriver: true,
-      tension: 300,
-      friction: 30,
-    }).start();
-  }, [activeTab, tabIndicatorAnim]);
-
-  useEffect(() => {
+  const [activeTab, setActiveTab] = useState<FilterType>('All');
+  
+  const fetchBookings = async () => {
     if (!user) {
       setLoading(false);
       return;
     }
-
-    setLoading(true);
-
-    const fetchBookings = async () => {
+    
+    try {
       const { data, error } = await supabase
         .from('bookings')
         .select('*')
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching bookings:', error.message);
-        setLoading(false);
-        setRefreshing(false);
-        return;
-      }
-
+      if (error) throw error;
+      
       const rows = data || [];
 
-      // Batch fetch all unique listing IDs and guide IDs (fix N+1)
-      const listingIds = [
-        ...new Set(rows.filter((r) => r.booking_type !== 'guide' && r.item_id).map((r) => r.item_id)),
-      ];
-      const guideIds = [
-        ...new Set(
-          rows
-            .filter((r) => r.booking_type === 'guide')
-            .map((r) => r.partner_id || r.item_id)
-            .filter(Boolean)
-        ),
-      ];
-      const partnerIds = [
-        ...new Set(
-          rows
-            .map((r) => r.partner_id)
-            .filter(Boolean)
-        ),
-      ];
-
       // Batch fetch listing images
+      const listingIds = [...new Set(rows.filter((r) => r.booking_type !== 'guide' && r.item_id).map((r) => r.item_id))];
+      const guideIds = [...new Set(rows.filter((r) => r.booking_type === 'guide').map((r) => r.partner_id || r.item_id).filter(Boolean))];
+      
       const listingImageMap: Record<string, string | null> = {};
       if (listingIds.length > 0) {
-        const { data: listings } = await supabase
-          .from('listings')
-          .select('id, images')
-          .in('id', listingIds);
+        const { data: listings } = await supabase.from('listings').select('id, images').in('id', listingIds);
         (listings || []).forEach((l) => {
-          listingImageMap[l.id] =
-            l.images && Array.isArray(l.images) && l.images.length > 0 ? l.images[0] : null;
+          listingImageMap[l.id] = l.images && Array.isArray(l.images) && l.images.length > 0 ? l.images[0] : null;
         });
       }
 
-      // Batch fetch guide avatars and partner coordinates
       const guideImageMap: Record<string, string | null> = {};
-      const partnerLocationMap: Record<string, { lat: number; lng: number }> = {};
-      const combinedUserIds = [...new Set([...guideIds, ...partnerIds])];
-
-      if (combinedUserIds.length > 0) {
-        const { data: users } = await supabase
-          .from('users')
-          .select('id, photo_url, profile_data, latitude, longitude')
-          .in('id', combinedUserIds);
+      if (guideIds.length > 0) {
+        const { data: users } = await supabase.from('users').select('id, photo_url, profile_data').in('id', guideIds);
         (users || []).forEach((u) => {
           const pd = u.profile_data || {};
           guideImageMap[u.id] = u.photo_url || pd.profileImage || pd.profile_image || null;
-          if (u.latitude && u.longitude) {
-            partnerLocationMap[u.id] = { lat: u.latitude, lng: u.longitude };
-          }
         });
       }
 
-      const fetchedBookings: Booking[] = rows.map((row) => {
+      const parsed: Booking[] = rows.map((row) => {
+        let type: 'trip' | 'hotel' | 'rental' = 'rental';
+        if (row.booking_type === 'guide' || row.booking_type === 'trip') type = 'trip';
+        else if (row.booking_type === 'hotel') type = 'hotel';
+        else if (row.booking_type === 'vehicle' || row.booking_type === 'rental') type = 'rental';
+
         let status: StatusType = 'Pending';
         const rawStatus = (row.status || '').toLowerCase();
-
         if (rawStatus === 'confirmed') status = 'Confirmed';
         else if (rawStatus === 'completed') status = 'Completed';
         else if (rawStatus === 'cancelled' || rawStatus === 'rejected') status = 'Cancelled';
-
-        let tab: TabType = 'Upcoming';
-        if (status === 'Completed') tab = 'Completed';
-        else if (status === 'Cancelled') tab = 'Cancelled';
-
-        // Use the booking date (not created_at) for display
-        let dateStr = 'Unknown Date';
-        let timeStr = 'Unknown Time';
-        const displayDate = row.date || row.created_at;
-        if (displayDate) {
-          const dateObj = new Date(displayDate);
-          dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-          timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-        }
-
-        // Look up images from pre-fetched maps
-        let listingImage: string | null = null;
+        
+        let image = null;
         if (row.booking_type === 'guide') {
-          const targetGuideId = row.partner_id || row.item_id;
-          if (targetGuideId) listingImage = guideImageMap[targetGuideId] || null;
-        } else if (row.item_id) {
-          listingImage = listingImageMap[row.item_id] || null;
+          image = guideImageMap[row.partner_id || row.item_id] || null;
+        } else {
+          image = listingImageMap[row.item_id] || null;
         }
 
-        const partnerLoc = row.partner_id ? partnerLocationMap[row.partner_id] : null;
+        const dateObj = new Date(row.date || row.created_at || Date.now());
+        const dateStr = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const timeStr = dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+        let durationStr = row.days ? `${row.days} Days` : 'N/A';
+        if (type === 'trip') durationStr = row.number_of_people ? `${row.number_of_people} Booked` : '1 Booked';
+        if (type === 'hotel') durationStr = row.rooms ? `${row.rooms} Room • ${row.number_of_people || 1} Guests` : '1 Room';
+
+        // Fake booking ID for UI if not present
+        const bId = row.id ? row.id.substring(0, 5).toUpperCase() : '12345';
+        const prefix = type === 'trip' ? 'TRP' : type === 'hotel' ? 'HOT' : 'RNT';
 
         return {
           id: row.id,
-          vehicleName: row.item_name || 'Unknown Booking',
-          vehicleNumber: row.vehicle_number || 'N/A',
-          vehicleType: row.vehicle_type || (row.booking_type === 'vehicle' ? 'Bike' : 'Car'),
-          listingImage,
-          date: dateStr,
-          time: timeStr,
-          duration: row.days ? `${row.days} Days` : 'N/A',
-          pickup: row.pickup_location || row.city || 'Not specified',
-          totalAmount: row.amount || row.price || 0,
+          title: row.item_name || (type === 'trip' ? 'Trip' : type === 'hotel' ? 'Hotel' : 'Rental'),
+          subtitle: row.pickup_location || row.city || 'Various locations',
+          type,
+          dateStr,
+          timeStr,
+          durationStr,
           status,
-          tab,
+          image,
+          amount: row.amount || row.price || 0,
+          bookingId: `${prefix}${bId}`,
           item_id: row.item_id,
-          pre_payment_status: row.pre_payment_status || null,
-          booking_type: row.booking_type || null,
-          partnerLat: partnerLoc ? partnerLoc.lat : null,
-          partnerLng: partnerLoc ? partnerLoc.lng : null,
-          _createdAt: row.created_at ? new Date(row.created_at).getTime() : 0,
+          rawDate: dateObj.getTime(),
         };
       });
 
-      setBookings(fetchedBookings);
+      setBookings(parsed);
+    } catch (err: any) {
+      console.error(err);
+      Alert.alert('Error', 'Failed to fetch bookings.');
+    } finally {
       setLoading(false);
       setRefreshing(false);
-    };
+    }
+  };
 
+  useEffect(() => {
     fetchBookings();
-  }, [user, refreshKey]);
+  }, [user]);
 
   const onRefresh = useCallback(() => {
     setRefreshing(true);
-    setRefreshKey((k) => k + 1);
-  }, []);
+    fetchBookings();
+  }, [user]);
 
-  const handleCancelBooking = useCallback(async (bookingId: string) => {
-    try {
-      await invokeFunction('cancel-booking', { bookingId });
-      Alert.alert('Success', 'Booking cancelled successfully');
-      setRefreshing(true);
-      setRefreshKey((k) => k + 1);
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to cancel booking');
+  const filtered = bookings.filter((b) => {
+    if (activeTab === 'All') return true;
+    if (activeTab === 'Trips' && b.type === 'trip') return true;
+    if (activeTab === 'Hotels' && b.type === 'hotel') return true;
+    if (activeTab === 'Rentals' && b.type === 'rental') return true;
+    return false;
+  });
+
+  const upcoming = filtered.filter((b) => b.status === 'Confirmed' || b.status === 'Pending').sort((a, b) => a.rawDate - b.rawDate);
+  const past = filtered.filter((b) => b.status === 'Completed' || b.status === 'Cancelled').sort((a, b) => b.rawDate - a.rawDate);
+
+  // Summary Stats
+  const totalUpcoming = upcoming.length;
+  const totalCompleted = past.filter(b => b.status === 'Completed').length;
+  const totalSpent = past.filter(b => b.status === 'Completed').reduce((sum, b) => sum + b.amount, 0);
+  const savedTrips = past.filter(b => b.status === 'Completed' && b.type === 'trip').length; // Dynamic mock stat for design
+
+  const getBadgeStyle = (type: string) => {
+    switch (type) {
+      case 'trip': return { bg: COLORS.primaryLight, color: COLORS.primary, label: 'TRIP' };
+      case 'hotel': return { bg: COLORS.purpleLight, color: COLORS.purple, label: 'HOTEL' };
+      case 'rental': return { bg: COLORS.orangeLight, color: COLORS.orange, label: 'RENTAL' };
+      default: return { bg: COLORS.primaryLight, color: COLORS.primary, label: 'TRIP' };
     }
-  }, []);
-
-  const filtered = bookings.filter((b) => b.tab === activeTab);
-
-  // Group by date for section headers
-  const grouped = filtered.reduce(
-    (acc, booking) => {
-      const section = acc.find((s) => s.sectionTitle === booking.date);
-      if (section) {
-        section.data.push(booking);
-      } else {
-        acc.push({ sectionTitle: booking.date, data: [booking] });
-      }
-      return acc;
-    },
-    [] as { sectionTitle: string; data: Booking[] }[]
-  );
+  };
 
   return (
-    <View style={[styles.safeArea, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+    <View style={[styles.container, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+      
+      {/* HEADER */}
+      <ScreenHeader 
+        title="Bookings"
+        showAvatar={true}
+        showLocation={false}
+      />
 
-      {/* ── Header ── */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} activeOpacity={0.7}>
-          <Ionicons name="chevron-back" size={24} color={COLORS.darkGray} />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>My Bookings</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {/* ── Summary Bar ── */}
-      {!loading && <SummaryBar bookings={bookings} />}
-
-      {/* ── Filter Tabs ── */}
-      <View style={styles.filterTabsWrapper}>
-        {FILTER_TABS.map((tab) => {
+      {/* TABS */}
+      <View style={styles.tabsContainer}>
+        {(['All', 'Trips', 'Hotels', 'Rentals'] as FilterType[]).map((tab) => {
           const isActive = activeTab === tab;
-          const count = bookings.filter((b) => b.tab === tab).length;
+          let icon = '';
+          if (tab === 'All') icon = 'grid-outline';
+          if (tab === 'Trips') icon = 'map-outline';
+          if (tab === 'Hotels') icon = 'business-outline';
+          if (tab === 'Rentals') icon = 'bicycle-outline'; 
+          
           return (
-            <TouchableOpacity
-              key={tab}
-              style={[styles.filterTab, isActive && styles.filterTabActive]}
+            <TouchableOpacity 
+              key={tab} 
+              style={[styles.tabBtn, isActive && styles.tabBtnActive]}
               onPress={() => setActiveTab(tab)}
-              activeOpacity={0.8}
+              activeOpacity={0.7}
             >
-              <Text style={[styles.filterTabText, isActive && styles.filterTabTextActive]}>
-                {tab}
-              </Text>
-              {count > 0 && (
-                <View style={[styles.filterTabCount, isActive && styles.filterTabCountActive]}>
-                  <Text
-                    style={[styles.filterTabCountText, isActive && styles.filterTabCountTextActive]}
-                  >
-                    {count}
-                  </Text>
-                </View>
-              )}
+              <Ionicons 
+                name={icon as any} 
+                size={16} 
+                color={isActive ? COLORS.primary : COLORS.gray} 
+              />
+              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>{tab}</Text>
             </TouchableOpacity>
           );
         })}
       </View>
 
-      {/* ── Content ── */}
       {loading ? (
-        <View style={styles.loadingContainer}>
+        <View style={styles.center}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading bookings…</Text>
         </View>
-      ) : filtered.length === 0 ? (
-        <EmptyState tab={activeTab} />
       ) : (
-        <ScrollView
-          style={styles.scroll}
+        <ScrollView 
+          style={styles.scroll} 
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={COLORS.primary}
-              colors={[COLORS.primary]}
-            />
-          }
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
         >
-          {grouped.map((section, sectionIndex) => (
-            <View key={section.sectionTitle}>
-              <View style={styles.sectionDateRow}>
-                <View style={styles.sectionDateDot} />
-                <Text style={styles.sectionDate}>{section.sectionTitle}</Text>
-                <Text style={styles.sectionCount}>
-                  {section.data.length} {section.data.length === 1 ? 'booking' : 'bookings'}
-                </Text>
+          {/* UPCOMING TRIPS */}
+          {upcoming.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleRow}>
+                  <Ionicons name="briefcase-outline" size={20} color={COLORS.gray} />
+                  <Text style={styles.sectionTitle}>Upcoming Trips</Text>
+                </View>
+                <TouchableOpacity>
+                  <Text style={styles.viewAllText}>View all <Ionicons name="chevron-forward" size={12} /></Text>
+                </TouchableOpacity>
               </View>
-              {section.data.map((booking, cardIndex) => (
-                <AnimatedCard
-                  key={booking.id}
-                  index={sectionIndex * section.data.length + cardIndex}
-                >
-                  <BookingCard booking={booking} onCancel={handleCancelBooking} />
-                </AnimatedCard>
-              ))}
-            </View>
-          ))}
 
-          {/* ── Need Help Banner ── */}
-          <TouchableOpacity
-            style={styles.helpBanner}
-            activeOpacity={0.9}
-            onPress={() => router.push('/extra/HelpSupport')}
-          >
+              {/* FEATURED CARD */}
+              <View style={styles.featuredCard}>
+                <View style={styles.featuredImageContainer}>
+                  {upcoming[0].image ? (
+                    <ExpoImage source={{ uri: upcoming[0].image }} style={styles.featuredImage} contentFit="cover" />
+                  ) : (
+                    <View style={[styles.featuredImage, { backgroundColor: COLORS.border, alignItems: 'center', justifyContent: 'center' }]}>
+                      <Ionicons name="image-outline" size={40} color={COLORS.lightGray} />
+                    </View>
+                  )}
+                  {/* Countdown Badge */}
+                  <View style={styles.countdownBadge}>
+                    <Text style={styles.countdownText}>
+                      {Math.max(1, Math.ceil((upcoming[0].rawDate - Date.now()) / (1000 * 60 * 60 * 24)))} Days to go
+                    </Text>
+                  </View>
+                </View>
+
+                <View style={styles.featuredContent}>
+                  <View style={styles.featuredRow}>
+                    <View style={{ flex: 1, paddingRight: 10 }}>
+                      <View style={[styles.typeBadge, { backgroundColor: getBadgeStyle(upcoming[0].type).bg }]}>
+                        <Text style={[styles.typeBadgeText, { color: getBadgeStyle(upcoming[0].type).color }]}>
+                          {getBadgeStyle(upcoming[0].type).label}
+                        </Text>
+                      </View>
+                      <Text style={styles.featuredTitle} numberOfLines={1}>{upcoming[0].title}</Text>
+                      <Text style={styles.featuredSubtitle} numberOfLines={1}>{upcoming[0].subtitle}</Text>
+                    </View>
+                    <View style={styles.bookingIdBadge}>
+                      <Text style={styles.bookingIdLabel}>Booking ID</Text>
+                      <Text style={styles.bookingIdText}>{upcoming[0].bookingId}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.featuredMeta}>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="calendar-outline" size={16} color={COLORS.gray} />
+                      <Text style={styles.metaText}>{upcoming[0].dateStr}</Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="time-outline" size={16} color={COLORS.gray} />
+                      <Text style={styles.metaText}>Starts at {upcoming[0].timeStr}</Text>
+                    </View>
+                    <View style={styles.metaItem}>
+                      <Ionicons name="people-outline" size={16} color={COLORS.gray} />
+                      <Text style={styles.metaText}>{upcoming[0].durationStr}</Text>
+                    </View>
+                  </View>
+
+                  {/* Avatars pile */}
+                  {upcoming[0].type === 'trip' && (
+                    <View style={styles.avatarPile}>
+                      <ExpoImage source={{ uri: 'https://i.pravatar.cc/150?u=1' }} style={styles.pileAvatar} />
+                      <ExpoImage source={{ uri: 'https://i.pravatar.cc/150?u=2' }} style={[styles.pileAvatar, { marginLeft: -10 }]} />
+                      <ExpoImage source={{ uri: 'https://i.pravatar.cc/150?u=3' }} style={[styles.pileAvatar, { marginLeft: -10 }]} />
+                      <View style={[styles.pileAvatarExtra, { marginLeft: -10 }]}>
+                        <Text style={styles.pileExtraText}>+1</Text>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* Actions */}
+                  <View style={[styles.featuredActions, upcoming[0].type !== 'trip' && { marginTop: 12 }]}>
+                    <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: upcoming[0].id }})}>
+                      <Text style={styles.actionBtnSecondaryText}>View Details</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => Alert.alert('Chat', 'Opening chat...')}>
+                      <Ionicons name="chatbubble-outline" size={16} color={COLORS.primary} style={{ marginRight: 4 }} />
+                      <Text style={styles.actionBtnSecondaryText}>Open Chat</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.actionBtnPrimary} onPress={() => Alert.alert('Itinerary', 'Viewing itinerary...')}>
+                      <Ionicons name="map-outline" size={16} color={COLORS.white} style={{ marginRight: 4 }} />
+                      <Text style={styles.actionBtnPrimaryText}>Trip Itinerary</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </View>
+
+              {/* COMPACT CARDS */}
+              {upcoming.slice(1).map((booking) => {
+                const badgeStyle = getBadgeStyle(booking.type);
+                return (
+                  <TouchableOpacity 
+                    key={booking.id} 
+                    style={styles.compactCard}
+                    onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: booking.id }})}
+                    activeOpacity={0.8}
+                  >
+                    {booking.image ? (
+                      <ExpoImage source={{ uri: booking.image }} style={styles.compactImage} contentFit="cover" />
+                    ) : (
+                      <View style={[styles.compactImage, { backgroundColor: COLORS.border, alignItems: 'center', justifyContent: 'center' }]}>
+                        <Ionicons name="image-outline" size={24} color={COLORS.lightGray} />
+                      </View>
+                    )}
+                    <View style={styles.compactInfo}>
+                      <View style={styles.compactTopRow}>
+                        <View style={[styles.typeBadgeCompact, { backgroundColor: badgeStyle.bg }]}>
+                          <Text style={[styles.typeBadgeTextCompact, { color: badgeStyle.color }]}>{badgeStyle.label}</Text>
+                        </View>
+                        <View style={styles.bookingIdBadgeCompact}>
+                          <Text style={styles.bookingIdLabelCompact}>Booking ID</Text>
+                          <Text style={[styles.bookingIdTextCompact, { color: badgeStyle.color }]}>{booking.bookingId}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.compactTitle} numberOfLines={1}>{booking.title}</Text>
+                      <Text style={styles.compactSubtitle} numberOfLines={1}>{booking.subtitle}</Text>
+                    </View>
+                    <View style={styles.compactRight}>
+                      <View style={styles.compactMetaRight}>
+                        <View style={styles.metaItem}>
+                          <Ionicons name="calendar-outline" size={12} color={COLORS.gray} />
+                          <Text style={styles.compactMetaText}>{booking.dateStr}</Text>
+                        </View>
+                        <View style={styles.metaItem}>
+                          <Ionicons name={booking.type === 'hotel' ? 'bed-outline' : booking.type === 'trip' ? 'people-outline' : 'time-outline'} size={12} color={COLORS.gray} />
+                          <Text style={styles.compactMetaText}>{booking.durationStr}</Text>
+                        </View>
+                      </View>
+                      <Ionicons name="chevron-forward" size={20} color={COLORS.lightGray} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
+
+          {/* PAST TRIPS */}
+          {past.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleRow}>
+                  <Ionicons name="time-outline" size={20} color={COLORS.gray} />
+                  <Text style={styles.sectionTitle}>Past Trips</Text>
+                </View>
+                <TouchableOpacity>
+                  <Text style={styles.viewAllText}>View all <Ionicons name="chevron-forward" size={12} /></Text>
+                </TouchableOpacity>
+              </View>
+              
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>
+                {past.map((booking) => (
+                  <View key={booking.id} style={styles.pastCard}>
+                    <View style={styles.pastImageContainer}>
+                      {booking.image ? (
+                        <ExpoImage source={{ uri: booking.image }} style={styles.pastImage} contentFit="cover" />
+                      ) : (
+                        <View style={[styles.pastImage, { backgroundColor: COLORS.border, alignItems: 'center', justifyContent: 'center' }]}>
+                          <Ionicons name="image-outline" size={30} color={COLORS.lightGray} />
+                        </View>
+                      )}
+                      <View style={styles.ratingBadge}>
+                        <Ionicons name="star" size={12} color={COLORS.white} />
+                        <Text style={styles.ratingText}>4.8</Text>
+                      </View>
+                    </View>
+                    <View style={styles.pastInfo}>
+                      <View style={[styles.typeBadge, { backgroundColor: getBadgeStyle(booking.type).bg, alignSelf: 'flex-start' }]}>
+                        <Text style={[styles.typeBadgeText, { color: getBadgeStyle(booking.type).color }]}>{getBadgeStyle(booking.type).label}</Text>
+                      </View>
+                      <Text style={styles.pastTitle} numberOfLines={1}>{booking.title}</Text>
+                      <View style={styles.metaItemPast}>
+                        <Ionicons name="time-outline" size={12} color={COLORS.gray} />
+                        <Text style={styles.pastMetaText}>{booking.dateStr}</Text>
+                      </View>
+                      <View style={styles.metaItemPast}>
+                        <Ionicons name="people-outline" size={12} color={COLORS.gray} />
+                        <Text style={styles.pastMetaText}>{booking.durationStr}</Text>
+                      </View>
+                      <TouchableOpacity 
+                        style={styles.reviewBtn}
+                        onPress={() => router.push({ pathname: '/more/RateAndReview', params: { bookingId: booking.id, itemId: booking.item_id }})}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={styles.reviewBtnText}>Write Review</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          )}
+
+          {/* EMPTY STATE */}
+          {!loading && upcoming.length === 0 && past.length === 0 && (
+            <View style={styles.emptyState}>
+              <View style={styles.emptyIconBox}>
+                <Ionicons name="file-tray-outline" size={48} color={COLORS.gray} />
+              </View>
+              <Text style={styles.emptyTitle}>No Bookings Found</Text>
+              <Text style={styles.emptySubtitle}>You don't have any bookings in this category yet.</Text>
+            </View>
+          )}
+
+          {/* BOOKINGS SUMMARY */}
+          {bookings.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionTitleRow}>
+                <Ionicons name="wallet-outline" size={20} color={COLORS.gray} />
+                <Text style={styles.sectionTitle}>Bookings Summary</Text>
+              </View>
+              <View style={styles.summaryGrid}>
+                <View style={[styles.summaryCard, { backgroundColor: COLORS.primaryLight }]}>
+                  <View style={[styles.summaryIconBox, { backgroundColor: COLORS.primary }]}>
+                    <Ionicons name="briefcase-outline" size={20} color={COLORS.white} />
+                  </View>
+                  <View>
+                    <Text style={styles.summaryLabel}>Upcoming</Text>
+                    <Text style={styles.summaryValue}>{totalUpcoming}</Text>
+                    <Text style={styles.summarySubLabel}>Bookings</Text>
+                  </View>
+                </View>
+                
+                <View style={[styles.summaryCard, { backgroundColor: COLORS.blueLight }]}>
+                  <View style={[styles.summaryIconBox, { backgroundColor: COLORS.blue }]}>
+                    <Ionicons name="checkmark-circle-outline" size={20} color={COLORS.white} />
+                  </View>
+                  <View>
+                    <Text style={styles.summaryLabel}>Completed</Text>
+                    <Text style={styles.summaryValue}>{totalCompleted}</Text>
+                    <Text style={styles.summarySubLabel}>Trips</Text>
+                  </View>
+                </View>
+                
+                <View style={[styles.summaryCard, { backgroundColor: COLORS.orangeLight }]}>
+                  <View style={[styles.summaryIconBox, { backgroundColor: COLORS.orange }]}>
+                    <Ionicons name="star-outline" size={20} color={COLORS.white} />
+                  </View>
+                  <View>
+                    <Text style={styles.summaryLabel}>Total Spent</Text>
+                    <Text style={styles.summaryValue}>₹{totalSpent.toLocaleString()}</Text>
+                    <Text style={styles.summarySubLabel}>All Time</Text>
+                  </View>
+                </View>
+                
+                <View style={[styles.summaryCard, { backgroundColor: COLORS.purpleLight }]}>
+                  <View style={[styles.summaryIconBox, { backgroundColor: COLORS.purple }]}>
+                    <Ionicons name="bookmark-outline" size={20} color={COLORS.white} />
+                  </View>
+                  <View>
+                    <Text style={styles.summaryLabel}>Saved</Text>
+                    <Text style={styles.summaryValue}>{savedTrips}</Text>
+                    <Text style={styles.summarySubLabel}>Trips</Text>
+                  </View>
+                </View>
+              </View>
+            </View>
+          )}
+
+          {/* HELP BANNER */}
+          <View style={styles.helpBanner}>
             <View style={styles.helpIconBox}>
-              <Ionicons name="headset-outline" size={24} color={COLORS.primary} />
+              <Ionicons name="shield-checkmark-outline" size={24} color={COLORS.primary} />
             </View>
-            <View style={styles.helpTextBox}>
-              <Text style={styles.helpTitle}>Need Help?</Text>
-              <Text style={styles.helpSubtitle}>Trip Support · We're here 24/7</Text>
+            <View style={styles.helpTextContainer}>
+              <Text style={styles.helpTitle}>Need help with a booking?</Text>
+              <Text style={styles.helpSubtitle}>Chat with our support team, we're here to help!</Text>
             </View>
-            <View style={styles.helpCallBtn}>
-              <Ionicons name="call" size={20} color={COLORS.white} />
-            </View>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.supportBtn} onPress={() => router.push('/extra/HelpSupport')}>
+              <Ionicons name="headset-outline" size={16} color={COLORS.primary} />
+              <Text style={styles.supportBtnText}>Contact Support</Text>
+            </TouchableOpacity>
+          </View>
 
-          <View style={styles.scrollBottomSpacer} />
+          <View style={{ height: 40 }} />
         </ScrollView>
       )}
     </View>
   );
 }
 
-// ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
     backgroundColor: COLORS.white,
   },
-
-  // Header
+  center: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   header: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 13,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
     backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
+  },
+  headerTitleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 5,
+    marginRight: -35,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: COLORS.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
+    padding: 4,
+    marginLeft: -4,
   },
   headerTitle: {
-    flex: 1,
-    fontSize: 18,
-    fontWeight: '700',
-    color: COLORS.darkGray,
-    letterSpacing: -0.3,
-  },
-  headerSpacer: {
-    width: 36,
-  },
-
-  // Summary Bar
-  summaryBar: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    backgroundColor: COLORS.background,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
-    gap: 8,
-  },
-  summaryItem: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 6,
-    borderRadius: 10,
-    backgroundColor: COLORS.white,
-    ...SHADOWS.small,
-  },
-  summaryCount: {
-    fontSize: 18,
+    fontSize: 24,
     fontWeight: '800',
     color: COLORS.darkGray,
-    letterSpacing: -0.3,
+    letterSpacing: -0.5,
   },
-  summaryLabel: {
-    fontSize: 10,
-    fontWeight: '600',
-    color: COLORS.mediumGray,
-    marginTop: 2,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-
-  // Filter Tabs
-  filterTabsWrapper: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-    backgroundColor: COLORS.white,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
-  },
-  filterTab: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 10,
-    borderRadius: 24,
-    backgroundColor: COLORS.background,
-    gap: 6,
-  },
-  filterTabActive: {
-    backgroundColor: COLORS.primary,
-    ...SHADOWS.small,
-  },
-  filterTabText: {
+  headerSubtitle: {
     fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.mediumGray,
+    color: COLORS.gray,
+    marginTop: 2,
   },
-  filterTabTextActive: {
-    color: COLORS.white,
-  },
-  filterTabCount: {
-    backgroundColor: COLORS.borderGray,
-    borderRadius: 12,
-    paddingHorizontal: 7,
-    paddingVertical: 2,
-  },
-  filterTabCountActive: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
-  },
-  filterTabCountText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: COLORS.mediumGray,
-  },
-  filterTabCountTextActive: {
-    color: COLORS.white,
-  },
-
-  // Loading
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
+  headerRight: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
   },
-  loadingText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: COLORS.mediumGray,
+  bellBtn: {
+    position: 'relative',
+    padding: 4,
   },
-
-  // Scroll
+  bellDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.orange,
+    borderWidth: 1,
+    borderColor: COLORS.white,
+  },
+  avatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.border,
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingBottom: 15,
+    gap: 8,
+    backgroundColor: COLORS.white,
+  },
+  tabBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    gap: 6,
+  },
+  tabBtnActive: {
+    borderColor: COLORS.primary,
+  },
+  tabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.gray,
+  },
+  tabTextActive: {
+    color: COLORS.primary,
+  },
   scroll: {
     flex: 1,
     backgroundColor: COLORS.background,
   },
   scrollContent: {
-    paddingHorizontal: 16,
     paddingTop: 20,
-    paddingBottom: 24,
+    paddingBottom: 40,
   },
-  scrollBottomSpacer: {
-    height: 20,
+  section: {
+    marginBottom: 24,
   },
-
-  // Section Date
-  sectionDateRow: {
+  sectionHeader: {
     flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: 20,
     marginBottom: 12,
-    marginLeft: 2,
-    gap: 8,
   },
-  sectionDateDot: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: COLORS.primary,
-  },
-  sectionDate: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.mediumGray,
-    letterSpacing: 0.2,
-  },
-  sectionCount: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: COLORS.mediumGray,
-    marginLeft: 'auto',
-  },
-
-  // Booking Card
-  bookingCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.borderGray,
-    overflow: 'hidden',
-    ...SHADOWS.small,
-  },
-  prePayBanner: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
-  },
-  prePayBannerText: {
-    fontSize: 13,
-    fontWeight: '700',
-    textAlign: 'center',
-  },
-  cardHeader: {
+  sectionTitleRow: {
     flexDirection: 'row',
-    padding: 16,
     alignItems: 'center',
-    gap: 14,
+    gap: 8,
+    paddingHorizontal: 20,
+    marginBottom: 12,
   },
-  vehicleImage: {
-    width: 68,
-    height: 68,
-    borderRadius: 16,
-    flexShrink: 0,
-    backgroundColor: COLORS.background,
-    ...SHADOWS.small,
-  },
-  vehicleImagePlaceholder: {
-    width: 68,
-    height: 68,
-    borderRadius: 16,
-    backgroundColor: COLORS.background,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-    gap: 4,
-    ...SHADOWS.small,
-  },
-  cardHeaderInfo: {
-    flex: 1,
-    gap: 5,
-  },
-  vehicleName: {
-    fontSize: 16,
+  sectionTitle: {
+    fontSize: 18,
     fontWeight: '800',
     color: COLORS.darkGray,
-    letterSpacing: -0.3,
+  },
+  viewAllText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+  },
+  
+  // Featured Card
+  featuredCard: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+    marginBottom: 16,
+  },
+  featuredImageContainer: {
+    position: 'relative',
+  },
+  featuredImage: {
+    width: '100%',
+    height: 180,
+  },
+  countdownBadge: {
+    position: 'absolute',
+    top: 12,
+    left: 12,
+    backgroundColor: 'rgba(31, 41, 55, 0.75)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 12,
+  },
+  countdownText: {
+    color: COLORS.white,
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  featuredContent: {
+    padding: 16,
+  },
+  featuredRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 12,
+  },
+  typeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+    marginBottom: 8,
+  },
+  typeBadgeText: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  featuredTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.darkGray,
     marginBottom: 2,
   },
-  metaRow: {
+  featuredSubtitle: {
+    fontSize: 13,
+    color: COLORS.gray,
+  },
+  bookingIdBadge: {
+    backgroundColor: COLORS.background,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  bookingIdLabel: {
+    fontSize: 9,
+    color: COLORS.lightGray,
+    fontWeight: '700',
+  },
+  bookingIdText: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+  },
+  featuredMeta: {
+    marginBottom: 16,
+    gap: 8,
+  },
+  metaItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 8,
   },
   metaText: {
     fontSize: 13,
-    color: COLORS.mediumGray,
+    color: COLORS.gray,
     fontWeight: '500',
   },
-  statusBadge: {
+  avatarPile: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 20,
-    alignSelf: 'flex-start',
-    flexShrink: 0,
-    gap: 4,
+    marginBottom: 16,
   },
-  statusIcon: {
-    marginRight: 0,
+  pileAvatar: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: COLORS.white,
   },
-  statusText: {
-    fontSize: 11,
-    fontWeight: '800',
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
-  },
-
-  // Divider
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.borderGray,
-    marginHorizontal: 16,
-  },
-
-  // Trip Details
-  tripDetailsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  tripDetailItem: {
-    flex: 1,
-    gap: 6,
-  },
-  tripDetailDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: COLORS.borderGray,
-    marginHorizontal: 16,
-  },
-  tripDetailLabel: {
-    fontSize: 10,
-    color: COLORS.mediumGray,
-    fontWeight: '800',
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-  },
-  tripDetailValueRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  tripDetailValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.darkGray,
-    flex: 1,
-  },
-  totalAmountText: {
-    color: COLORS.primary,
-    fontSize: 16,
-  },
-
-  // Action Buttons
-  actionRow: {
-    flexDirection: 'row',
-    gap: 12,
-    padding: 16,
+  pileAvatarExtra: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: COLORS.background,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  guideStatusBox: {
+  pileExtraText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.gray,
+  },
+  featuredActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  actionBtnSecondary: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 11,
-    borderRadius: 10,
-    gap: 8,
+    paddingVertical: 12,
+    borderRadius: 8,
     borderWidth: 1,
-    backgroundColor: COLORS.orangeLight,
-    borderColor: COLORS.orangeBorder,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.white,
   },
-  guideStatusText: {
-    color: COLORS.orange,
+  actionBtnSecondaryText: {
+    color: COLORS.primary,
     fontSize: 13,
     fontWeight: '700',
   },
-  primaryBtn: {
-    flex: 1,
+  actionBtnPrimary: {
+    flex: 1.2,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    paddingVertical: 12,
+    borderRadius: 8,
     backgroundColor: COLORS.primary,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
   },
-  primaryBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
+  actionBtnPrimaryText: {
     color: COLORS.white,
+    fontSize: 13,
+    fontWeight: '700',
   },
-  secondaryBtn: {
-    flex: 1,
+  
+  // Compact Card
+  compactCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.borderGray,
     backgroundColor: COLORS.white,
-    gap: 6,
-  },
-  secondaryBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.darkGray,
-  },
-  dangerBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
+    marginHorizontal: 20,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.dangerBorder,
-    backgroundColor: COLORS.dangerSurface,
-    gap: 6,
+    borderColor: COLORS.border,
+    padding: 12,
+    marginBottom: 12,
+    alignItems: 'center',
   },
-  dangerBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.danger,
+  compactImage: {
+    width: 70,
+    height: 70,
+    borderRadius: 8,
   },
-  tealBtn: {
+  compactInfo: {
     flex: 1,
+    marginLeft: 12,
+    justifyContent: 'center',
+  },
+  compactTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.teal,
-    paddingVertical: 12,
-    borderRadius: 12,
-    gap: 8,
+    justifyContent: 'space-between',
+    marginBottom: 6,
   },
-  tealBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
+  typeBadgeCompact: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  typeBadgeTextCompact: {
+    fontSize: 8,
+    fontWeight: '800',
+    letterSpacing: 0.5,
+  },
+  bookingIdBadgeCompact: {
+    backgroundColor: COLORS.purpleLight, // Can be dynamic based on type, using a neutral or light color
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 4,
+  },
+  bookingIdLabelCompact: {
+    fontSize: 8,
+    color: COLORS.gray,
+    fontWeight: '600',
+  },
+  bookingIdTextCompact: {
+    fontSize: 9,
+    fontWeight: '800',
+  },
+  compactTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    marginBottom: 2,
+  },
+  compactSubtitle: {
+    fontSize: 12,
+    color: COLORS.gray,
+  },
+  compactRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginLeft: 4,
+  },
+  compactMetaRight: {
+    alignItems: 'flex-end',
+    marginRight: 8,
+    gap: 4,
+  },
+  compactMetaText: {
+    fontSize: 11,
+    color: COLORS.gray,
+    fontWeight: '500',
+  },
+
+  // Past Trips
+  horizontalScroll: {
+    paddingHorizontal: 20,
+    gap: 16,
+  },
+  pastCard: {
+    width: 220,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    overflow: 'hidden',
+  },
+  pastImageContainer: {
+    position: 'relative',
+  },
+  pastImage: {
+    width: '100%',
+    height: 120,
+  },
+  ratingBadge: {
+    position: 'absolute',
+    top: 8,
+    left: 8,
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    gap: 4,
+  },
+  ratingText: {
     color: COLORS.white,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  pastInfo: {
+    padding: 12,
+  },
+  pastTitle: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    marginBottom: 8,
+  },
+  metaItemPast: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 4,
+  },
+  pastMetaText: {
+    fontSize: 12,
+    color: COLORS.gray,
+    fontWeight: '500',
+  },
+  reviewBtn: {
+    marginTop: 10,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+  },
+  reviewBtnText: {
+    color: COLORS.primary,
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // Summary Grid
+  summaryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  summaryCard: {
+    width: '48%',
+    borderRadius: 12,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  summaryIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  summaryLabel: {
+    fontSize: 11,
+    color: COLORS.gray,
+    fontWeight: '600',
+  },
+  summaryValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    marginVertical: 2,
+  },
+  summarySubLabel: {
+    fontSize: 10,
+    color: COLORS.lightGray,
+    fontWeight: '500',
   },
 
   // Help Banner
   helpBanner: {
+    marginHorizontal: 20,
+    backgroundColor: COLORS.primaryLight, 
+    borderRadius: 12,
+    padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 14,
-    marginTop: 4,
     borderWidth: 1,
-    borderColor: COLORS.surfaceGray,
-    gap: 12,
-    ...SHADOWS.medium,
+    borderColor: COLORS.border,
   },
   helpIconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.primaryLight,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(22, 163, 74, 0.1)',
     alignItems: 'center',
     justifyContent: 'center',
+    marginRight: 12,
   },
-  helpTextBox: {
+  helpTextContainer: {
     flex: 1,
-    gap: 3,
   },
   helpTitle: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '800',
     color: COLORS.darkGray,
+    marginBottom: 2,
   },
   helpSubtitle: {
-    fontSize: 12,
-    color: COLORS.mediumGray,
+    fontSize: 11,
+    color: COLORS.gray,
     fontWeight: '500',
   },
-  helpCallBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
-    backgroundColor: COLORS.primary,
+  supportBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    gap: 6,
+    marginLeft: 12,
+  },
+  supportBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
   },
 
   // Empty State
   emptyState: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 40,
-    gap: 12,
-    backgroundColor: COLORS.background,
+    paddingVertical: 60,
   },
   emptyIconBox: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: COLORS.border,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   emptyTitle: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '800',
     color: COLORS.darkGray,
-    letterSpacing: -0.5,
+    marginBottom: 4,
   },
   emptySubtitle: {
-    fontSize: 14,
-    color: COLORS.mediumGray,
-    textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 20,
-  },
-  emptyBtn: {
-    marginTop: 16,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 16,
-  },
-  emptyBtnText: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: COLORS.white,
+    fontSize: 13,
+    color: COLORS.gray,
   },
 });

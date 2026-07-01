@@ -22,7 +22,7 @@ import {
   type Booking,
   type BookingRequest,
   type BookingStatus,
-} from '../../services/firestore';
+} from '../../services/database';
 import { useFocusEffect, router } from 'expo-router';
 import { 
   Clock, 

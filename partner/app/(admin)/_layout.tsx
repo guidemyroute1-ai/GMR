@@ -21,6 +21,7 @@ const tabStyles = StyleSheet.create({
     paddingTop: 4,
   },
 });
+import { supabase } from '../../services/supabase';
 
 export default function AdminLayout() {
   const { setIsAdmin } = useAuthStore();
@@ -29,8 +30,9 @@ export default function AdminLayout() {
   const bottomPadding = insets.bottom > 0 ? insets.bottom : 12;
   const tabHeight = 60 + bottomPadding;
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     setIsAdmin(false);
+    await supabase.auth.signOut();
     router.replace('/auth/login');
   };
 

@@ -13,7 +13,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { Colors } from '../../constants/colors';
 
 import { Spacing, Radius, FontSize } from '../../constants/theme';
-import { getBookings, computeEarnings, type Booking } from '../../services/firestore';
+import { getBookings, computeEarnings, type Booking } from '../../services/database';
 import { Compass, Hotel, Bike, CalendarDays, CheckCircle2, Clock, ClipboardList, Plus, MessageSquare, BarChart3, Inbox } from 'lucide-react-native';
 
 export default function DashboardScreen() {

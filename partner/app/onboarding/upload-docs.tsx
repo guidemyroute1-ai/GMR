@@ -37,9 +37,12 @@ export default function DocumentUploadScreen() {
       });
 
       if (!result.canceled) {
-        // Append new files without duplicates by uri
         const newFiles = [...files];
         result.assets.forEach(asset => {
+          if (asset.size && asset.size > 10 * 1024 * 1024) {
+            Alert.alert('File Too Large', `${asset.name} is larger than 10MB.`);
+            return;
+          }
           if (!newFiles.find(f => f.uri === asset.uri)) {
             newFiles.push(asset);
           }
@@ -61,6 +64,10 @@ export default function DocumentUploadScreen() {
 
     if (!result.canceled) {
       const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+        Alert.alert('File Too Large', 'Please select a video smaller than 10MB.');
+        return;
+      }
       const durationMs = asset.duration;
       // Duration check: 30s (30000ms) to 60s (60000ms)
       if (durationMs && (durationMs < 29000 || durationMs > 61000)) {
@@ -93,6 +100,10 @@ export default function DocumentUploadScreen() {
 
     if (!result.canceled) {
       const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+        Alert.alert('File Too Large', 'Please record a video smaller than 10MB.');
+        return;
+      }
       const durationMs = asset.duration;
       // Duration check: 30s (30000ms) to 60s (60000ms)
       if (durationMs && (durationMs < 29000 || durationMs > 61000)) {
@@ -117,6 +128,10 @@ export default function DocumentUploadScreen() {
 
     if (!result.canceled) {
       const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+        Alert.alert('File Too Large', 'Please select an image smaller than 10MB.');
+        return;
+      }
       const newFiles = [...files];
       if (!newFiles.find(f => f.uri === asset.uri)) {
         newFiles.push({
@@ -145,6 +160,10 @@ export default function DocumentUploadScreen() {
 
     if (!result.canceled) {
       const asset = result.assets[0];
+      if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
+        Alert.alert('File Too Large', 'Please take a photo smaller than 10MB.');
+        return;
+      }
       const newFiles = [...files];
       if (!newFiles.find(f => f.uri === asset.uri)) {
         newFiles.push({
@@ -166,18 +185,20 @@ export default function DocumentUploadScreen() {
     setVideoFile(null);
   };
 
-  const handleSkip = async () => {
-    if (!user) return;
-
-    await updateUserProfile(user.uid, {
-      isOnboarded: true,
-    });
-    setProfile({
-      ...profile!,
-      isOnboarded: true,
-    });
-
-    router.replace('/(tabs)/dashboard');
+  const handleSkip = () => {
+    Alert.alert('Skip Upload', 'Are you sure you want to skip? Your profile will not be live until verified.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Skip',
+        style: 'default',
+        onPress: async () => {
+          if (!user) return;
+          await updateUserProfile(user.uid, { isOnboarded: true });
+          setProfile({ ...profile!, isOnboarded: true });
+          router.replace('/(tabs)/dashboard');
+        }
+      }
+    ]);
   };
 
   const handleSubmit = async () => {
@@ -214,7 +235,7 @@ export default function DocumentUploadScreen() {
         kycVideoUrl = await uploadToSupabase(videoFile.uri, mimeType, fileName, 'documents');
       }
 
-      // Update firestore profile
+      // Update Supabase profile
       const newDocs = [...(profile?.documents || []), ...uploadedUrls];
       await updateUserProfile(user.uid, {
         hasUploadedDocs: true,
@@ -249,7 +270,7 @@ export default function DocumentUploadScreen() {
           <Text style={styles.brandText}>Verification</Text>
         </View>
         <View style={styles.stepBadge}>
-          <Text style={styles.stepText}>Step 4 of 4</Text>
+          <Text style={styles.stepText}>Step 6 of 6</Text>
         </View>
       </View>
 
