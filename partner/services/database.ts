@@ -13,6 +13,8 @@ export interface BookingRequest {
   itemName: string;
   note?: string;
   createdAt: string;
+  days?: number;
+  bookingType?: string;
 }
 
 function mapBookingRequest(row: any): BookingRequest {
@@ -30,6 +32,8 @@ function mapBookingRequest(row: any): BookingRequest {
     itemName: b.item_name || 'Trip',
     note: b.note || '',
     createdAt: row.created_at || '',
+    days: b.days || undefined,
+    bookingType: b.booking_type || b.type || undefined,
   };
 }
 
@@ -63,7 +67,7 @@ export async function getBookingRequests(guideId: string): Promise<BookingReques
   const bookingIds = [...new Set(reqRows.map((r: any) => r.booking_id))];
   const { data: bookingRows, error: bookingError } = await supabase
     .from('bookings')
-    .select('id, city, guest_name, date, amount, price, item_name, note, created_at, pre_payment_status, status')
+    .select('id, city, guest_name, date, amount, price, item_name, note, created_at, pre_payment_status, status, days, booking_type, type')
     .in('id', bookingIds);
 
   if (bookingError) throw bookingError;
@@ -87,6 +91,8 @@ export async function getBookingRequests(guideId: string): Promise<BookingReques
       itemName: b.item_name || 'Trip',
       note: b.note || '',
       createdAt: row.created_at || '',
+      days: b.days || undefined,
+      bookingType: b.booking_type || b.type || undefined,
     };
   });
 }
@@ -167,6 +173,9 @@ export interface Booking {
   price: number;
   status: BookingStatus;
   note?: string;
+  itemName?: string;
+  city?: string;
+  days?: number;
 }
 
 export interface Listing {
@@ -191,6 +200,9 @@ function mapBooking(row: any): Booking {
     price: Number(row.price ?? row.amount ?? 0),
     status: row.status || 'pending',
     note: row.note || '',
+    itemName: row.item_name || '',
+    city: row.city || '',
+    days: row.days || undefined,
   };
 }
 

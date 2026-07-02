@@ -15,6 +15,7 @@ import type { UserRole } from '../../services/auth';
 import { Compass, Hotel, Bike, ArrowLeft, Check, ChevronRight } from 'lucide-react-native';
 import { Text } from '../../components/Text';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
 
@@ -80,14 +81,14 @@ export default function RoleScreen() {
           </Text>
 
           <View style={styles.rolesContainer}>
-            {roles.map((role) => {
+            {roles.map((role, index) => {
               const isSelected = selected === role.id;
               const Icon = role.Icon;
 
               return (
-                <TouchableOpacity
-                  key={role.id}
-                  activeOpacity={0.9}
+                <Animated.View key={role.id} entering={FadeInUp.duration(500).springify().delay(index * 100)}>
+                  <TouchableOpacity
+                    activeOpacity={0.9}
                   onPress={() => setSelected(role.id)}
                   style={[
                     styles.roleCard,
@@ -126,7 +127,8 @@ export default function RoleScreen() {
                       <View style={styles.radioInner} />
                     )}
                   </View>
-                </TouchableOpacity>
+                  </TouchableOpacity>
+                </Animated.View>
               );
             })}
           </View>

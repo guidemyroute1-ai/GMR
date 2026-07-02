@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
+import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
@@ -228,36 +229,42 @@ export default function ProfileSetup2Screen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.heading}>More Details</Text>
-          <Text style={styles.subheading}>
-            Provide more specific details about your offerings.
-          </Text>
+          <Animated.View entering={FadeInDown.duration(600).springify()}>
+            <Text style={styles.heading}>More Details</Text>
+            <Text style={styles.subheading}>
+              Provide more specific details about your offerings.
+            </Text>
+          </Animated.View>
 
-          {role === 'guide' && (
-            <GuideFormPart2 data={formData} onChange={setFormData} />
-          )}
-          {role === 'hotel' && (
-            <HotelFormPart2 data={formData} onChange={setFormData} />
-          )}
-          {role === 'rental' && (
-            <RentalFormPart2 data={formData} onChange={setFormData} />
-          )}
-
-          <TouchableOpacity
-            style={[styles.saveBtn, (!isValid || loading) && styles.saveBtnDisabled]}
-            onPress={handleSave}
-            disabled={!isValid || loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color={Colors.white} />
-            ) : (
-              <View style={styles.saveBtnContent}>
-                <CheckCircle2 color={Colors.white} size={20} />
-                <Text style={styles.saveBtnText}>Continue to Verification</Text>
-              </View>
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(150)}>
+            {role === 'guide' && (
+              <GuideFormPart2 data={formData} onChange={setFormData} />
             )}
-          </TouchableOpacity>
+            {role === 'hotel' && (
+              <HotelFormPart2 data={formData} onChange={setFormData} />
+            )}
+            {role === 'rental' && (
+              <RentalFormPart2 data={formData} onChange={setFormData} />
+            )}
+          </Animated.View>
+
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(300)}>
+            <TouchableOpacity
+              style={[styles.saveBtn, (!isValid || loading) && styles.saveBtnDisabled]}
+              onPress={handleSave}
+              disabled={!isValid || loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator color={Colors.white} />
+              ) : (
+                <View style={styles.saveBtnContent}>
+                  <CheckCircle2 color={Colors.white} size={20} />
+                  <Text style={styles.saveBtnText}>Continue to Verification</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

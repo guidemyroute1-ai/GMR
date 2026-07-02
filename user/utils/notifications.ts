@@ -93,7 +93,7 @@ export async function handleNotificationTap(
   const amount = typeof data.amount === 'string' ? data.amount : '';
   const description = typeof data.description === 'string' ? data.description : 'Guide Booking';
 
-  if (type === 'guide_accepted') {
+  if (type === 'guide_accepted' || type === 'booking_accepted') {
     if (bookingId && amount) {
       router.push({
         pathname: '/more/payment',

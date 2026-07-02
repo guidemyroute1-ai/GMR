@@ -53,6 +53,7 @@ interface Booking {
   bookingId: string;
   item_id?: string;
   rawDate: number;
+  prePaymentStatus?: string;
 }
 
 export default function MyBookingsScreen() {
@@ -149,6 +150,7 @@ export default function MyBookingsScreen() {
           bookingId: `${prefix}${bId}`,
           item_id: row.item_id,
           rawDate: dateObj.getTime(),
+          prePaymentStatus: row.pre_payment_status,
         };
       });
 
@@ -327,10 +329,15 @@ export default function MyBookingsScreen() {
                     <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: upcoming[0].id }})}>
                       <Text style={styles.actionBtnSecondaryText}>View Details</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.actionBtnSecondary} onPress={() => Alert.alert('Chat', 'Opening chat...')}>
-                      <Ionicons name="chatbubble-outline" size={16} color={COLORS.primary} style={{ marginRight: 4 }} />
-                      <Text style={styles.actionBtnSecondaryText}>Open Chat</Text>
-                    </TouchableOpacity>
+                    {upcoming[0].prePaymentStatus === 'awaiting_payment' && (
+                      <TouchableOpacity 
+                        style={styles.actionBtnSecondary} 
+                        onPress={() => router.push({ pathname: '/more/bookingDetail', params: { id: upcoming[0].id }})}
+                      >
+                        <Ionicons name="card-outline" size={16} color={COLORS.primary} style={{ marginRight: 4 }} />
+                        <Text style={styles.actionBtnSecondaryText}>Pay Now</Text>
+                      </TouchableOpacity>
+                    )}
                     <TouchableOpacity style={styles.actionBtnPrimary} onPress={() => Alert.alert('Itinerary', 'Viewing itinerary...')}>
                       <Ionicons name="map-outline" size={16} color={COLORS.white} style={{ marginRight: 4 }} />
                       <Text style={styles.actionBtnPrimaryText}>Trip Itinerary</Text>

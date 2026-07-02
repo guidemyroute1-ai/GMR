@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
+import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
@@ -205,32 +206,38 @@ export default function ProfileSetupScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.heading}>Basic Information</Text>
-          <Text style={styles.subheading}>
-            Let's start with some basic details about your business.
-          </Text>
+          <Animated.View entering={FadeInDown.duration(600).springify()}>
+            <Text style={styles.heading}>Basic Information</Text>
+            <Text style={styles.subheading}>
+              Let's start with some basic details about your business.
+            </Text>
+          </Animated.View>
 
-          {role === 'guide' && (
-            <GuideFormPart1 data={formData} onChange={setFormData} cityOptions={cityOptions} />
-          )}
-          {role === 'hotel' && (
-            <HotelFormPart1 data={formData} onChange={setFormData} cityOptions={cityOptions} />
-          )}
-          {role === 'rental' && (
-            <RentalFormPart1 data={formData} onChange={setFormData} cityOptions={cityOptions} />
-          )}
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(150)}>
+            {role === 'guide' && (
+              <GuideFormPart1 data={formData} onChange={setFormData} cityOptions={cityOptions} />
+            )}
+            {role === 'hotel' && (
+              <HotelFormPart1 data={formData} onChange={setFormData} cityOptions={cityOptions} />
+            )}
+            {role === 'rental' && (
+              <RentalFormPart1 data={formData} onChange={setFormData} cityOptions={cityOptions} />
+            )}
+          </Animated.View>
 
-          <TouchableOpacity
-            style={[styles.saveBtn, !isValid && styles.saveBtnDisabled]}
-            onPress={handleNext}
-            disabled={!isValid}
-            activeOpacity={0.85}
-          >
-            <View style={styles.saveBtnContent}>
-              <Text style={styles.saveBtnText}>Continue</Text>
-              <ArrowRight color={Colors.white} size={20} />
-            </View>
-          </TouchableOpacity>
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(300)}>
+            <TouchableOpacity
+              style={[styles.saveBtn, !isValid && styles.saveBtnDisabled]}
+              onPress={handleNext}
+              disabled={!isValid}
+              activeOpacity={0.85}
+            >
+              <View style={styles.saveBtnContent}>
+                <Text style={styles.saveBtnText}>Continue</Text>
+                <ArrowRight color={Colors.white} size={20} />
+              </View>
+            </TouchableOpacity>
+          </Animated.View>
         </ScrollView>
       </KeyboardAvoidingView>
     </View>

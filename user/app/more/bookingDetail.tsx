@@ -76,6 +76,7 @@ interface BookingDetail {
   partnerLat?: number | null;
   partnerLng?: number | null;
   partner_id?: string | null;
+  pre_payment_status?: string | null;
 }
 
 const STATUS_CONFIG: Record<StatusType, { color: string; bg: string; icon: any }> = {
@@ -143,6 +144,7 @@ export default function BookingDetailScreen() {
             partner_id: data.partner_id || null,
             partnerLat: null,
             partnerLng: null,
+            pre_payment_status: data.pre_payment_status || null,
           });
 
           // Fetch partner's pinned coordinates if partner_id exists
@@ -258,6 +260,8 @@ export default function BookingDetailScreen() {
   }
 
   const statusConfig = STATUS_CONFIG[booking.status];
+  const baseFare = (booking.price_per_day && booking.days) ? booking.price_per_day * booking.days : booking.totalAmount;
+  const taxesAndFees = booking.totalAmount - baseFare;
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -344,12 +348,12 @@ export default function BookingDetailScreen() {
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Price Summary</Text>
           <View style={styles.priceRow}>
-            <Text style={styles.priceLabel}>Base Fare ({booking.duration})</Text>
-            <Text style={styles.priceValue}>₹{(booking.price_per_day * booking.days).toLocaleString()}</Text>
+            <Text style={styles.priceLabel}>Base Fare {booking.duration !== 'N/A' ? `(${booking.duration})` : ''}</Text>
+            <Text style={styles.priceValue}>₹{baseFare.toLocaleString()}</Text>
           </View>
           <View style={styles.priceRow}>
             <Text style={styles.priceLabel}>Taxes & Fees</Text>
-            <Text style={styles.priceValue}>₹0</Text>
+            <Text style={styles.priceValue}>₹{taxesAndFees.toLocaleString()}</Text>
           </View>
           <View style={styles.divider} />
           <View style={styles.priceRow}>
@@ -358,9 +362,11 @@ export default function BookingDetailScreen() {
               ₹{booking.totalAmount.toLocaleString()}
             </Text>
           </View>
-          <View style={styles.paymentInfo}>
-            <Ionicons name="shield-checkmark-outline" size={14} color={COLORS.success} />
-            <Text style={styles.paymentInfoText}>Payment Securely Processed</Text>
+          <View style={[styles.paymentInfo, booking.pre_payment_status === 'awaiting_payment' && { backgroundColor: '#FFF7ED' }]}>
+            <Ionicons name={booking.pre_payment_status === 'awaiting_payment' ? "time-outline" : "shield-checkmark-outline"} size={14} color={booking.pre_payment_status === 'awaiting_payment' ? COLORS.orange : COLORS.success} />
+            <Text style={[styles.paymentInfoText, booking.pre_payment_status === 'awaiting_payment' && { color: COLORS.orange }]}>
+              {booking.pre_payment_status === 'awaiting_payment' ? 'Awaiting Payment' : 'Payment Securely Processed'}
+            </Text>
           </View>
         </View>
 
@@ -404,12 +410,28 @@ export default function BookingDetailScreen() {
             >
               <Text style={[styles.actionBtnText, { color: COLORS.danger }]}>Cancel</Text>
             </TouchableOpacity>
-            <TouchableOpacity 
-              style={[styles.actionBtn, { flex: 2, backgroundColor: COLORS.primary }]}
-              onPress={handleGetDirections}
-            >
-              <Text style={styles.actionBtnText}>Start Trip</Text>
-            </TouchableOpacity>
+            {booking.pre_payment_status === 'awaiting_payment' ? (
+              <TouchableOpacity 
+                style={[styles.actionBtn, { flex: 2, backgroundColor: COLORS.primary }]}
+                onPress={() => router.push({
+                  pathname: '/more/payment',
+                  params: {
+                    bookingId: booking.id,
+                    amount: booking.totalAmount.toString(),
+                    description: booking.vehicleName || 'Booking',
+                  },
+                })}
+              >
+                <Text style={styles.actionBtnText}>Pay Now</Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity 
+                style={[styles.actionBtn, { flex: 2, backgroundColor: COLORS.primary }]}
+                onPress={handleGetDirections}
+              >
+                <Text style={styles.actionBtnText}>Start Trip</Text>
+              </TouchableOpacity>
+            )}
           </View>
         )}
       </View>

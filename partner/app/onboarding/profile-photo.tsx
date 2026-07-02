@@ -8,6 +8,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import * as ImagePicker from 'expo-image-picker';
 import { Camera, Image as ImageIcon, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { updateUserProfile, uploadToSupabase } from '../../services/auth';
+import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 
 export default function ProfilePhotoScreen() {
   const { user, profile, setProfile } = useAuthStore();
@@ -94,10 +95,12 @@ export default function ProfilePhotoScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Add Your Photos</Text>
-        <Text style={styles.subtitle}>Help travelers recognize you by adding a clear profile photo.</Text>
+        <Animated.View entering={FadeInDown.duration(600).springify()}>
+          <Text style={styles.title}>Add Your Photos</Text>
+          <Text style={styles.subtitle}>Help travelers recognize you by adding a clear profile photo.</Text>
+        </Animated.View>
 
-        <View style={styles.section}>
+        <Animated.View entering={FadeInUp.duration(500).springify().delay(100)} style={styles.section}>
           <Text style={styles.label}>Profile Photo *</Text>
           <View style={styles.photoContainer}>
             {profileImage ? (
@@ -118,9 +121,9 @@ export default function ProfilePhotoScreen() {
               <Text style={styles.actionText}>Camera</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
 
-        <View style={styles.section}>
+        <Animated.View entering={FadeInUp.duration(500).springify().delay(200)} style={styles.section}>
           <Text style={styles.label}>Cover Photo (Optional)</Text>
           <View style={styles.photoContainer}>
             {coverImage ? (
@@ -141,9 +144,10 @@ export default function ProfilePhotoScreen() {
               <Text style={styles.actionText}>Camera</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
 
-        <TouchableOpacity 
+        <Animated.View entering={FadeInUp.duration(500).springify().delay(300)}>
+          <TouchableOpacity 
           style={[styles.saveBtn, (!profileImage || loading) && styles.saveBtnDisabled]} 
           onPress={handleSave}
           disabled={!profileImage || loading}
@@ -157,6 +161,7 @@ export default function ProfilePhotoScreen() {
             </View>
           )}
         </TouchableOpacity>
+        </Animated.View>
       </ScrollView>
     </View>
   );

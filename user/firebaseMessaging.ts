@@ -38,14 +38,7 @@ messaging().setBackgroundMessageHandler(async (remoteMessage) => {
     remoteMessage.notification?.body ||
     'You have a new notification.';
 
-  await ExpoNotifications.scheduleNotificationAsync({
-    content: {
-      title,
-      body,
-      data: remoteMessage.data ?? {},
-      sound: 'default',
-      ...(Platform.OS === 'android' && { channelId: CHANNEL_ID }),
-    },
-    trigger: null,
-  }).catch((err) => console.error('[BG] scheduleNotificationAsync failed:', err));
+  // We don't call ExpoNotifications.scheduleNotificationAsync here because the FCM payload
+  // includes a `notification` block, which the OS handles automatically in the background.
+  // Scheduling a local notification here would cause a duplicate to appear.
 });

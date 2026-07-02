@@ -8,6 +8,7 @@ import {
   Alert,
   ActivityIndicator,
 } from 'react-native';
+import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
@@ -275,32 +276,36 @@ export default function DocumentUploadScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Text style={styles.heading}>Upload{'\n'}Documents</Text>
-        <Text style={styles.subheading}>
-          To verify your account, please upload related business licenses or an Identity Proof.
-          You can do this later, but creating listings requires verified documents.
-        </Text>
+        <Animated.View entering={FadeInDown.duration(600).springify()}>
+          <Text style={styles.heading}>Upload{'\n'}Documents</Text>
+          <Text style={styles.subheading}>
+            To verify your account, please upload related business licenses or an Identity Proof.
+            You can do this later, but creating listings requires verified documents.
+          </Text>
+        </Animated.View>
 
-        <View style={styles.uploadOptions}>
-          <TouchableOpacity style={styles.uploadBox} onPress={handlePickDocuments} activeOpacity={0.8}>
-            <UploadCloud color={Colors.primary} size={32} style={{ marginBottom: 8 }} />
-            <Text style={styles.uploadText}>Files</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.uploadBox} onPress={handlePickImage} activeOpacity={0.8}>
-            <ImageIcon color={Colors.primary} size={32} style={{ marginBottom: 8 }} />
-            <Text style={styles.uploadText}>Gallery</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.uploadBox} onPress={handleTakePhoto} activeOpacity={0.8}>
-            <Camera color={Colors.primary} size={32} style={{ marginBottom: 8 }} />
-            <Text style={styles.uploadText}>Camera</Text>
-          </TouchableOpacity>
-        </View>
-        <Text style={[styles.uploadSubhint, { textAlign: 'center', marginBottom: Spacing.lg }]}>
-          Supported formats: PDF, JPEG, PNG
-        </Text>
+        <Animated.View entering={FadeInUp.duration(500).springify().delay(100)}>
+          <View style={styles.uploadOptions}>
+            <TouchableOpacity style={styles.uploadBox} onPress={handlePickDocuments} activeOpacity={0.8}>
+              <UploadCloud color={Colors.primary} size={32} style={{ marginBottom: 8 }} />
+              <Text style={styles.uploadText}>Files</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.uploadBox} onPress={handlePickImage} activeOpacity={0.8}>
+              <ImageIcon color={Colors.primary} size={32} style={{ marginBottom: 8 }} />
+              <Text style={styles.uploadText}>Gallery</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.uploadBox} onPress={handleTakePhoto} activeOpacity={0.8}>
+              <Camera color={Colors.primary} size={32} style={{ marginBottom: 8 }} />
+              <Text style={styles.uploadText}>Camera</Text>
+            </TouchableOpacity>
+          </View>
+          <Text style={[styles.uploadSubhint, { textAlign: 'center', marginBottom: Spacing.lg }]}>
+            Supported formats: PDF, JPEG, PNG
+          </Text>
+        </Animated.View>
 
         {files.length > 0 && (
-          <View style={styles.fileList}>
+          <Animated.View entering={FadeInUp.duration(500).springify()} style={styles.fileList}>
             {files.map((file, index) => (
               <View key={index} style={styles.fileRow}>
                 <View style={styles.fileInfo}>
@@ -314,11 +319,11 @@ export default function DocumentUploadScreen() {
                 </TouchableOpacity>
               </View>
             ))}
-          </View>
+          </Animated.View>
         )}
 
         {isGuide && (
-          <>
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(200)}>
             <Text style={[styles.subheading, { marginBottom: Spacing.sm, marginTop: Spacing.sm, fontWeight: '700', color: Colors.text }]}>
               Demo Video (Mandatory for Guides)
             </Text>
@@ -350,10 +355,10 @@ export default function DocumentUploadScreen() {
                 </TouchableOpacity>
               </View>
             )}
-          </>
+          </Animated.View>
         )}
 
-        <View style={styles.actions}>
+        <Animated.View entering={FadeInUp.duration(500).springify().delay(300)} style={styles.actions}>
           <TouchableOpacity
             style={[styles.submitBtn, files.length === 0 && styles.submitBtnDisabled, loading && { opacity: 0.7 }]}
             onPress={handleSubmit}
@@ -376,7 +381,7 @@ export default function DocumentUploadScreen() {
               <ArrowRight color={Colors.textMuted} size={16} />
             </TouchableOpacity>
           )}
-        </View>
+        </Animated.View>
       </ScrollView>
     </View>
   );

@@ -10,8 +10,8 @@ import {
   Platform,
   ActivityIndicator,
   Alert,
- 
 } from 'react-native';
+import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
@@ -142,16 +142,18 @@ export default function RegisterScreen() {
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          <Text style={styles.heading}>Create your{'\n'}account</Text>
-          <Text style={styles.subheading}>
-            Partner as a{' '}
-            <Text style={{ color: Colors.primary, fontWeight: '700' }}>
-              {role === 'guide' ? 'Tour Guide' : role === 'hotel' ? 'Hotel Owner' : 'Vehicle Rental'}
+          <Animated.View entering={FadeInDown.duration(600).springify()}>
+            <Text style={styles.heading}>Create your{'\n'}account</Text>
+            <Text style={styles.subheading}>
+              Partner as a{' '}
+              <Text style={{ color: Colors.primary, fontWeight: '700' }}>
+                {role === 'guide' ? 'Tour Guide' : role === 'hotel' ? 'Hotel Owner' : 'Vehicle Rental'}
+              </Text>
             </Text>
-          </Text>
+          </Animated.View>
 
           {/* Full Name */}
-          <View style={styles.fieldGroup}>
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(100)} style={styles.fieldGroup}>
             <Text style={styles.label}>Full Name</Text>
             <TextInput
               style={[styles.input, focusedField === 'name' && styles.inputFocused]}
@@ -165,10 +167,10 @@ export default function RegisterScreen() {
               onBlur={() => setFocusedField(null)}
               onSubmitEditing={() => emailRef.current?.focus()}
             />
-          </View>
+          </Animated.View>
 
           {/* Email */}
-          <View style={styles.fieldGroup}>
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(150)} style={styles.fieldGroup}>
             <Text style={styles.label}>Email Address</Text>
             <TextInput
               ref={emailRef}
@@ -184,10 +186,10 @@ export default function RegisterScreen() {
               onBlur={() => setFocusedField(null)}
               onSubmitEditing={() => phoneRef.current?.focus()}
             />
-          </View>
+          </Animated.View>
 
           {/* Phone */}
-          <View style={styles.fieldGroup}>
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(200)} style={styles.fieldGroup}>
             <Text style={styles.label}>Phone Number</Text>
             <TextInput
               ref={phoneRef}
@@ -202,13 +204,13 @@ export default function RegisterScreen() {
               onBlur={() => setFocusedField(null)}
               onSubmitEditing={() => user ? handleRegister() : passRef.current?.focus()}
             />
-          </View>
+          </Animated.View>
 
           {/* Passwords - Only show if not logged in via Google/SSO */}
           {!user && (
             <>
               {/* Password */}
-              <View style={styles.fieldGroup}>
+              <Animated.View entering={FadeInUp.duration(500).springify().delay(250)} style={styles.fieldGroup}>
                 <Text style={styles.label}>Password</Text>
                 <TextInput
                   ref={passRef}
@@ -223,10 +225,10 @@ export default function RegisterScreen() {
                   onBlur={() => setFocusedField(null)}
                   onSubmitEditing={() => confirmRef.current?.focus()}
                 />
-              </View>
+              </Animated.View>
 
               {/* Confirm Password */}
-              <View style={styles.fieldGroup}>
+              <Animated.View entering={FadeInUp.duration(500).springify().delay(300)} style={styles.fieldGroup}>
                 <Text style={styles.label}>Confirm Password</Text>
                 <TextInput
                   ref={confirmRef}
@@ -241,12 +243,13 @@ export default function RegisterScreen() {
                   onBlur={() => setFocusedField(null)}
                   onSubmitEditing={handleRegister}
                 />
-              </View>
+              </Animated.View>
             </>
           )}
 
           {/* Submit */}
-          <TouchableOpacity
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(user ? 250 : 350)}>
+            <TouchableOpacity
             style={[styles.registerBtn, loading && styles.registerBtnDisabled]}
             onPress={handleRegister}
             disabled={loading}
@@ -261,10 +264,12 @@ export default function RegisterScreen() {
               </View>
             )}
           </TouchableOpacity>
+          </Animated.View>
 
           {/* Already have account - only show if not logged in via Google/SSO */}
           {!user && (
-            <TouchableOpacity
+            <Animated.View entering={FadeInUp.duration(500).springify().delay(400)}>
+              <TouchableOpacity
               style={styles.loginLink}
               onPress={() => router.replace('/auth/login')}
             >
@@ -273,6 +278,7 @@ export default function RegisterScreen() {
                 <Text style={{ color: Colors.primary, fontWeight: '700' }}>Sign In</Text>
               </Text>
             </TouchableOpacity>
+            </Animated.View>
           )}
         </ScrollView>
       </KeyboardAvoidingView>

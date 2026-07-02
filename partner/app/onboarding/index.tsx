@@ -6,41 +6,38 @@ import {
   FlatList,
   TouchableOpacity,
   Dimensions,
-  Animated,
+  ImageBackground,
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
-import { Compass, CalendarDays, Wallet } from 'lucide-react-native';
+import Animated, { FadeInUp, FadeIn } from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
 
 const slides = [
   {
     id: '1',
-    Icon: Compass,
     title: 'Manage Your\nBusiness',
     subtitle:
       'Accept bookings, track earnings, and grow your partnership with Guide My Route — all in one place.',
-    gradient: ['#1E3A8A', '#2563EB'] as [string, string],
+    image: 'https://images.unsplash.com/photo-1469854523086-cc02fe5d8800?q=80&w=1000&auto=format&fit=crop',
   },
   {
     id: '2',
-    Icon: CalendarDays,
     title: 'Real-Time\nBookings',
     subtitle:
       'Get instant notifications when travellers book your services. Accept or reject with a single tap.',
-    gradient: ['#0284C7', '#38BDF8'] as [string, string],
+    image: 'https://images.unsplash.com/photo-1517400508447-f8dd518b86db?q=80&w=1000&auto=format&fit=crop',
   },
   {
     id: '3',
-    Icon: Wallet,
     title: 'Track Every\nRupee',
     subtitle:
       'Monitor your daily, weekly, and monthly earnings with clear dashboards and booking history.',
-    gradient: ['#EA580C', '#F97316'] as [string, string],
+    image: 'https://images.unsplash.com/photo-1526304640581-d334cdbbf45e?q=80&w=1000&auto=format&fit=crop',
   },
 ];
 
@@ -63,7 +60,7 @@ export default function WelcomeScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <FlatList
         ref={flatListRef}
         data={slides}
@@ -76,26 +73,32 @@ export default function WelcomeScreen() {
           setActiveIndex(idx);
         }}
         scrollEnabled
-        renderItem={({ item }) => (
-          <LinearGradient
-            colors={item.gradient}
-            style={styles.slide}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-          >
-            <View style={styles.slideContent}>
-              <View style={styles.emojiContainer}>
-                <item.Icon color={Colors.white} size={64} />
+        renderItem={({ item, index }) => (
+          <View style={styles.slide}>
+            <ImageBackground
+              source={{ uri: item.image }}
+              style={styles.imageBackground}
+              resizeMode="cover"
+            >
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)', '#000000']}
+                style={styles.gradient}
+              />
+              <View style={[styles.slideContent, { paddingBottom: Math.max(insets.bottom, 24) + 100 }]}>
+                {activeIndex === index && (
+                  <Animated.View entering={FadeInUp.duration(600).springify()}>
+                    <Text style={styles.title}>{item.title}</Text>
+                    <Text style={styles.subtitle}>{item.subtitle}</Text>
+                  </Animated.View>
+                )}
               </View>
-              <Text style={styles.title}>{item.title}</Text>
-              <Text style={styles.subtitle}>{item.subtitle}</Text>
-            </View>
-          </LinearGradient>
+            </ImageBackground>
+          </View>
         )}
       />
 
       {/* Bottom controls */}
-      <View style={[styles.controls, { paddingBottom: Math.max(insets.bottom, 24) }]}>
+      <Animated.View entering={FadeIn.duration(800).delay(300)} style={[styles.controls, { paddingBottom: Math.max(insets.bottom, 24) }]}>
         {/* Dots */}
         <View style={styles.dotsRow}>
           {slides.map((_, i) => (
@@ -117,11 +120,11 @@ export default function WelcomeScreen() {
 
           <TouchableOpacity onPress={handleNext} style={styles.nextButton}>
             <Text style={styles.nextText}>
-              {activeIndex === slides.length - 1 ? 'Get Started →' : 'Next →'}
+              {activeIndex === slides.length - 1 ? 'Get Started' : 'Next'}
             </Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </Animated.View>
     </View>
   );
 }
@@ -129,66 +132,70 @@ export default function WelcomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#000',
   },
   slide: {
     width,
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
+  },
+  imageBackground: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'flex-end',
+  },
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '60%',
   },
   slideContent: {
+    paddingHorizontal: Spacing.xl,
     alignItems: 'center',
-  },
-  emojiContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 40,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: Spacing.xl,
+    zIndex: 1,
   },
   title: {
-    fontSize: FontSize.xxxl,
-    fontWeight: '800',
+    fontSize: 40,
+    fontWeight: '900',
     color: Colors.white,
     textAlign: 'center',
-    letterSpacing: -0.5,
-    lineHeight: 44,
+    letterSpacing: -1,
+    lineHeight: 48,
     marginBottom: Spacing.md,
   },
   subtitle: {
-    fontSize: FontSize.base,
+    fontSize: FontSize.lg,
     color: 'rgba(255,255,255,0.8)',
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 26,
     maxWidth: 320,
   },
   controls: {
-    backgroundColor: Colors.white,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: 48,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    zIndex: 2,
   },
   dotsRow: {
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 8,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.xl,
   },
   dot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: Colors.border,
+    backgroundColor: 'rgba(255,255,255,0.3)',
   },
   dotActive: {
     width: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: Colors.white,
   },
   buttonsRow: {
     flexDirection: 'row',
@@ -200,24 +207,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
   },
   skipText: {
-    fontSize: FontSize.base,
-    color: Colors.textMuted,
-    fontWeight: '500',
+    fontSize: FontSize.md,
+    color: 'rgba(255,255,255,0.6)',
+    fontWeight: '600',
   },
   nextButton: {
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.white,
     borderRadius: Radius.full,
-    paddingVertical: 14,
-    paddingHorizontal: Spacing.xl,
-    shadowColor: Colors.accent,
+    paddingVertical: 16,
+    paddingHorizontal: Spacing.xxl,
+    shadowColor: Colors.black,
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
     elevation: 5,
   },
   nextText: {
-    color: Colors.white,
-    fontSize: FontSize.base,
-    fontWeight: '700',
+    color: '#000',
+    fontSize: FontSize.md,
+    fontWeight: '800',
   },
 });

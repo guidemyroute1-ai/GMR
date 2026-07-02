@@ -32,6 +32,7 @@ import { Compass, Hotel, Bike, Plus, Trash2, X, FileText, Image as ImageIcon, Ca
 import * as ImagePicker from 'expo-image-picker';
 import { uploadToSupabase } from '../../services/storage';
 import { useVideoPlayer, VideoView } from 'expo-video';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { updateUserProfile } from '../../services/auth';
 
 const firstPositiveNumber = (...values: unknown[]) => {
@@ -949,7 +950,7 @@ function ListingCard({
   onEdit: () => void;
 }) {
   return (
-    <View style={lcStyles.card}>
+    <Animated.View entering={FadeInUp.duration(500).springify()} style={lcStyles.card}>
       <View style={lcStyles.row}>
         {listing.images && listing.images.length > 0 && (
           <Image
@@ -1043,7 +1044,7 @@ function ListingCard({
           </TouchableOpacity>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 

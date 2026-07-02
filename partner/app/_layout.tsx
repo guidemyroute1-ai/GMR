@@ -255,7 +255,7 @@ export default function RootLayout() {
   return (
     <>
       <NetworkBanner />
-      <Stack screenOptions={{ headerShown: false }} />
+      <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
       <StatusBar style="auto" />
     </>
   );

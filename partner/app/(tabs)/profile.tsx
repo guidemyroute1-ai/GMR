@@ -18,6 +18,7 @@ import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { signOut as signOutUser, updateUserProfile } from '../../services/auth';
 import { uploadToSupabase } from '../../services/storage';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import {
   Mail,
@@ -341,7 +342,7 @@ export default function ProfileScreen() {
               <Text style={styles.editBtnText}>Edit Profile</Text>
             </TouchableOpacity>
           ) : (
-            <View style={styles.editForm}>
+            <Animated.View entering={FadeInUp.duration(500).springify().delay(100)} style={styles.editForm}>
               <Text style={styles.editTitle}>Edit Basic Info</Text>
 
               <Text style={styles.label}>Full Name</Text>
@@ -379,18 +380,18 @@ export default function ProfileScreen() {
                   )}
                 </TouchableOpacity>
               </View>
-            </View>
+            </Animated.View>
           )}
 
           {/* ── Contact Info ── */}
-          <View style={styles.section}>
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(150)} style={styles.section}>
             <Text style={styles.sectionTitle}>Contact Info</Text>
             <ProfileRow label="Email" value={profile?.email ?? ''} Icon={Mail} />
             <ProfileRow label="Phone" value={profile?.phone ?? ''} Icon={Phone} />
-          </View>
+          </Animated.View>
 
           {/* ── Business Profile ── */}
-          <View style={styles.section}>
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(200)} style={styles.section}>
             <View
               style={{
                 flexDirection: 'row',
@@ -488,10 +489,10 @@ export default function ProfileScreen() {
                 No business profile data yet. Tap the edit icon to add details.
               </Text>
             )}
-          </View>
+          </Animated.View>
 
           {/* ── Account ── */}
-          <View style={styles.section}>
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(250)} style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
             <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/more/change-password')}>
               <Lock color={Colors.text} size={18} />
@@ -508,24 +509,26 @@ export default function ProfileScreen() {
               <Text style={styles.menuLabel}>Terms &amp; Privacy</Text>
               <ChevronRight color={Colors.textLight} size={20} />
             </TouchableOpacity>
-          </View>
+          </Animated.View>
 
           {/* ── Sign Out ── */}
-          <TouchableOpacity
-            style={[styles.signOutBtn, signingOut && { opacity: 0.7 }]}
-            onPress={handleSignOut}
-            disabled={signingOut}
-            activeOpacity={0.85}
-          >
-            {signingOut ? (
-              <ActivityIndicator color={Colors.error} />
-            ) : (
-              <View style={styles.signOutContent}>
-                <LogOut color={Colors.error} size={18} />
-                <Text style={styles.signOutText}>Sign Out</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          <Animated.View entering={FadeInUp.duration(500).springify().delay(300)}>
+            <TouchableOpacity
+              style={[styles.signOutBtn, signingOut && { opacity: 0.7 }]}
+              onPress={handleSignOut}
+              disabled={signingOut}
+              activeOpacity={0.85}
+            >
+              {signingOut ? (
+                <ActivityIndicator color={Colors.error} />
+              ) : (
+                <View style={styles.signOutContent}>
+                  <LogOut color={Colors.error} size={18} />
+                  <Text style={styles.signOutText}>Sign Out</Text>
+                </View>
+              )}
+            </TouchableOpacity>
+          </Animated.View>
 
           <Text style={styles.version}>Guide My Route Partners v1.0</Text>
           <View style={styles.developerContainer}>

@@ -9,6 +9,7 @@ import {
   Platform,
   KeyboardAvoidingView,
 } from 'react-native';
+import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { WebView } from 'react-native-webview';
 import * as Location from 'expo-location';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -239,14 +240,15 @@ export default function LocationPickerScreen() {
       </View>
 
       {/* ── Title ── */}
-      <View style={styles.titleBox}>
+      <Animated.View entering={FadeInDown.duration(600).springify()} style={styles.titleBox}>
         <Text style={styles.heading}>Your Business Location</Text>
         <Text style={styles.subheading}>
           Tap on the map to pin your exact location. Users will be directed here after booking.
         </Text>
-      </View>
+      </Animated.View>
 
       {/* ── GPS Button ── */}
+      <Animated.View entering={FadeInUp.duration(500).springify().delay(100)}>
       <TouchableOpacity
         style={[styles.gpsBtn, gpsLoading && styles.btnDisabled]}
         onPress={handleUseCurrentLocation}
@@ -262,9 +264,10 @@ export default function LocationPickerScreen() {
           {gpsLoading ? 'Getting GPS…' : 'Use Current Location'}
         </Text>
       </TouchableOpacity>
+      </Animated.View>
 
       {/* ── OpenStreetMap via Leaflet WebView ── */}
-      <View style={styles.mapWrapper}>
+      <Animated.View entering={FadeInUp.duration(500).springify().delay(200)} style={styles.mapWrapper}>
         {!mapReady && (
           <View style={styles.mapLoading}>
             <ActivityIndicator size="large" color={Colors.primary} />
@@ -284,10 +287,10 @@ export default function LocationPickerScreen() {
           scrollEnabled={false}
           bounces={false}
         />
-      </View>
+      </Animated.View>
 
       {/* ── Address Preview ── */}
-      <View style={styles.addressBox}>
+      <Animated.View entering={FadeInUp.duration(500).springify().delay(300)} style={styles.addressBox}>
         {reverseLoading ? (
           <View style={styles.addressLoading}>
             <ActivityIndicator size="small" color={Colors.primary} />
@@ -310,7 +313,7 @@ export default function LocationPickerScreen() {
             Tap the map or use GPS to select your location
           </Text>
         )}
-      </View>
+      </Animated.View>
 
       {/* ── Confirm Button ── */}
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 16) + 8 }]}>

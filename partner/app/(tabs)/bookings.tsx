@@ -38,6 +38,7 @@ import {
   RefreshCw,
 } from 'lucide-react-native';
 import { Text } from '../../components/Text';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 
 const FILTERS: { key: BookingStatus | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -338,11 +339,18 @@ function RequestItem({
   });
 
   return (
-    <View style={biStyles.card}>
+    <Animated.View entering={FadeInUp.duration(500).springify()} style={biStyles.card}>
       <View style={biStyles.cardHeader}>
         <View style={biStyles.typeInfo}>
-          <Compass size={14} color={Colors.textMuted} />
+          {request.bookingType === 'hotel' ? (
+            <Hotel size={14} color={Colors.textMuted} />
+          ) : request.bookingType === 'rental' || request.bookingType === 'vehicle' ? (
+            <Bike size={14} color={Colors.textMuted} />
+          ) : (
+            <Compass size={14} color={Colors.textMuted} />
+          )}
           <Text style={biStyles.typeText}>{request.itemName.toUpperCase()}</Text>
+          <Text style={{ fontSize: 10, color: Colors.textMuted, marginLeft: 8 }}>#{request.bookingId.slice(0, 8).toUpperCase()}</Text>
         </View>
         <View style={[biStyles.statusIndicator, { backgroundColor: '#F59E0B15' }]}>
           <View style={[biStyles.statusDot, { backgroundColor: '#F59E0B' }]} />
@@ -365,6 +373,12 @@ function RequestItem({
              <Compass size={14} color={Colors.textMuted} />
              <Text style={biStyles.detailText}>{request.city}</Text>
           </View>
+          {!!request.days && (
+            <View style={biStyles.detailItem}>
+               <Clock size={14} color={Colors.textMuted} />
+               <Text style={biStyles.detailText}>{request.days} Day{request.days > 1 ? 's' : ''}</Text>
+            </View>
+          )}
         </View>
 
         {request.note ? (
@@ -392,7 +406,7 @@ function RequestItem({
           </View>
         )}
       </View>
-    </View>
+    </Animated.View>
   );
 }
 
@@ -420,9 +434,10 @@ function BookingItem({
   });
 
   return (
-    <TouchableOpacity 
-      style={biStyles.card}
-      activeOpacity={0.7}
+    <Animated.View entering={FadeInUp.duration(500).springify()}>
+      <TouchableOpacity 
+        style={biStyles.card}
+        activeOpacity={0.7}
       onPress={() => {
         router.push({
           pathname: '/more/costumerDetails',
@@ -440,10 +455,15 @@ function BookingItem({
     >
       <View style={biStyles.cardHeader}>
         <View style={biStyles.typeInfo}>
-          {booking.type === 'guide' && <Compass size={14} color={Colors.textMuted} />}
-          {booking.type === 'hotel' && <Hotel size={14} color={Colors.textMuted} />}
-          {booking.type === 'rental' && <Bike size={14} color={Colors.textMuted} />}
-          <Text style={biStyles.typeText}>{booking.type.toUpperCase()}</Text>
+          {booking.type === 'guide' ? (
+            <Compass size={14} color={Colors.textMuted} />
+          ) : booking.type === 'hotel' ? (
+            <Hotel size={14} color={Colors.textMuted} />
+          ) : (
+            <Bike size={14} color={Colors.textMuted} />
+          )}
+          <Text style={biStyles.typeText}>{(booking.itemName || booking.type).toUpperCase()}</Text>
+          <Text style={{ fontSize: 10, color: Colors.textMuted, marginLeft: 8 }}>#{booking.id.slice(0, 8).toUpperCase()}</Text>
         </View>
         <View style={[biStyles.statusIndicator, { backgroundColor: s.color + '15' }]}>
           <View style={[biStyles.statusDot, { backgroundColor: s.color }]} />
@@ -462,13 +482,27 @@ function BookingItem({
             <CalendarDays size={14} color={Colors.textMuted} />
             <Text style={biStyles.detailText}>{booking.date}</Text>
           </View>
-          {booking.note && (
+          {!!booking.city && (
+            <View style={biStyles.detailItem}>
+              <Compass size={14} color={Colors.textMuted} />
+              <Text style={biStyles.detailText}>{booking.city}</Text>
+            </View>
+          )}
+          {!!booking.days && (
+            <View style={biStyles.detailItem}>
+              <Clock size={14} color={Colors.textMuted} />
+              <Text style={biStyles.detailText}>{booking.days} Day{booking.days > 1 ? 's' : ''}</Text>
+            </View>
+          )}
+        </View>
+        {booking.note && (
+          <View style={{...biStyles.detailRow, marginTop: -8}}>
             <View style={biStyles.detailItem}>
               <FileText size={14} color={Colors.textMuted} />
               <Text style={biStyles.detailText} numberOfLines={1}>{booking.note}</Text>
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
         {updating ? (
           <View style={biStyles.updatingWrap}>
@@ -507,7 +541,8 @@ function BookingItem({
           </View>
         )}
       </View>
-    </TouchableOpacity>
+      </TouchableOpacity>
+    </Animated.View>
   );
 }
 
