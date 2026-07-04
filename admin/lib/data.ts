@@ -183,13 +183,20 @@ export async function getBookings(): Promise<Booking[]> {
 }
 
 export async function getDashboardStats() {
+  const tripParticipantsPromise = supabaseAdmin
+    .from('trip_participants')
+    .select('created_at, trips(price)');
+
   // Run all independent queries in parallel — cuts load time from ~4× to ~1× DB round-trip
-  const [users, partners, listings, bookings] = await Promise.all([
+  const [users, partners, listings, bookings, tripParticipantsResult] = await Promise.all([
     getUsers(),
     getPartners(),
     getListings(),
     getBookings(),
+    tripParticipantsPromise,
   ]);
+
+  const tripParticipants = tripParticipantsResult.data || [];
 
   const totalUsers = users.length;
   const totalPartners = partners.length;
@@ -199,13 +206,20 @@ export async function getDashboardStats() {
   const activeListings = listings.filter((l) => l.status === 'active').length;
   const pendingBookings = bookings.filter((b) => b.status === 'pending').length;
 
-  // Revenue: sum numeric amounts (stored as '₹1234' strings) from paid bookings
-  const totalRevenue = bookings
+  // Revenue: sum numeric amounts from paid bookings + trip participants
+  const bookingsRevenue = bookings
     .filter((b) => b.status === 'completed' || b.status === 'confirmed')
     .reduce((sum, b) => {
       const amountStr = String(b.amount).replace(/[^0-9.-]+/g, '');
       return sum + (parseFloat(amountStr) || 0);
     }, 0);
+
+  const tripsRevenue = tripParticipants.reduce((sum, tp) => {
+    const price = (tp.trips as any)?.price || 0;
+    return sum + Number(price);
+  }, 0);
+
+  const totalRevenue = bookingsRevenue + tripsRevenue;
 
   // Bookings by type
   const typeCounts: Record<string, number> = {};
@@ -293,6 +307,24 @@ export async function getDashboardStats() {
     }
   }
 
+  for (const tp of tripParticipants) {
+    const price = (tp.trips as any)?.price || 0;
+    if (!price) continue;
+    
+    const bDate = new Date(tp.created_at);
+    if (!isNaN(bDate.getTime())) {
+      const dayName = bDate.toLocaleDateString('en-US', { weekday: 'short' });
+      if (revenueChartData[dayName]) {
+        if (bDate >= oneWeekAgo) {
+          revenueChartData[dayName].weekly += Number(price);
+        }
+        if (bDate >= oneMonthAgo) {
+          revenueChartData[dayName].monthly += Number(price);
+        }
+      }
+    }
+  }
+
   const orderedDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
   const finalRevenueData = orderedDays.map(day => ({
     day,
@@ -300,7 +332,13 @@ export async function getDashboardStats() {
     monthly: revenueChartData[day].monthly,
   }));
 
-  const recentBookings = bookings.slice(0, 5);
+  const recentBookings = [...bookings]
+    .sort((a, b) => {
+      const dateA = a.dateTime === 'N/A' ? 0 : new Date(a.dateTime).getTime();
+      const dateB = b.dateTime === 'N/A' ? 0 : new Date(b.dateTime).getTime();
+      return dateB - dateA;
+    })
+    .slice(0, 5);
 
   return {
     stats: {

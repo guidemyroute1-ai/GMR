@@ -24,11 +24,17 @@ export default function PartnersClient({ partners }: PartnersClientProps) {
   ];
 
   const filtered = useMemo(() => {
-    return partners.filter((p) => {
-      if (statusFilter !== 'all' && p.status !== statusFilter) return false;
-      if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.businessName.toLowerCase().includes(search.toLowerCase())) return false;
-      return true;
-    });
+    return partners
+      .filter((p) => {
+        if (statusFilter !== 'all' && p.status !== statusFilter) return false;
+        if (search && !p.name.toLowerCase().includes(search.toLowerCase()) && !p.businessName.toLowerCase().includes(search.toLowerCase())) return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (a.joinedDate === 'N/A') return 1;
+        if (b.joinedDate === 'N/A') return -1;
+        return new Date(b.joinedDate).getTime() - new Date(a.joinedDate).getTime();
+      });
   }, [statusFilter, search, partners]);
 
   const columns: Column<Partner>[] = [

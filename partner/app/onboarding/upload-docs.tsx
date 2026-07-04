@@ -186,6 +186,8 @@ export default function DocumentUploadScreen() {
     setVideoFile(null);
   };
 
+  const canSubmit = files.length > 0 || (isGuide && !!videoFile);
+
   const handleSkip = () => {
     Alert.alert('Skip Upload', 'Are you sure you want to skip? Your profile will not be live until verified.', [
       { text: 'Cancel', style: 'cancel' },
@@ -203,8 +205,8 @@ export default function DocumentUploadScreen() {
   };
 
   const handleSubmit = async () => {
-    if (files.length === 0) {
-      Alert.alert('No files selected', 'Please select at least one document to upload or tap Skip for now.');
+    if (!canSubmit) {
+      Alert.alert('No files selected', 'Please select at least one document or video to upload.');
       return;
     }
 
@@ -236,10 +238,12 @@ export default function DocumentUploadScreen() {
         kycVideoUrl = await uploadToSupabase(videoFile.uri, mimeType, fileName, 'documents');
       }
 
+      const hasUploadedDocsNow = files.length > 0 || profile?.hasUploadedDocs || false;
+
       // Update Supabase profile
       const newDocs = [...(profile?.documents || []), ...uploadedUrls];
       await updateUserProfile(user.uid, {
-        hasUploadedDocs: true,
+        hasUploadedDocs: hasUploadedDocsNow,
         documents: newDocs,
         ...(kycVideoUrl && { kycVideoUrl }),
         isOnboarded: true,
@@ -248,7 +252,7 @@ export default function DocumentUploadScreen() {
       // Update local store
       setProfile({
         ...profile!,
-        hasUploadedDocs: true,
+        hasUploadedDocs: hasUploadedDocsNow,
         documents: newDocs,
         ...(kycVideoUrl && { kycVideoUrl }),
         isOnboarded: true,
@@ -360,9 +364,9 @@ export default function DocumentUploadScreen() {
 
         <Animated.View entering={FadeInUp.duration(500).springify().delay(300)} style={styles.actions}>
           <TouchableOpacity
-            style={[styles.submitBtn, files.length === 0 && styles.submitBtnDisabled, loading && { opacity: 0.7 }]}
+            style={[styles.submitBtn, !canSubmit && styles.submitBtnDisabled, loading && { opacity: 0.7 }]}
             onPress={handleSubmit}
-            disabled={loading || files.length === 0}
+            disabled={loading || !canSubmit}
             activeOpacity={0.85}
           >
             {loading ? (
@@ -375,7 +379,7 @@ export default function DocumentUploadScreen() {
             )}
           </TouchableOpacity>
 
-          {!loading && (
+          {!loading && !isGuide && (
             <TouchableOpacity style={styles.skipBtn} onPress={handleSkip} activeOpacity={0.7}>
               <Text style={styles.skipText}>Skip for now</Text>
               <ArrowRight color={Colors.textMuted} size={16} />

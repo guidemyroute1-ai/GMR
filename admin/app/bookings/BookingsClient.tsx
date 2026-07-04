@@ -36,17 +36,23 @@ export default function BookingsClient({ bookings }: { bookings: Booking[] }) {
 
   const filtered = useMemo(() => {
     const query = search.toLowerCase();
-    return bookings.filter((b) => {
-      if (statusFilter !== 'all' && b.status !== statusFilter) return false;
-      if (
-        query &&
-        !b.client.toLowerCase().includes(query) &&
-        !b.listing.toLowerCase().includes(query) &&
-        !b.id.toLowerCase().includes(query)
-      )
-        return false;
-      return true;
-    });
+    return bookings
+      .filter((b) => {
+        if (statusFilter !== 'all' && b.status !== statusFilter) return false;
+        if (
+          query &&
+          !b.client.toLowerCase().includes(query) &&
+          !b.listing.toLowerCase().includes(query) &&
+          !b.id.toLowerCase().includes(query)
+        )
+          return false;
+        return true;
+      })
+      .sort((a, b) => {
+        if (!a.dateTime || a.dateTime === 'N/A') return 1;
+        if (!b.dateTime || b.dateTime === 'N/A') return -1;
+        return new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime();
+      });
   }, [bookings, statusFilter, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
