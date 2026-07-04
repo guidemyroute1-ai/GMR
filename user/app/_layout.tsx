@@ -8,6 +8,7 @@ import { useFonts } from 'expo-font';
 import '../firebaseMessaging';
 
 import { NetworkBanner } from '../components/NetworkBanner';
+import { AlertBoxProvider } from '../components/AlertBox';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -73,6 +74,7 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="more" />
       </Stack>
+      <AlertBoxProvider />
     </>
   );
 }

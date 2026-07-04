@@ -1,9 +1,12 @@
+import { Ionicons } from '@expo/vector-icons';
 import { Image as ExpoImage } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -12,7 +15,7 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-import { SafeAreaView as SafeAreaContextView } from 'react-native-safe-area-context';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Text } from '../../components/Text';
 import ScreenHeader from '../../components/ScreenHeader';
 import { useAuth } from '../../contexts/AuthContext';
@@ -30,6 +33,13 @@ const COLORS = {
   mediumGray: '#6B7280',
   borderGray: '#d3dbe2',
   danger: '#EF4444',
+  greenBg: '#F0FDF4',
+  greenText: '#15803D',
+};
+
+const SHADOW = {
+  sm: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4, elevation: 2 },
+  md: { shadowColor: '#0F172A', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 10, elevation: 5 },
 };
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
@@ -43,6 +53,7 @@ interface MenuItem {
   icon: string;
   iconSource?: any;
   label: string;
+  subLabel?: string;
   type: 'navigate' | 'badge' | 'toggle' | 'danger';
   badge?: string;
   badgeColor?: string;
@@ -53,11 +64,6 @@ interface MenuSection {
   title: string;
   items: MenuItem[];
 }
-
-// ─── Data ──────────────────────────────────────────────────────────────────────
-// Removed static STATS data
-
-// MENU_SECTIONS will be generated dynamically now to include Organizer features
 
 // ─── Menu Row ──────────────────────────────────────────────────────────────────
 const MenuRow = ({
@@ -83,7 +89,6 @@ const MenuRow = ({
       activeOpacity={0.7}
       onPress={isDanger ? onLogout : onPress}
     >
-      {/* Icon Box */}
       <View
         style={[
           styles.menuIconBox,
@@ -91,20 +96,21 @@ const MenuRow = ({
         ]}
       >
         {item.iconSource ? (
-          <ExpoImage source={item.iconSource} style={{ width: 22, height: 22, tintColor: isDanger ? COLORS.danger : COLORS.darkGray }} contentFit="contain" />
+          <ExpoImage source={item.iconSource} style={{ width: 22, height: 22, tintColor: isDanger ? COLORS.danger : '#4B5563' }} contentFit="contain" />
         ) : (
           <Text style={styles.menuIcon}>{item.icon}</Text>
         )}
       </View>
 
-      {/* Label */}
-      <Text
-        style={[styles.menuLabel, isDanger && { color: COLORS.danger }]}
-      >
-        {item.label}
-      </Text>
+      <View style={styles.menuTextContainer}>
+        <Text style={[styles.menuLabel, isDanger && { color: COLORS.danger }]}>
+          {item.label}
+        </Text>
+        {item.subLabel ? (
+          <Text style={styles.menuSubLabel}>{item.subLabel}</Text>
+        ) : null}
+      </View>
 
-      {/* Right Side */}
       <View style={styles.menuRight}>
         {item.type === 'badge' && item.badge && (
           <View style={[styles.menuBadge, { backgroundColor: item.badgeBg }]}>
@@ -122,10 +128,10 @@ const MenuRow = ({
           />
         )}
         {(item.type === 'navigate' || item.type === 'badge') && (
-          <Text style={styles.menuChevron}>›</Text>
+          <Ionicons name="chevron-forward" size={18} color="#9CA3AF" />
         )}
         {item.type === 'danger' && (
-          <Text style={[styles.menuChevron, { color: COLORS.danger }]}>›</Text>
+          <Ionicons name="chevron-forward" size={18} color={COLORS.danger} />
         )}
       </View>
     </TouchableOpacity>
@@ -147,8 +153,8 @@ function getInitials(name: string | null | undefined): string {
 function getProviderLabel(user: any): string {
   if (!user?.providerData?.length) return '';
   const providerId = user.providerData[0].providerId;
-  if (providerId === 'google.com') return 'Google Account';
-  if (providerId === 'password') return 'Email Account';
+  if (providerId === 'google.com') return 'Google';
+  if (providerId === 'password') return 'Email';
   return providerId;
 }
 
@@ -156,6 +162,7 @@ function getProviderLabel(user: any): string {
 export default function ProfileScreen() {
   const { user, signOut } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [notifEnabled, setNotifEnabled] = useState<boolean>(true);
   const [loggingOut, setLoggingOut] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -167,41 +174,33 @@ export default function ProfileScreen() {
 
   const fetchStats = React.useCallback(async () => {
     if (!user?.uid) return;
-
     try {
-      // 1. Fetch total trips (bookings)
       const { count: bookingsCount, error: bError } = await supabase
         .from('bookings')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.uid);
-      
       if (!bError && bookingsCount !== null) {
         setTripsCount(bookingsCount);
       }
 
-      // 2. Fetch user's reviews count
       const { count: revsCount, error: rError } = await supabase
         .from('reviews')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', user.uid);
-
       if (!rError && revsCount !== null) {
         setReviewsCount(revsCount);
       }
 
-      // 3. Fetch user rating from users table (if available)
       const { data: userData, error: uError } = await supabase
         .from('users')
         .select('rating, is_trip_organizer_verified')
         .eq('id', user.uid)
         .maybeSingle();
-      
       if (!uError && userData) {
         setUserRating(userData.rating || 0);
         setIsOrganizerVerified(userData.is_trip_organizer_verified || false);
       }
 
-      // 4. Fetch pending organizer application if not verified
       if (!userData?.is_trip_organizer_verified) {
         const { data: appData } = await supabase
           .from('trip_organizer_applications')
@@ -210,7 +209,6 @@ export default function ProfileScreen() {
           .order('created_at', { ascending: false })
           .limit(1)
           .maybeSingle();
-        
         if (appData) {
           setOrganizerAppStatus(appData.status);
         }
@@ -237,13 +235,12 @@ export default function ProfileScreen() {
   }, [fetchStats]);
 
   const STATS: StatItem[] = [
-    { label: 'Trips', value: tripsCount },
     { label: 'Rating', value: userRating > 0 ? userRating.toFixed(1) : 'New' },
+    { label: 'Trips Completed', value: tripsCount },
     { label: 'Reviews', value: reviewsCount },
   ];
 
   const displayName = user?.displayName || 'Traveller';
-  const email = user?.email || '';
   const providerLabel = getProviderLabel(user);
   const isVerified = user?.emailVerified ?? false;
 
@@ -269,17 +266,11 @@ export default function ProfileScreen() {
   };
 
   const handleMenuPress = (item: MenuItem) => {
-    if (item.id === '1') {
-      router.push('../more/personalInformation');
-    } else if (item.id === '3') {
-      router.push('../more/MyBookings');
-    } else if (item.id === '10') {
-      router.push('../extra/HelpSupport');
-    } else if (item.id === '11') {
-      router.push('../extra/TermsPrivacy');
-    } else if (item.id === 'create_trip') {
-      router.push('../more/createTrip');
-    } else if (item.id === 'become_organizer') {
+    if (item.id === '1') router.push('../more/personalInformation');
+    else if (item.id === '3') router.push('../more/MyBookings');
+    else if (item.id === '11') router.push('../extra/TermsPrivacy');
+    else if (item.id === 'create_trip') router.push('../more/createTrip');
+    else if (item.id === 'become_organizer') {
       if (organizerAppStatus === 'pending') {
         Alert.alert('Application Pending', 'Your organizer application is currently being reviewed.');
       } else {
@@ -290,151 +281,169 @@ export default function ProfileScreen() {
 
   const getMenuSections = (): MenuSection[] => {
     const accountItems: MenuItem[] = [
-      { id: '1', icon: '👤', label: 'Personal Information', type: 'navigate' },
-      { id: '3', icon: '📋', iconSource: require('../../assets/svg/calender-svgrepo-com.svg'), label: 'My Bookings', type: 'navigate' },
+      { id: '1', icon: '👤', label: 'Personal Information', subLabel: 'Update your details', type: 'navigate' },
+      { id: '3', icon: '📋', iconSource: require('../../assets/svg/calender-svgrepo-com.svg'), label: 'My Bookings', subLabel: 'View and manage your trips', type: 'navigate' },
     ];
 
     if (isOrganizerVerified) {
-      accountItems.push({ 
-        id: 'create_trip', 
-        icon: '✈️', 
-        label: 'Create a Trip', 
-        type: 'badge',
-        badge: 'NEW',
-        badgeBg: '#DCFCE7',
-        badgeColor: COLORS.primary
+      accountItems.push({
+        id: 'create_trip', icon: '✈️', label: 'Create a Trip', subLabel: 'Host a new adventure',
+        type: 'badge', badge: 'NEW', badgeBg: '#DCFCE7', badgeColor: COLORS.primary
       });
     } else {
-      accountItems.push({ 
-        id: 'become_organizer', 
-        icon: '🎯', 
-        label: 'Become a Trip Organizer', 
+      accountItems.push({
+        id: 'become_organizer', icon: '🎯', label: 'Become a Trip Organizer', subLabel: 'Start hosting trips',
         type: organizerAppStatus === 'pending' ? 'badge' : 'navigate',
-        badge: organizerAppStatus === 'pending' ? 'PENDING' : undefined,
-        badgeBg: '#FEF3C7',
-        badgeColor: '#D97706'
+        badge: organizerAppStatus === 'pending' ? 'PENDING' : undefined, badgeBg: '#FEF3C7', badgeColor: '#D97706'
       });
     }
 
     accountItems.push(
-      { id: '10', icon: '❓', iconSource: require('../../assets/svg/phone-call-svgrepo-com.svg'), label: 'Help & Support', type: 'navigate' },
-      { id: '11', icon: '📄', iconSource: require('../../assets/svg/license-svgrepo-com.svg'), label: 'Terms & Privacy', type: 'navigate' },
-      { id: '12', icon: '🚪', iconSource: require('../../assets/svg/logout-2-svgrepo-com.svg'), label: 'Log Out', type: 'danger' }
+      { id: '11', icon: '📄', iconSource: require('../../assets/svg/license-svgrepo-com.svg'), label: 'Terms & Privacy', subLabel: 'Legal and privacy policies', type: 'navigate' },
+      { id: '12', icon: '🚪', iconSource: require('../../assets/svg/logout-2-svgrepo-com.svg'), label: 'Log Out', subLabel: 'Sign out securely', type: 'danger' }
     );
-
-    return [{ title: 'Account', items: accountItems }];
+    return [{ title: 'Account Settings', items: accountItems }];
   };
 
   const MENU_SECTIONS = getMenuSections();
 
   return (
-    <SafeAreaContextView edges={['top', 'bottom']} style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.white} />
+    <View style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" translucent={false} />
 
-     
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={COLORS.primary}
-            colors={[COLORS.primary]}
-          />
-        }
-      >
-        <ScreenHeader 
+      <View style={{ backgroundColor: '#ffffff', paddingTop: insets.top }}>
+        <ScreenHeader
           title="Profile"
           showAvatar={false}
           showLocation={false}
         />
-        {/* ── Profile Card ── */}
-        <View style={styles.profileCard}>
-          {/* Avatar */}
-          <View style={styles.avatarWrapper}>
-            <View style={styles.avatarCircle}>
-              <Text style={styles.avatarInitials}>{getInitials(displayName)}</Text>
-            </View>
-            <View style={styles.onlineIndicator} />
-          </View>
+      </View>
 
-          {/* Name & Email */}
-          <Text style={styles.profileName}>{displayName}</Text>
-          {email ? (
-            <View style={styles.emailRow}>
-              <Text style={styles.emailIcon}>✉️</Text>
-              <Text style={styles.profileEmail}>{email}</Text>
-            </View>
-          ) : null}
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: insets.bottom + 20 }]}
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLORS.primary} />}
+      >
+        {/* HEADER SECTION */}
+        <View style={[styles.headerContainer, { paddingTop: 10 }]}>
+          <LinearGradient
+            colors={['#E5F6DF', '#F8FAFC']}
+            style={StyleSheet.absoluteFillObject}
+          />
+          {/* Subtle background decoration to mimic mountain landscape */}
+          <View style={styles.headerDecor1} />
+          <View style={styles.headerDecor2} />
 
-          {/* Provider Tag & Verified */}
-          <View style={styles.chipRow}>
-            {providerLabel ? (
-              <View style={styles.providerChip}>
-                {providerLabel === 'Google Account' ? (
-                  <ExpoImage source={require('../../assets/svg/icons8-google.svg')} style={{ width: 14, height: 14 }} contentFit="contain" />
+          {/* Profile Info */}
+          <View style={styles.profileInfoContainer}>
+            <View style={styles.avatarWrapper}>
+              <View style={styles.avatarCircle}>
+                {user?.photoURL ? (
+                  <ExpoImage
+                    source={{ uri: user.photoURL }}
+                    style={{ width: '100%', height: '100%', borderRadius: 35 }}
+                    contentFit="cover"
+                  />
                 ) : (
-                  <Text style={styles.providerIcon}>📧</Text>
+                  <Text style={styles.avatarInitials}>{getInitials(displayName)}</Text>
                 )}
-                <Text style={styles.providerText}>{providerLabel}</Text>
               </View>
-            ) : null}
+            </View>
 
-            {isVerified && (
-              <View style={styles.verifiedChip}>
-                <ExpoImage source={require('../../assets/svg/verify-svgrepo-com.svg')} style={{ width: 14, height: 14, tintColor: COLORS.primary }} contentFit="contain" />
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
-            )}
-          </View>
-
-          {/* Stats Row */}
-          <View style={styles.statsRow}>
-            {STATS.map((stat, idx) => (
-              <React.Fragment key={stat.label}>
-                <View style={styles.statItem}>
-                  <Text style={styles.statValue}>{stat.value}</Text>
-                  <Text style={styles.statLabel}>{stat.label}</Text>
-                </View>
-                {idx < STATS.length - 1 && (
-                  <View style={styles.statDivider} />
+            <View style={styles.profileTextContainer}>
+              <View style={styles.nameRow}>
+                <Text style={styles.profileName}>{displayName}</Text>
+                {isVerified && (
+                  <View style={styles.verifiedChip}>
+                    <Ionicons name="compass-outline" size={12} color={COLORS.greenText} />
+                    <Text style={styles.verifiedText}>Explorer</Text>
+                  </View>
                 )}
-              </React.Fragment>
-            ))}
+              </View>
+              <View style={styles.locationRow}>
+                <Ionicons name="location-outline" size={14} color={COLORS.mediumGray} />
+                <Text style={styles.locationText}>Global Traveler</Text>
+              </View>
+            </View>
           </View>
         </View>
 
-        {/* ── Menu Sections ── */}
-        {MENU_SECTIONS.map((section) => (
-          <View key={section.title} style={styles.menuSection}>
-            <Text style={styles.menuSectionTitle}>{section.title}</Text>
-            <View style={styles.menuCard}>
-              {section.items.map((item, idx) => (
-                <MenuRow
-                  key={item.id}
-                  item={item}
-                  isLast={idx === section.items.length - 1}
-                  notifEnabled={notifEnabled}
-                  onToggle={() => setNotifEnabled((prev) => !prev)}
-                  onLogout={handleLogout}
-                  onPress={() => handleMenuPress(item)}
-                />
-              ))}
+        {/* FLOATING STATS CARD */}
+        <View style={styles.statsCard}>
+          {STATS.map((stat, idx) => (
+            <React.Fragment key={stat.label}>
+              <View style={styles.statItem}>
+                <View style={styles.statValueRow}>
+                  {idx === 0 && <Ionicons name="star-outline" size={14} color={COLORS.primary} style={{ marginRight: 4 }} />}
+                  {idx === 1 && <Ionicons name="people-outline" size={14} color={COLORS.skyBlue} style={{ marginRight: 4 }} />}
+                  {idx === 2 && <Ionicons name="flame-outline" size={14} color={COLORS.orange} style={{ marginRight: 4 }} />}
+                  <Text style={styles.statValue}>{stat.value}</Text>
+                </View>
+                <Text style={styles.statLabel}>{stat.label}</Text>
+              </View>
+              {idx < STATS.length - 1 && <View style={styles.statDivider} />}
+            </React.Fragment>
+          ))}
+        </View>
+
+        {/* BIO & EDIT PROFILE */}
+        <View style={styles.bioContainer}>
+          <Text style={styles.bioText}>
+            Adventure seeker • Weekend Explorer • Love meeting new people and exploring hidden gems.
+          </Text>
+          <TouchableOpacity
+            style={styles.editProfileBtn}
+            onPress={() => router.push('../more/personalInformation')}
+          >
+            <Ionicons name="pencil" size={12} color={COLORS.primary} />
+            <Text style={styles.editProfileText}>Edit Profile</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* MENU SECTIONS */}
+        <View style={styles.menuContainer}>
+          {MENU_SECTIONS.map((section) => (
+            <View key={section.title} style={styles.menuSection}>
+              <View style={styles.menuCard}>
+                {section.items.map((item, idx) => (
+                  <MenuRow
+                    key={item.id}
+                    item={item}
+                    isLast={idx === section.items.length - 1}
+                    notifEnabled={notifEnabled}
+                    onToggle={() => setNotifEnabled((prev) => !prev)}
+                    onLogout={handleLogout}
+                    onPress={() => handleMenuPress(item)}
+                  />
+                ))}
+              </View>
             </View>
+          ))}
+        </View>
+
+        {/* HELP & SUPPORT BANNER */}
+        <View style={styles.helpBanner}>
+          <View style={styles.helpIconBox}>
+            <Ionicons name="headset-outline" size={24} color={COLORS.greenText} />
           </View>
-        ))}
+          <View style={styles.helpTextContainer}>
+            <Text style={styles.helpTitle}>Need Help?</Text>
+            <Text style={styles.helpSubtitle}>We're here to help you 24/7</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.helpBtn}
+            onPress={() => router.push('../extra/HelpSupport')}
+          >
+            <Ionicons name="headset-outline" size={14} color={COLORS.greenText} style={{ marginRight: 4 }} />
+            <Text style={styles.helpBtnText}>Contact Support</Text>
+          </TouchableOpacity>
+        </View>
 
-        {/* ── App Version ── */}
-        <Text style={styles.appVersion}>Guide My Route · v1.0.0</Text>
+        <View style={styles.developerBadge}>
+          <Text style={styles.developerText}>Developed by Mohit Aggarwal</Text>
+        </View>
 
-        {/* devloper info */}
-        <Text style={styles.appVersion}>Developed by Mohit Aggarwal</Text>
-
-
-        {/* Logging Out Overlay */}
         {loggingOut && (
           <View style={styles.loggingOutOverlay}>
             <ActivityIndicator color={COLORS.primary} size="small" />
@@ -442,304 +451,272 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        <View style={{ height: 20 }} />
       </ScrollView>
-    </SafeAreaContextView>
+    </View>
   );
 }
 
-// ─── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  safeArea: {
+  container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: '#F8FAFC',
   },
-
-  // Header Banner
-  headerBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    backgroundColor: COLORS.primary,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: COLORS.white,
-    letterSpacing: -0.3,
-  },
-  settingsBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  settingsIcon: {
-    fontSize: 18,
-  },
-
-  // Scroll
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-
-  // Profile Card
-  profileCard: {
-    backgroundColor: COLORS.white,
-    borderRadius: 20,
-    alignItems: 'center',
-    paddingTop: 0,
     paddingBottom: 20,
-    marginTop: 50,
-    borderWidth: 1.5,
-    borderColor: COLORS.borderGray,
-    overflow: 'visible',
   },
 
-  // Avatar
-  avatarWrapper: {
-    marginTop: -36,
-    marginBottom: 14,
+  // ── HEADER ──
+  headerContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 40,
     position: 'relative',
+    overflow: 'hidden',
   },
-  avatarCircle: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
-    backgroundColor: COLORS.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 4,
-    borderColor: COLORS.white,
-
-  },
-  avatarInitials: {
-    fontSize: 32,
-    fontWeight: '800',
-    color: COLORS.white,
-    letterSpacing: 1,
-  },
-  onlineIndicator: {
+  headerDecor1: {
     position: 'absolute',
-    bottom: 4,
-    right: 4,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
-    backgroundColor: '#22C55E',
-    borderWidth: 3,
+    bottom: -30,
+    right: -50,
+    width: 250,
+    height: 150,
+    borderRadius: 100,
+    backgroundColor: '#DCFCE7',
+    opacity: 0.6,
+    transform: [{ scaleX: 1.5 }],
+  },
+  headerDecor2: {
+    position: 'absolute',
+    bottom: -10,
+    left: -40,
+    width: 200,
+    height: 100,
+    borderRadius: 80,
+    backgroundColor: '#D1FAE5',
+    opacity: 0.5,
+    transform: [{ scaleX: 1.2 }],
+  },
+  topActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginBottom: 20,
+    gap: 12,
+  },
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    ...SHADOW.sm,
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.danger,
+    borderWidth: 1,
     borderColor: COLORS.white,
   },
-
-  // Name & Email
-  profileName: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: COLORS.darkGray,
-    letterSpacing: -0.4,
-    marginBottom: 4,
-  },
-  emailRow: {
+  profileInfoContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    marginBottom: 10,
+    paddingBottom: 20,
   },
-  emailIcon: {
-    fontSize: 13,
+  avatarWrapper: {
+    position: 'relative',
+    marginRight: 16,
   },
-  profileEmail: {
+  avatarCircle: {
+    width: 70,
+    height: 70,
+    borderRadius: 35,
+    backgroundColor: '#94A3B8', // placeholder color
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  avatarInitials: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: COLORS.white,
+  },
+  editBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: COLORS.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+  },
+  profileTextContainer: {
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+    marginBottom: 4,
+  },
+  profileName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+  },
+  verifiedChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#DCFCE7',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    gap: 4,
+  },
+  verifiedText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: COLORS.greenText,
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  locationText: {
     fontSize: 13,
     color: COLORS.mediumGray,
     fontWeight: '500',
   },
 
-  // Chips
-  chipRow: {
+  // ── STATS CARD ──
+  statsCard: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    marginBottom: 18,
-    flexWrap: 'wrap',
-  },
-  providerChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#EFF6FF',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  providerIcon: {
-    fontSize: 11,
-  },
-  providerText: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#3B82F6',
-  },
-  verifiedChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    backgroundColor: '#DCFCE7',
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  verifiedIcon: {
-    fontSize: 11,
-    color: COLORS.primary,
-  },
-  verifiedText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.primary,
-  },
-
-  // Stats
-  statsRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: COLORS.lightGray,
-    borderRadius: 14,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
     marginHorizontal: 20,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 10,
-    width: '88%',
+    marginTop: -25,
+    ...SHADOW.md,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
+  statValueRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   statValue: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: '800',
     color: COLORS.darkGray,
-    letterSpacing: -0.5,
   },
   statLabel: {
     fontSize: 11,
     color: COLORS.mediumGray,
     fontWeight: '500',
-    marginTop: 2,
+    marginTop: 4,
   },
   statDivider: {
     width: 1,
-    height: 34,
-    backgroundColor: COLORS.borderGray,
+    height: 30,
+    backgroundColor: '#E2E8F0',
+    alignSelf: 'center',
   },
 
-  // Active Trip Banner
-  activeTripBanner: {
+  // ── BIO & EDIT ──
+  bioContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: COLORS.darkGray,
-    borderRadius: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginTop: 16,
-    borderWidth: 1.5,
-    borderColor: COLORS.borderGray,
+    paddingHorizontal: 20,
+    marginTop: 20,
+    gap: 16,
   },
-  activeTripLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
+  bioText: {
     flex: 1,
-  },
-  activeDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#4ADE80',
-    shadowColor: '#4ADE80',
-    shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  activeTripTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: COLORS.white,
-    marginBottom: 2,
-  },
-  activeTripSub: {
-    fontSize: 11,
-    color: 'rgba(255,255,255,0.6)',
+    fontSize: 12,
+    lineHeight: 18,
+    color: COLORS.mediumGray,
     fontWeight: '500',
   },
-  activeTripBtn: {
-    backgroundColor: COLORS.primary,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 8,
+  editProfileBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    gap: 4,
   },
-  activeTripBtnText: {
-    fontSize: 12,
+  editProfileText: {
+    fontSize: 13,
     fontWeight: '700',
-    color: COLORS.white,
+    color: COLORS.primary,
   },
 
-  // Menu Section
-  menuSection: {
-    marginTop: 20,
+  // ── MENU ──
+  menuContainer: {
+    marginTop: 24,
+    paddingHorizontal: 20,
   },
-  menuSectionTitle: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: COLORS.mediumGray,
-    letterSpacing: 0.8,
-    textTransform: 'uppercase',
-    marginBottom: 8,
-    marginLeft: 4,
+  menuSection: {
+    marginBottom: 24,
   },
   menuCard: {
     backgroundColor: COLORS.white,
     borderRadius: 16,
     overflow: 'hidden',
-    borderWidth: 1.5,
-    borderColor: COLORS.borderGray,
+    ...SHADOW.sm,
   },
   menuRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
+    paddingHorizontal: 16,
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.borderGray,
-    gap: 12,
+    borderBottomColor: '#F1F5F9',
+    gap: 14,
   },
   menuRowLast: {
     borderBottomWidth: 0,
   },
   menuIconBox: {
-    width: 38,
-    height: 38,
-    borderRadius: 10,
-    backgroundColor: COLORS.lightGray,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#F8FAFC',
     alignItems: 'center',
     justifyContent: 'center',
   },
   menuIcon: {
     fontSize: 18,
   },
-  menuLabel: {
+  menuTextContainer: {
     flex: 1,
+    justifyContent: 'center',
+  },
+  menuLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.darkGray,
+    marginBottom: 2,
+  },
+  menuSubLabel: {
+    fontSize: 11,
+    color: COLORS.mediumGray,
+    fontWeight: '500',
   },
   menuRight: {
     flexDirection: 'row',
@@ -752,26 +729,78 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   menuBadgeText: {
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  menuChevron: {
-    fontSize: 22,
-    color: COLORS.mediumGray,
-    fontWeight: '300',
-    lineHeight: 24,
+    fontSize: 10,
+    fontWeight: '800',
   },
 
-  // Version
-  appVersion: {
-    textAlign: 'center',
-    fontSize: 12,
+  // ── HELP BANNER ──
+  helpBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.greenBg,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 16,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+  },
+  helpIconBox: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#DCFCE7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  helpTextContainer: {
+    flex: 1,
+  },
+  helpTitle: {
+    fontSize: 14,
+    fontWeight: '800',
+    color: COLORS.darkGray,
+    marginBottom: 2,
+  },
+  helpSubtitle: {
+    fontSize: 11,
     color: COLORS.mediumGray,
-    marginTop: 24,
     fontWeight: '500',
   },
+  helpBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#DCFCE7',
+  },
+  helpBtnText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.greenText,
+  },
 
-  // Logging out overlay
+  developerBadge: {
+    alignSelf: 'center',
+    marginTop: 30,
+    backgroundColor: COLORS.white,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    ...SHADOW.sm,
+  },
+  developerText: {
+    fontSize: 12,
+    color: COLORS.mediumGray,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+  },
   loggingOutOverlay: {
     flexDirection: 'row',
     alignItems: 'center',

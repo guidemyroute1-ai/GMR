@@ -43,7 +43,6 @@ export default function WelcomeScreen() {
         >
           {/* ── Header Section (Logo/Title) ── */}
           <View style={styles.headerContainer}>
-           
             <View style={styles.logoPinContainer}>
               <Image 
                 source={require('../../assets/images/gmr_logo.png')} 
@@ -63,12 +62,19 @@ export default function WelcomeScreen() {
 
           {/* ── Get Started Button ── */}
           <TouchableOpacity
-            style={styles.getStartedButton}
+            style={styles.getStartedButtonContainer}
             activeOpacity={0.85}
             onPress={() => router.push('/auth/login')}
           >
-            <Text style={styles.getStartedText}>Get Started</Text>
-            <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.white} />
+            <LinearGradient
+              colors={['#22C55E', '#15803D']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.getStartedButton}
+            >
+              <Text style={styles.getStartedText}>Get Started</Text>
+              <MaterialCommunityIcons name="arrow-right" size={20} color={COLORS.white} />
+            </LinearGradient>
           </TouchableOpacity>
 
           {/* ── Login Link ── */}
@@ -143,130 +149,79 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   logoText: {
-    fontSize: 28,
-    fontWeight: '800',
+    fontSize: 32,
+    fontWeight: '900',
     color: '#E5E7EB',
     letterSpacing: -0.5,
     marginBottom: 12,
   },
   logoTextGreen: {
-    color: COLORS.primary,
+    color: COLORS.primaryLight,
   },
   subtitle: {
     fontSize: 15,
     color: COLORS.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 24,
     fontWeight: '500',
     maxWidth: 310,
-  },
-
-  // Features Card
-  featuresCard: {
-    backgroundColor: COLORS.glassBg,
-    borderRadius: 20,
-    paddingTop: 18,
-    paddingBottom: 16,
-    paddingHorizontal: 16,
-    marginBottom: 18,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 12,
-  },
-  iconBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: COLORS.iconBg,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 16,
-  },
-  featureTextContainer: {
-    flex: 1,
-  },
-  featureTitle: {
-    color: COLORS.white,
-    fontSize: 15,
-    fontWeight: '700',
-    marginBottom: 2,
-    letterSpacing: -0.2,
-  },
-  featureDesc: {
-    color: COLORS.textSecondary,
-    fontSize: 13,
-    fontWeight: '400',
-    lineHeight: 18,
-  },
-  assuranceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    borderRadius: 16,
-    marginTop: 10,
-    paddingVertical: 12,
-  },
-  assuranceItem: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  assuranceValue: {
-    color: COLORS.white,
-    fontSize: 13,
-    fontWeight: '900',
-    marginBottom: 3,
-  },
-  assuranceLabel: {
-    color: '#A7F3D0',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  assuranceDivider: {
-    width: 1,
-    height: 28,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    letterSpacing: 0.5,
   },
 
   // Button
+  getStartedButtonContainer: {
+    marginBottom: 20,
+    borderRadius: 20,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
   getStartedButton: {
     flexDirection: 'row',
     gap: 8,
-    backgroundColor: COLORS.primary,
-    borderRadius: 16,
-    height: 56,
+    borderRadius: 20,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.3,
-    shadowRadius: 16,
-    elevation: 8,
   },
   getStartedText: {
     color: COLORS.white,
-    fontSize: 17,
-    fontWeight: '700',
+    fontSize: 18,
+    fontWeight: '800',
+    letterSpacing: 0.5,
   },
 
-  // Login link
   loginContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 24,
   },
   loginText: {
-    color: '#9CA3AF',
-    fontSize: 14,
+    color: '#D1D5DB',
+    fontSize: 15,
   },
   loginLink: {
-    color: COLORS.primary,
-    fontSize: 14,
-    fontWeight: '700',
+    color: COLORS.primaryLight,
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  
+  // Developer Badge
+  devBadgeContainer: {
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+  },
+  devBadgeText: {
+    color: 'rgba(255,255,255,0.7)',
+    fontSize: 11,
+    fontWeight: '500',
   },
 });

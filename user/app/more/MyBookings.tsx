@@ -403,9 +403,7 @@ export default function MyBookingsScreen() {
                   <Ionicons name="time-outline" size={20} color={COLORS.gray} />
                   <Text style={styles.sectionTitle}>Past Trips</Text>
                 </View>
-                <TouchableOpacity>
-                  <Text style={styles.viewAllText}>View all <Ionicons name="chevron-forward" size={12} /></Text>
-                </TouchableOpacity>
+             
               </View>
               
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalScroll}>

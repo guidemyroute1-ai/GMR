@@ -53,21 +53,33 @@ export default function ActiveBookingBar() {
 
   useEffect(() => {
     fetchActiveBooking();
-  }, [user]);
+  }, [user?.id]);
+
 
   // Real-time subscription to booking changes
   useEffect(() => {
-    if (!user) return;
+    if (!user?.id) return;
+
+    // Always start with a fresh channel so we never call .on() after .subscribe()
+    const channelName = `active-booking-bar-${user.id}`;
+
+    // Remove any stale channel with this name before creating a new one
+    supabase.removeAllChannels();
+
     const channel = supabase
-      .channel(`active-booking-bar-${user.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'bookings', filter: `user_id=eq.${user.id}` },
         () => { fetchActiveBooking(); }
       )
       .subscribe();
-    return () => { supabase.removeChannel(channel); };
-  }, [user]);
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id]); // depend on user.id (string) — not the whole user object
+
 
   // Pulse animation for the live dot
   useEffect(() => {

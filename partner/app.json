@@ -2,9 +2,9 @@
   "expo": {
     "name": "GMR Partner",
     "slug": "gmrpartner",
-    "version": "1.1",
+    "version": "1.2",
     "orientation": "portrait",
-    "icon": "./assets/images/Partnerscopy.png",
+    "icon": "./assets/images/Partners2.png",
     "scheme": "gmrpartner",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -12,10 +12,10 @@
       "supportsTablet": true
     },
     "android": {
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
-        "foregroundImage": "./assets/images/Partnerscopy.png"
+        "foregroundImage": "./assets/images/Partners2.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -34,10 +34,8 @@
           "image": "./assets/images/gmr_logo.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
-          "dark": {
-            "backgroundColor": "#000000"
-          }
+          "backgroundColor": "#ffffff"
+         
         }
       ],
       "@react-native-firebase/app",
