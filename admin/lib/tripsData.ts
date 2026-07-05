@@ -13,6 +13,13 @@ export interface Trip {
   is_featured: boolean;
   city: string;
   created_at: string;
+  subtitle?: string;
+  description?: string;
+  end_date?: string;
+  location_text?: string;
+  difficulty?: string;
+  what_to_bring?: string;
+  images?: string[];
   organizer: {
     name: string;
     email: string;
@@ -36,6 +43,13 @@ export async function getTrips(): Promise<Trip[]> {
       is_featured,
       city,
       created_at,
+      subtitle,
+      description,
+      end_date,
+      location_text,
+      difficulty,
+      what_to_bring,
+      images,
       organizer:users!organizer_id(
         name,
         email,

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Trip } from '@/lib/tripsData';
 import { deleteTripAction, toggleFeaturedAction } from './actions';
-import { Trash2, Star, CheckCircle, Clock, Search, Briefcase } from 'lucide-react';
+import { Trash2, Star, CheckCircle, Clock, Search, Briefcase, Eye, XCircle } from 'lucide-react';
 import DataTable, { Column } from '@/components/ui/DataTable';
 import StatCard from '@/components/ui/StatCard';
 import StatusBadge from '@/components/ui/StatusBadge';
@@ -15,6 +15,7 @@ interface TripsClientProps {
 export default function TripsClient({ trips }: TripsClientProps) {
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   
   const filteredTrips = trips.filter(t => t.title.toLowerCase().includes(search.toLowerCase()) || t.city.toLowerCase().includes(search.toLowerCase()));
 
@@ -70,7 +71,7 @@ export default function TripsClient({ trips }: TripsClientProps) {
     {
       key: 'date',
       header: 'Date',
-      render: (t) => <span className="text-sm text-gray-500">{new Date(t.trip_date).toLocaleDateString()}</span>
+      render: (t) => <span className="text-sm text-gray-500">{new Date(t.trip_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
     },
     {
       key: 'actions',
@@ -78,6 +79,13 @@ export default function TripsClient({ trips }: TripsClientProps) {
       className: 'text-right',
       render: (t) => (
         <div className="flex justify-end gap-2">
+          <button
+            onClick={() => setSelectedTrip(t)}
+            className="p-1.5 rounded-md bg-gray-50 text-gray-400 hover:text-blue-600 hover:bg-blue-50 transition-colors"
+            title="View Details"
+          >
+            <Eye className="w-4 h-4" />
+          </button>
           <button
             onClick={() => handleToggleFeatured(t.id, t.is_featured)}
             disabled={loadingId === t.id}
@@ -128,6 +136,128 @@ export default function TripsClient({ trips }: TripsClientProps) {
       </div>
 
       <DataTable columns={columns} data={filteredTrips} keyExtractor={(t) => t.id} />
+
+      {selectedTrip && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setSelectedTrip(null)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl overflow-hidden max-h-[90vh] flex flex-col" onClick={e => e.stopPropagation()}>
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-gray-800">Trip Details</h3>
+              <button onClick={() => setSelectedTrip(null)} className="text-gray-400 hover:text-gray-600 transition-colors">
+                <XCircle className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 text-sm text-gray-600 overflow-y-auto">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Title</span>
+                  <span className="font-medium text-gray-800">{selectedTrip.title}</span>
+                </div>
+                <div>
+                  <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Type</span>
+                  <span className="font-medium text-gray-800 capitalize">{selectedTrip.trip_type}</span>
+                </div>
+                <div>
+                  <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">City</span>
+                  <span className="font-medium text-gray-800">{selectedTrip.city}</span>
+                </div>
+                <div>
+                  <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Status</span>
+                  <span className={`font-semibold ${selectedTrip.is_active ? 'text-green-600' : 'text-gray-500'}`}>
+                    {selectedTrip.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Date</span>
+                  <span className="font-medium text-gray-800">
+                    {new Date(selectedTrip.trip_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    {selectedTrip.end_date && ` - ${new Date(selectedTrip.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                  </span>
+                </div>
+                <div>
+                  <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Price</span>
+                  <span className="font-medium text-gray-800">₹{selectedTrip.price}</span>
+                </div>
+                <div>
+                  <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Joined / Capacity</span>
+                  <span className="font-medium text-gray-800">{selectedTrip.joined_count} / {selectedTrip.capacity}</span>
+                </div>
+                <div>
+                  <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Featured</span>
+                  <span className={`font-semibold ${selectedTrip.is_featured ? 'text-yellow-600' : 'text-gray-500'}`}>
+                    {selectedTrip.is_featured ? 'Yes' : 'No'}
+                  </span>
+                </div>
+                {selectedTrip.difficulty && (
+                  <div>
+                    <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Difficulty</span>
+                    <span className="font-medium text-gray-800">{selectedTrip.difficulty}</span>
+                  </div>
+                )}
+                {selectedTrip.subtitle && (
+                  <div className="col-span-2">
+                    <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Subtitle</span>
+                    <span className="font-medium text-gray-800">{selectedTrip.subtitle}</span>
+                  </div>
+                )}
+                {selectedTrip.location_text && (
+                  <div className="col-span-2">
+                    <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Meeting Point</span>
+                    <span className="font-medium text-gray-800">{selectedTrip.location_text}</span>
+                  </div>
+                )}
+                {selectedTrip.description && (
+                  <div className="col-span-2">
+                    <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Description</span>
+                    <span className="font-medium text-gray-800 whitespace-pre-wrap">{selectedTrip.description}</span>
+                  </div>
+                )}
+                {selectedTrip.what_to_bring && (
+                  <div className="col-span-2">
+                    <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">What to Bring</span>
+                    <span className="font-medium text-gray-800 whitespace-pre-wrap">{selectedTrip.what_to_bring}</span>
+                  </div>
+                )}
+                {selectedTrip.images && selectedTrip.images.length > 0 && (
+                  <div className="col-span-2">
+                    <span className="block text-gray-400 text-xs uppercase tracking-wider mb-2">Photos</span>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                      {selectedTrip.images.map((img, idx) => (
+                        <img key={idx} src={img} alt={`Trip ${idx + 1}`} className="h-20 w-20 object-cover rounded-lg border border-gray-200" />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              {selectedTrip.organizer && (
+                <>
+                  <hr className="border-gray-100 my-4" />
+                  <h4 className="font-semibold text-gray-800 mb-2">Organizer Details</h4>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Name</span>
+                      <span className="font-medium text-gray-800">{selectedTrip.organizer.name}</span>
+                    </div>
+                    <div>
+                      <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Phone</span>
+                      <span className="font-medium text-gray-800">{selectedTrip.organizer.phone || 'N/A'}</span>
+                    </div>
+                    <div className="col-span-2">
+                      <span className="block text-gray-400 text-xs uppercase tracking-wider mb-1">Email</span>
+                      <span className="font-medium text-gray-800">{selectedTrip.organizer.email}</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="px-6 py-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+              <button onClick={() => setSelectedTrip(null)} className="px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors text-sm font-medium">
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
