@@ -31,27 +31,44 @@ export async function sendCustomNotification(formData: FormData) {
 
       if (error) throw error;
       tokens = [...(data?.fcm_tokens || []), ...(data?.partner_fcm_tokens || [])];
-    } else {
-      let query = supabaseAdmin.from('users').select('fcm_tokens, partner_fcm_tokens');
-      if (targetType === 'users') {
-        query = query.eq('role', 'user').not('fcm_tokens', 'is', null);
-      } else if (targetType === 'partners') {
-        query = query.eq('role', 'guide').not('partner_fcm_tokens', 'is', null);
-      }
-
-      const { data, error } = await query;
+    } else if (targetType === 'users') {
+      // Travelers only: role='user', collect only traveler app tokens (fcm_tokens)
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('fcm_tokens')
+        .eq('role', 'user');
       if (error) throw error;
-
       data?.forEach(user => {
-        if (targetType === 'users' || targetType === 'all') {
-          if (Array.isArray(user.fcm_tokens)) {
-            tokens.push(...(user.fcm_tokens as string[]));
-          }
+        if (Array.isArray(user.fcm_tokens) && user.fcm_tokens.length > 0) {
+          tokens.push(...(user.fcm_tokens as string[]));
         }
-        if (targetType === 'partners' || targetType === 'all') {
-          if (Array.isArray(user.partner_fcm_tokens)) {
-            tokens.push(...(user.partner_fcm_tokens as string[]));
-          }
+      });
+
+    } else if (targetType === 'partners') {
+      // Guides only: role='guide', collect only partner app tokens (partner_fcm_tokens)
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('partner_fcm_tokens')
+        .eq('role', 'guide');
+      if (error) throw error;
+      data?.forEach(user => {
+        if (Array.isArray(user.partner_fcm_tokens) && user.partner_fcm_tokens.length > 0) {
+          tokens.push(...(user.partner_fcm_tokens as string[]));
+        }
+      });
+
+    } else {
+      // All: everyone, collect both token columns
+      const { data, error } = await supabaseAdmin
+        .from('users')
+        .select('fcm_tokens, partner_fcm_tokens');
+      if (error) throw error;
+      data?.forEach(user => {
+        if (Array.isArray(user.fcm_tokens) && user.fcm_tokens.length > 0) {
+          tokens.push(...(user.fcm_tokens as string[]));
+        }
+        if (Array.isArray(user.partner_fcm_tokens) && user.partner_fcm_tokens.length > 0) {
+          tokens.push(...(user.partner_fcm_tokens as string[]));
         }
       });
     }

@@ -52,7 +52,7 @@ export default function NotificationsPage() {
                 <option value="all">All Users & Partners</option>
                 <option value="users">Travelers (Users) Only</option>
                 <option value="partners">Guides (Partners) Only</option>
-                <option value="specific">Specific User/Partner ID</option>
+        
               </select>
             </div>
 

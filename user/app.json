@@ -2,7 +2,7 @@
   "expo": {
     "name": "Guide My Route",
     "slug": "guidemyroute",
-    "version": "1.1",
+    "version": "1.2",
     "orientation": "portrait",
     "icon": "./assets/images/adaptive.png",
     "scheme": "guidemyroute",
@@ -12,7 +12,7 @@
       "supportsTablet": true
     },
     "android": {
-      "versionCode": 2,
+      "versionCode": 3,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/adaptive.png"
