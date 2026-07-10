@@ -15,11 +15,12 @@ import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { router } from 'expo-router';
 import { Colors } from '../../constants/colors';
 import { Spacing, Radius, FontSize } from '../../constants/theme';
-import { registerUser, createUserDoc } from '../../services/auth';
+import { registerUser, createUserDoc, type UserRole } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, ArrowRight } from 'lucide-react-native';
+import { AlertService } from '@/contexts/AlertContext';
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
@@ -31,8 +32,8 @@ export default function RegisterScreen() {
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
   const { user, profile, setUser, setProfile } = useAuthStore();
-  const { updateData } = useOnboardingStore();
-  const role = profile?.role ?? 'guide';
+  const { data, updateData } = useOnboardingStore();
+  const role = (data.role as UserRole) || profile?.role || 'guide';
   const insets = useSafeAreaInsets();
 
   // If user is already authenticated (e.g. via Google), prefill their info
@@ -50,32 +51,32 @@ export default function RegisterScreen() {
 
   const handleRegister = async () => {
     if (!name.trim() || !email.trim()) {
-      Alert.alert('Missing Fields', 'Please fill in your name and email.');
+      AlertService.alert('Missing Fields', 'Please fill in your name and email.');
       return;
     }
 
     if (!phone.trim()) {
-      Alert.alert('Required Field', 'Phone number is required for listing partners.');
+      AlertService.alert('Required Field', 'Phone number is required for listing partners.');
       return;
     }
 
     const cleanedPhone = phone.replace(/\D/g, '');
     if (cleanedPhone.length < 8) {
-      Alert.alert('Invalid Phone Number', 'Please enter a valid phone number.');
+      AlertService.alert('Invalid Phone Number', 'Please enter a valid phone number.');
       return;
     }
 
     if (!user) {
       if (!password || !confirmPassword) {
-        Alert.alert('Missing Fields', 'Please fill in password fields.');
+        AlertService.alert('Missing Fields', 'Please fill in password fields.');
         return;
       }
       if (password !== confirmPassword) {
-        Alert.alert('Password Mismatch', 'Passwords do not match.');
+        AlertService.alert('Password Mismatch', 'Passwords do not match.');
         return;
       }
       if (password.length < 6) {
-        Alert.alert('Weak Password', 'Password must be at least 6 characters.');
+        AlertService.alert('Weak Password', 'Password must be at least 6 characters.');
         return;
       }
     }
@@ -114,7 +115,7 @@ export default function RegisterScreen() {
       }
     } catch (err: any) {
       console.error("Registration failed:", err);
-      Alert.alert('Registration Failed', err.message || 'Registration failed. Please try again.');
+      AlertService.alert('Registration Failed', err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }

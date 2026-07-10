@@ -137,7 +137,13 @@ export default function HomeScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [showCity, setShowCity] = useState(false);
-  const { weekendTrips } = useTrips();
+  const { weekendTrips, featuredTrips, communityTrips, officialTrips } = useTrips();
+  const [activeHeroIndex, setActiveHeroIndex] = useState(0);
+  
+  const heroTrips = featuredTrips.length > 0 ? featuredTrips : 
+                    weekendTrips.length > 0 ? weekendTrips : 
+                    communityTrips.length > 0 ? communityTrips : 
+                    officialTrips;
   
   const { cityOptions, selectedCity, setSelectedCity } = useLocation();
 
@@ -257,7 +263,7 @@ export default function HomeScreen() {
   );
 
   return (
-    <SafeAreaContextView edges={['top', 'bottom']} style={s.root}>
+    <SafeAreaContextView edges={['top']} style={s.root}>
       <StatusBar barStyle="dark-content" backgroundColor={C.base} />
 
       <ScrollView
@@ -298,50 +304,88 @@ export default function HomeScreen() {
         </View>
 
         {/* 3. Hero Banner */}
-        <TouchableOpacity style={s.heroBanner} activeOpacity={0.9}>
-          <ExpoImage source={{ uri: 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=1200' }} style={StyleSheet.absoluteFill} contentFit="cover" />
-          <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.8)']} style={StyleSheet.absoluteFill} />
-          <View style={s.heroTag}>
-            <Ionicons name="flame" size={12} color="#F97316" />
-            <Text style={s.heroTagText}>THIS WEEKEND</Text>
-          </View>
-          
-          <View style={s.heroContent}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.heroTitle}>Delhi Unseen</Text>
-              <Text style={s.heroSubtitle}>Hidden places, amazing people</Text>
-              
-              <View style={s.facepileRow}>
-                <View style={s.facepile}>
-                  <ExpoImage source={{ uri: 'https://i.pravatar.cc/150?img=1' }} style={s.face} />
-                  <ExpoImage source={{ uri: 'https://i.pravatar.cc/150?img=2' }} style={[s.face, { marginLeft: -10 }]} />
-                  <ExpoImage source={{ uri: 'https://i.pravatar.cc/150?img=3' }} style={[s.face, { marginLeft: -10 }]} />
-                  <ExpoImage source={{ uri: 'https://i.pravatar.cc/150?img=4' }} style={[s.face, { marginLeft: -10 }]} />
+        {heroTrips && heroTrips.length > 0 ? (
+          <View style={{ position: 'relative' }}>
+            <ScrollView
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              onMomentumScrollEnd={(e) => {
+                const newIndex = Math.round(e.nativeEvent.contentOffset.x / e.nativeEvent.layoutMeasurement.width);
+                setActiveHeroIndex(newIndex);
+              }}
+            >
+              {heroTrips.map((trip) => (
+                <View key={trip.id} style={{ width: Dimensions.get('window').width }}>
+                  <TouchableOpacity 
+                    style={s.heroBanner} 
+                    activeOpacity={0.9}
+                    onPress={() => router.push(`/tripDetail?id=${trip.id}` as any)}
+                  >
+                    <ExpoImage source={{ uri: (trip.images && trip.images[0]) || 'https://images.unsplash.com/photo-1596422846543-75c6fc197f07?auto=format&fit=crop&q=80&w=1200' }} style={StyleSheet.absoluteFill} contentFit="cover" />
+                    <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.8)']} style={StyleSheet.absoluteFill} />
+                    <View style={s.heroTag}>
+                      <Ionicons name="flame" size={12} color="#F97316" />
+                      <Text style={s.heroTagText}>FEATURED</Text>
+                    </View>
+                    
+                    <View style={s.heroContent}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={s.heroTitle} numberOfLines={1}>{trip.title}</Text>
+                        <Text style={s.heroSubtitle} numberOfLines={1}>{trip.subtitle || trip.city}</Text>
+                        
+                        <View style={s.facepileRow}>
+                          <View style={s.facepile}>
+                            <ExpoImage source={{ uri: 'https://i.pravatar.cc/150?img=15' }} style={s.face} />
+                            <ExpoImage source={{ uri: 'https://i.pravatar.cc/150?img=16' }} style={[s.face, { marginLeft: -10 }]} />
+                            <ExpoImage source={{ uri: 'https://i.pravatar.cc/150?img=17' }} style={[s.face, { marginLeft: -10 }]} />
+                          </View>
+                          <Text style={s.facepileText}>{trip.joined_count > 0 ? `+${trip.joined_count} going` : 'Be the first'}</Text>
+                        </View>
+                        
+                        <View style={s.heroBottomRow}>
+                          <Text style={s.heroPrice}>₹{trip.price} <Text style={s.heroSeats}>{Math.max(trip.capacity - (trip.joined_count || 0), 0)} seats left</Text></Text>
+                        </View>
+                      </View>
+                      <View style={s.heroJoinBtn}>
+                        <Text style={s.heroJoinBtnText}>View Trip</Text>
+                        <Ionicons name="arrow-forward" size={16} color={C.white} />
+                      </View>
+                    </View>
+                  </TouchableOpacity>
                 </View>
-                <Text style={s.facepileText}>+47 going</Text>
+              ))}
+            </ScrollView>
+            
+            {/* Carousel dots */}
+            {heroTrips.length > 1 && (
+              <View style={s.heroDots}>
+                {heroTrips.map((_, i) => (
+                  <View key={i} style={[s.heroDot, activeHeroIndex === i && s.heroDotActive]} />
+                ))}
               </View>
-              
-              <View style={s.heroBottomRow}>
-                <Text style={s.heroPrice}>₹599 <Text style={s.heroSeats}>4 seats left</Text></Text>
+            )}
+          </View>
+        ) : (
+          <TouchableOpacity style={s.heroBanner} activeOpacity={0.9} onPress={() => {}}>
+            <ExpoImage source={require('../../assets/images/fallback_hero_banner.png')} style={StyleSheet.absoluteFill} contentFit="cover" />
+            <LinearGradient colors={['rgba(0,0,0,0.1)', 'rgba(0,0,0,0.8)']} style={StyleSheet.absoluteFill} />
+            <View style={s.heroTag}>
+              <Ionicons name="compass" size={12} color="#F97316" />
+              <Text style={s.heroTagText}>GET READY</Text>
+            </View>
+            
+            <View style={s.heroContent}>
+              <View style={{ flex: 1, justifyContent: 'flex-end' }}>
+                <Text style={s.heroTitle}>Adventure Awaits</Text>
+                <Text style={s.heroSubtitle}>We're curating amazing new trips for you. Stay tuned!</Text>
               </View>
             </View>
-            <TouchableOpacity style={s.heroJoinBtn}>
-              <Text style={s.heroJoinBtnText}>Join Trip</Text>
-              <Ionicons name="arrow-forward" size={16} color={C.white} />
-            </TouchableOpacity>
-          </View>
-          
-          {/* Carousel dots */}
-          <View style={s.heroDots}>
-            <View style={[s.heroDot, s.heroDotActive]} />
-            <View style={s.heroDot} />
-            <View style={s.heroDot} />
-            <View style={s.heroDot} />
-          </View>
-        </TouchableOpacity>
+          </TouchableOpacity>
+        )}
 
         {/* 4. Explore Experiences */}
-        {renderSectionHeader('Explore Experiences', () => {})}
+        {renderSectionHeader('Explore Experiences')}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.exploreList}>
           {CATEGORIES.map((cat) => (
             <TouchableOpacity key={cat.id} style={s.catItem}>

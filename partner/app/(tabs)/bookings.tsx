@@ -39,6 +39,7 @@ import {
 } from 'lucide-react-native';
 import { Text } from '../../components/Text';
 import Animated, { FadeInUp } from 'react-native-reanimated';
+import { AlertService } from '@/contexts/AlertContext';
 
 const FILTERS: { key: BookingStatus | 'all'; label: string }[] = [
   { key: 'all', label: 'All' },
@@ -120,7 +121,7 @@ export default function BookingsScreen() {
   }, [userUid, setPendingRequestCount]);
 
   const handleAcceptRequest = async (bookingId: string) => {
-    Alert.alert(
+    AlertService.alert(
       'Accept Request',
       'Are you sure you want to accept this booking request? If you are the first, it will be assigned to you.',
       [
@@ -133,16 +134,16 @@ export default function BookingsScreen() {
               const res = await acceptBookingRequest(bookingId);
               if (res.success) {
                 if (res.alreadyAccepted) {
-                   Alert.alert('Info', 'You have already accepted this request. Waiting for user payment.');
+                   AlertService.alert('Info', 'You have already accepted this request. Waiting for user payment.');
                 } else {
-                   Alert.alert('Success', 'You accepted the request! The user has been notified to make the payment.');
+                   AlertService.alert('Success', 'You accepted the request! The user has been notified to make the payment.');
                 }
               } else if (res.reason === 'already_taken') {
-                Alert.alert('Too late', 'Another guide has already taken this booking.');
+                AlertService.alert('Too late', 'Another guide has already taken this booking.');
               }
               await loadData();
             } catch {
-              Alert.alert('Error', 'Failed to accept request.');
+              AlertService.alert('Error', 'Failed to accept request.');
             } finally {
               setUpdating(null);
             }
@@ -157,7 +158,7 @@ export default function BookingsScreen() {
 
   const handleStatusChange = async (bookingId: string, status: BookingStatus) => {
     const actionLabel = status === 'confirmed' ? 'accept' : status === 'cancelled' ? 'cancel' : 'mark as ' + status;
-    Alert.alert(
+    AlertService.alert(
       `${status.charAt(0).toUpperCase() + status.slice(1)} Booking`,
       `Are you sure you want to ${actionLabel} this booking?`,
       [
@@ -170,7 +171,7 @@ export default function BookingsScreen() {
               await updateBookingStatus(bookingId, status);
               await loadData();
             } catch {
-              Alert.alert('Error', 'Failed to update booking status.');
+              AlertService.alert('Error', 'Failed to update booking status.');
             } finally {
               setUpdating(null);
             }

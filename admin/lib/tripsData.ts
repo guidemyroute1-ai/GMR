@@ -85,3 +85,13 @@ export async function toggleFeatured(tripId: string, currentStatus: boolean) {
   if (error) throw error;
   return true;
 }
+
+export async function approveTrip(tripId: string, currentStatus: boolean) {
+  const { error } = await supabaseAdmin
+    .from('trips')
+    .update({ is_active: !currentStatus })
+    .eq('id', tripId);
+    
+  if (error) throw error;
+  return true;
+}

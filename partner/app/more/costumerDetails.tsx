@@ -8,6 +8,7 @@ import { ArrowLeft, User, CalendarDays, FileText, IndianRupee, Tag, Phone, MapPi
 import { supabase } from '../../services/supabase';
 import { updateBookingStatus } from '../../services/database';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AlertService } from '@/contexts/AlertContext';
 
 export default function CustomerDetailsScreen() {
   const params = useLocalSearchParams();
@@ -47,7 +48,7 @@ export default function CustomerDetailsScreen() {
 
   const handleCall = () => {
     if (!phoneNumber) {
-      Alert.alert('Phone number not available', 'The customer has not provided a valid phone number.');
+      AlertService.alert('Phone number not available', 'The customer has not provided a valid phone number.');
       return;
     }
     Linking.openURL(`tel:${phoneNumber}`);
@@ -57,7 +58,7 @@ export default function CustomerDetailsScreen() {
     const bookingId = params.bookingId || params.id;
     if (!bookingId) return;
 
-    Alert.alert(
+    AlertService.alert(
       'Mark as Complete',
       'Are you sure you want to mark this booking as complete?',
       [
@@ -68,11 +69,11 @@ export default function CustomerDetailsScreen() {
             try {
               setIsUpdating(true);
               await updateBookingStatus(bookingId as string, 'completed');
-              Alert.alert('Success', 'Booking marked as complete');
+              AlertService.alert('Success', 'Booking marked as complete');
               router.back();
             } catch (error) {
               console.error(error);
-              Alert.alert('Error', 'Failed to update booking status');
+              AlertService.alert('Error', 'Failed to update booking status');
             } finally {
               setIsUpdating(false);
             }
@@ -84,7 +85,7 @@ export default function CustomerDetailsScreen() {
 
   const handleViewDetails = () => {
     // Optionally navigate to specific booking item screen if it exists
-    Alert.alert('View Details', 'More details about the package/booking will be available here soon.');
+    AlertService.alert('View Details', 'More details about the package/booking will be available here soon.');
   };
   
   return (

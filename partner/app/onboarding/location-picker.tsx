@@ -23,6 +23,7 @@ import {
   MapPin,
 } from 'lucide-react-native';
 import { useOnboardingStore } from '../../store/useOnboardingStore';
+import { AlertService } from '@/contexts/AlertContext';
 
 interface PickedLocation {
   latitude: number;
@@ -192,7 +193,7 @@ export default function LocationPickerScreen() {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        Alert.alert('Permission Required', 'Allow location access to use this feature.');
+        AlertService.alert('Permission Required', 'Allow location access to use this feature.');
         return;
       }
 
@@ -210,7 +211,7 @@ export default function LocationPickerScreen() {
         })(); true;`
       );
     } catch {
-      Alert.alert('Error', 'Could not fetch your location. Please try again.');
+      AlertService.alert('Error', 'Could not fetch your location. Please try again.');
     } finally {
       setGpsLoading(false);
     }

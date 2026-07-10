@@ -58,19 +58,32 @@ export const getEvents = async (): Promise<CommunityEvent[]> => {
 };
 
 export const getPeopleYouMayKnow = async (): Promise<Profile[]> => {
-  // Only fetching verified trip organizers
+  // Query the `users` table — this is where the admin panel sets is_trip_organizer_verified
   const { data, error } = await supabase
-    .from('profiles')
-    .select('*')
+    .from('users')
+    .select('id, name, photo_url, city, is_trip_organizer_verified, rating, profile_data')
     .eq('is_trip_organizer_verified', true)
     .order('rating', { ascending: false })
-    .limit(10);
+    .limit(20);
 
   if (error) {
-    console.error('Error fetching people:', error);
+    console.error('Error fetching verified organizers:', error);
     return [];
   }
-  return data as Profile[];
+
+  // Map users table fields to the Profile interface
+  return (data || []).map((u: any) => ({
+    id: u.id,
+    name: u.name || 'Organizer',
+    avatar_url: u.photo_url || null,
+    location: u.city || u.profile_data?.city || null,
+    tag: 'Verified Organizer',
+    tag_icon: 'shield-checkmark',
+    is_verified: true,
+    is_trip_organizer_verified: true,
+    trips_count: u.profile_data?.trips_count || 0,
+    rating: u.rating || 4.5,
+  })) as Profile[];
 };
 
 export const getProfileById = async (id: string): Promise<Profile | null> => {

@@ -16,8 +16,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../../components/Text';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { supabase } from '../../utils/supabase';
-import { useAuth } from '../../contexts/AuthContext';
+import { supabase } from '../../services/supabase';
+import { adminSupabase } from '../../services/adminSupabase';
+import { useAuthStore } from '../../store/useAuthStore';
 import { CalendarPickerModal } from '../../components/CalendarPickerModal';
 import * as ImagePicker from 'expo-image-picker';
 import { MapPickerModal } from '../../components/MapPickerModal';
@@ -28,6 +29,8 @@ import { decode } from 'base64-arraybuffer';
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+
+const db = adminSupabase ?? supabase;
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 type MeetingMode = 'text' | 'map';
@@ -72,7 +75,7 @@ function makeDayId() {
 // ─── Component ─────────────────────────────────────────────────────────────
 export default function CreateTripScreen() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user } = useAuthStore();
 
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -169,7 +172,10 @@ export default function CreateTripScreen() {
 
   // ─── Submit ───────────────────────────────────────────────────────
   const handleSubmit = async () => {
-    if (!user) return;
+    if (!user) {
+      Alert.alert('Error', 'User not authenticated.');
+      return;
+    }
 
     if (
       !form.title.trim() ||
@@ -210,18 +216,18 @@ export default function CreateTripScreen() {
       let imageUrls: string[] = [];
       if (images.length > 0) {
         setUploadingImages(true);
-        imageUrls = await Promise.all(images.map((uri) => uploadTripImage(uri, user.id)));
+        imageUrls = await Promise.all(images.map((uri) => uploadTripImage(uri, user.uid)));
         setUploadingImages(false);
       }
 
       const cleanDayPlans = dayPlans.map(({ id, expanded, ...rest }) => rest);
 
-      const { error } = await supabase.from('trips').insert({
-        organizer_id: user.id,
+      const { error } = await db.from('trips').insert({
+        organizer_id: user.uid,
         title: form.title,
         subtitle: form.subtitle,
         description: form.description,
-        trip_type: 'community',
+        trip_type: 'official', // Admin trips are marked as official
         trip_date: form.date.toISOString(),
         end_date: form.end_date.toISOString(),
         price: parseFloat(form.price),
@@ -235,19 +241,16 @@ export default function CreateTripScreen() {
           ? { meeting_lat: form.lat, meeting_lng: form.lng }
           : {}),
         images: imageUrls,
-        is_active: false,
+        is_active: true, // Auto-activate for admins
       });
 
       if (error) {
-        if (error.code === '42501' || error.message?.includes('policy')) {
-          throw new Error('You must be a verified trip organizer to create a trip.');
-        }
         throw error;
       }
 
       Alert.alert(
-        'Trip Submitted! 🎉',
-        'Your trip has been submitted for review. Our team will approve it shortly and it will appear in the app once approved.',
+        'Trip Created! 🎉',
+        'Your official trip has been created and will appear directly in the app.',
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (err: any) {
@@ -265,10 +268,7 @@ export default function CreateTripScreen() {
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#1f2937" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Create Community Trip</Text>
+        <Text style={styles.headerTitle}>Create Official Trip</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -652,8 +652,7 @@ export default function CreateTripScreen() {
             </View>
           ) : (
             <View style={{ alignItems: 'center', gap: 2 }}>
-              <Text style={styles.submitButtonText}>Submit for Review</Text>
-              <Text style={{ color: 'rgba(255,255,255,0.75)', fontSize: 11 }}>Admin approval required</Text>
+              <Text style={styles.submitButtonText}>Publish Trip</Text>
             </View>
           )}
         </TouchableOpacity>
@@ -675,13 +674,12 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
-  backButton: { padding: 8, marginLeft: -8 },
   headerTitle: { fontSize: 18, fontWeight: '700', color: '#111827' },
   content: { padding: 16, paddingBottom: 32 },
   inputGroup: { marginBottom: 16 },

@@ -19,6 +19,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import * as ImagePicker from 'expo-image-picker';
 import { uploadToSupabase } from '../../services/storage';
 import { updateUserProfile } from '../../services/auth';
+import { AlertService } from '@/contexts/AlertContext';
 
 export default function DocumentUploadScreen() {
   const { user, profile, setProfile } = useAuthStore();
@@ -41,7 +42,7 @@ export default function DocumentUploadScreen() {
         const newFiles = [...files];
         result.assets.forEach(asset => {
           if (asset.size && asset.size > 10 * 1024 * 1024) {
-            Alert.alert('File Too Large', `${asset.name} is larger than 10MB.`);
+            AlertService.alert('File Too Large', `${asset.name} is larger than 10MB.`);
             return;
           }
           if (!newFiles.find(f => f.uri === asset.uri)) {
@@ -52,7 +53,7 @@ export default function DocumentUploadScreen() {
       }
     } catch (error) {
       console.error('Error picking document', error);
-      Alert.alert('Error', 'Failed to pick documents.');
+      AlertService.alert('Error', 'Failed to pick documents.');
     }
   };
 
@@ -66,13 +67,13 @@ export default function DocumentUploadScreen() {
     if (!result.canceled) {
       const asset = result.assets[0];
       if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
-        Alert.alert('File Too Large', 'Please select a video smaller than 10MB.');
+        AlertService.alert('File Too Large', 'Please select a video smaller than 10MB.');
         return;
       }
       const durationMs = asset.duration;
       // Duration check: 30s (30000ms) to 60s (60000ms)
       if (durationMs && (durationMs < 29000 || durationMs > 61000)) {
-        Alert.alert('Invalid Video', 'Demo Video must be between 30 seconds and 1 minute.');
+        AlertService.alert('Invalid Video', 'Demo Video must be between 30 seconds and 1 minute.');
         return;
       }
       setVideoFile({
@@ -88,7 +89,7 @@ export default function DocumentUploadScreen() {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      Alert.alert("Permission Required", "You need to allow camera access to record a video.");
+      AlertService.alert("Permission Required", "You need to allow camera access to record a video.");
       return;
     }
 
@@ -102,13 +103,13 @@ export default function DocumentUploadScreen() {
     if (!result.canceled) {
       const asset = result.assets[0];
       if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
-        Alert.alert('File Too Large', 'Please record a video smaller than 10MB.');
+        AlertService.alert('File Too Large', 'Please record a video smaller than 10MB.');
         return;
       }
       const durationMs = asset.duration;
       // Duration check: 30s (30000ms) to 60s (60000ms)
       if (durationMs && (durationMs < 29000 || durationMs > 61000)) {
-        Alert.alert('Invalid Video', 'Demo Video must be between 30 seconds and 1 minute.');
+        AlertService.alert('Invalid Video', 'Demo Video must be between 30 seconds and 1 minute.');
         return;
       }
       setVideoFile({
@@ -130,7 +131,7 @@ export default function DocumentUploadScreen() {
     if (!result.canceled) {
       const asset = result.assets[0];
       if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
-        Alert.alert('File Too Large', 'Please select an image smaller than 10MB.');
+        AlertService.alert('File Too Large', 'Please select an image smaller than 10MB.');
         return;
       }
       const newFiles = [...files];
@@ -150,7 +151,7 @@ export default function DocumentUploadScreen() {
     const permissionResult = await ImagePicker.requestCameraPermissionsAsync();
 
     if (permissionResult.granted === false) {
-      Alert.alert("Permission Required", "You need to allow camera access to take a photo.");
+      AlertService.alert("Permission Required", "You need to allow camera access to take a photo.");
       return;
     }
 
@@ -162,7 +163,7 @@ export default function DocumentUploadScreen() {
     if (!result.canceled) {
       const asset = result.assets[0];
       if (asset.fileSize && asset.fileSize > 10 * 1024 * 1024) {
-        Alert.alert('File Too Large', 'Please take a photo smaller than 10MB.');
+        AlertService.alert('File Too Large', 'Please take a photo smaller than 10MB.');
         return;
       }
       const newFiles = [...files];
@@ -189,7 +190,7 @@ export default function DocumentUploadScreen() {
   const canSubmit = files.length > 0 || (isGuide && !!videoFile);
 
   const handleSkip = () => {
-    Alert.alert('Skip Upload', 'Are you sure you want to skip? Your profile will not be live until verified.', [
+    AlertService.alert('Skip Upload', 'Are you sure you want to skip? Your profile will not be live until verified.', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Skip',
@@ -206,12 +207,12 @@ export default function DocumentUploadScreen() {
 
   const handleSubmit = async () => {
     if (!canSubmit) {
-      Alert.alert('No files selected', 'Please select at least one document or video to upload.');
+      AlertService.alert('No files selected', 'Please select at least one document or video to upload.');
       return;
     }
 
     if (isGuide && !videoFile) {
-      Alert.alert('Missing Demo Video', 'As a guide, you must upload a 30 to 60 second Demo Video.');
+      AlertService.alert('Missing Demo Video', 'As a guide, you must upload a 30 to 60 second Demo Video.');
       return;
     }
 
@@ -261,7 +262,7 @@ export default function DocumentUploadScreen() {
       router.replace('/(tabs)/dashboard');
     } catch (err) {
       console.error('Error uploading docs', err);
-      Alert.alert('Upload Failed', 'There was an issue uploading your documents. Please try again.');
+      AlertService.alert('Upload Failed', 'There was an issue uploading your documents. Please try again.');
     } finally {
       setLoading(false);
     }

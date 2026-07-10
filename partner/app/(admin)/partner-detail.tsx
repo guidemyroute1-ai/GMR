@@ -6,6 +6,7 @@ import { Spacing, Radius, FontSize } from '../../constants/theme';
 import { supabase } from '../../services/supabase';
 import { Image } from 'expo-image';
 import { MapPin, Phone, Mail, Briefcase, Calendar, CheckCircle, XCircle } from 'lucide-react-native';
+import { AlertService } from '@/contexts/AlertContext';
 
 export default function AdminPartnerDetail() {
   const { id } = useLocalSearchParams();
@@ -52,7 +53,7 @@ export default function AdminPartnerDetail() {
 
     } catch (err: any) {
       console.error('Error fetching partner detail:', err);
-      Alert.alert('Error', 'Failed to load partner details.');
+      AlertService.alert('Error', 'Failed to load partner details.');
     } finally {
       setLoading(false);
     }

@@ -262,9 +262,16 @@ export default function TripDetailScreen() {
 
           {/* ── Badges row ─────────────────────────────────────────── */}
           <View style={styles.badgeRow}>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{trip.trip_type.toUpperCase()}</Text>
-            </View>
+            {trip.trip_type === 'official' ? (
+              <View style={[styles.badge, { backgroundColor: '#e0e7ff', borderColor: '#818cf8' }]}>
+                <Ionicons name="shield-checkmark" size={12} color="#4f46e5" />
+                <Text style={[styles.badgeText, { color: '#4f46e5' }]}>GMR VERIFIED</Text>
+              </View>
+            ) : (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{trip.trip_type.toUpperCase()}</Text>
+              </View>
+            )}
             {trip.is_featured && (
               <View style={[styles.badge, { backgroundColor: '#fef3c7', borderColor: '#fbbf24' }]}>
                 <Ionicons name="star" size={10} color="#f59e0b" />

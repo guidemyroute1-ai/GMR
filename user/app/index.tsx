@@ -1,15 +1,13 @@
 import { Redirect } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
-import { View, StyleSheet } from 'react-native';
-import LoadingSpinner from '../components/LoadingSpinner';export default function Index() {
+
+export default function Index() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <LoadingSpinner size="large" color="#16A34A" />
-      </View>
-    );
+    // Return null — the splash screen already covers this gap;
+    // no need for a separate visible loading state here.
+    return null;
   }
 
   if (!user) {
@@ -18,12 +16,3 @@ import LoadingSpinner from '../components/LoadingSpinner';export default functio
 
   return <Redirect href="/(tabs)/Home" />;
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#0F172A',
-  },
-});

@@ -3,7 +3,7 @@ import { Tabs, router } from 'expo-router';
 import { TouchableOpacity, Text, StyleSheet, View } from 'react-native';
 import { Colors } from '../../constants/colors';
 import { useAuthStore } from '../../store/useAuthStore';
-import { LogOut, Home, Calendar, CreditCard, Users, ChevronLeft, Bell } from 'lucide-react-native';
+import { LogOut, Home, Calendar, CreditCard, Users, ChevronLeft, Bell, Map } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 function TabIcon({ Icon, focused }: { Icon: any; focused: boolean }) {
@@ -111,6 +111,15 @@ export default function AdminLayout() {
           title: 'Activity',
           tabBarIcon: ({ focused }) => (
             <TabIcon Icon={Bell} focused={focused} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="create-trip"
+        options={{
+          title: 'Create Trip',
+          tabBarIcon: ({ focused }) => (
+            <TabIcon Icon={Map} focused={focused} />
           ),
         }}
       />

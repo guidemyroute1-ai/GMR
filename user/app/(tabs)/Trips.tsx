@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, Image, TouchableOpacity, TextInput, Dimensions, ImageBackground, RefreshControl, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, Feather, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { useTrips } from '../../hooks/useTrips';
 import { useLocation } from '../../contexts/LocationContext';
 import ScreenHeader from '../../components/ScreenHeader';
+import { TripsFilterModal } from '../../components/TripsFilterModal';
 
 
 const { width } = Dimensions.get('window');
@@ -45,6 +46,7 @@ export default function TripsScreen() {
     refresh
   } = useTrips();
   const { selectedCity } = useLocation();
+  const [showFilters, setShowFilters] = useState(false);
 
   const renderFaces = (count: number, size: number = 24, startingIndex: number = 0) => {
     return (
@@ -75,7 +77,7 @@ export default function TripsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scrollContent}
@@ -84,9 +86,9 @@ export default function TripsScreen() {
         
         {/* Header */}
         <ScreenHeader 
-          title="Trips" 
-          showLocation={true} 
-          location={selectedCity || 'Faridabad'} 
+          title="Trips"
+           showAvatar={true} 
+         
         />
 
           
@@ -100,14 +102,14 @@ export default function TripsScreen() {
               style={styles.searchInput}
             />
           </View>
-          <TouchableOpacity style={styles.filterButton}>
+          <TouchableOpacity style={styles.filterButton} onPress={() => setShowFilters(true)}>
             <Ionicons name="options-outline" size={18} color="#16a34a" />
             <Text style={styles.filterButtonText}>Filters</Text>
           </TouchableOpacity>
         </View>
 
         {/* Categories */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesContainer}>
+        {/* <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.categoriesContainer}>
           {CATEGORIES.map((cat) => (
             <TouchableOpacity 
               key={cat.id} 
@@ -124,7 +126,7 @@ export default function TripsScreen() {
               </Text>
             </TouchableOpacity>
           ))}
-        </ScrollView>
+        </ScrollView> */}
 
         {/* Hero Banner: This Weekend */}
         {featuredTrips.length > 0 && (
@@ -155,18 +157,23 @@ export default function TripsScreen() {
                   </View>
 
                   <View style={styles.heroFooter}>
-                    <View style={styles.heroPriceContainer}>
+                    <View style={styles.heroPriceWrapper}>
                       <Text style={styles.heroPrice}>₹{featuredTrips[0].price}</Text>
-                      <View style={styles.heroDetailsRow}>
-                        <Ionicons name="calendar-outline" size={12} color="#d1d5db" />
-                        <Text style={styles.heroDetailsText}>{formatDate(featuredTrips[0].trip_date)}</Text>
-                      </View>
-                      <View style={styles.heroDetailsRow}>
-                        <Ionicons name="people-outline" size={14} color="#d1d5db" />
-                        <Text style={styles.heroDetailsText}>{Math.max(featuredTrips[0].capacity - featuredTrips[0].joined_count, 0)} seats left</Text>
+                      <View style={styles.heroDetailsContainer}>
+                        <View style={styles.heroDetailsRow}>
+                          <Ionicons name="calendar-outline" size={12} color="#d1d5db" />
+                          <Text style={styles.heroDetailsText}>{formatDate(featuredTrips[0].trip_date)}</Text>
+                        </View>
+                        <View style={styles.heroDetailsRow}>
+                          <Ionicons name="people-outline" size={14} color="#d1d5db" />
+                          <Text style={styles.heroDetailsText}>{Math.max(featuredTrips[0].capacity - featuredTrips[0].joined_count, 0)} seats left</Text>
+                        </View>
                       </View>
                     </View>
-                    <TouchableOpacity style={styles.heroJoinButton}>
+                    <TouchableOpacity 
+                      style={styles.heroJoinButton}
+                      onPress={() => router.push(`/tripDetail?id=${featuredTrips[0].id}` as any)}
+                    >
                       <Text style={styles.heroJoinButtonText}>Join Trip</Text>
                       <Feather name="arrow-right" size={16} color="#fff" />
                     </TouchableOpacity>
@@ -190,7 +197,7 @@ export default function TripsScreen() {
         {upcomingTrip && (
           <View style={styles.upcomingTripContainer}>
             <Text style={styles.upcomingTripLabel}>Your Upcoming Trip</Text>
-            <TouchableOpacity style={styles.upcomingTripCard} onPress={() => router.push(`/trips/${upcomingTrip.id}`)} activeOpacity={0.95}>
+            <TouchableOpacity style={styles.upcomingTripCard} onPress={() => router.push(`/tripDetail?id=${upcomingTrip.id}` as any)} activeOpacity={0.95}>
               <Image source={{ uri: upcomingTrip.images?.[0] || 'https://images.unsplash.com/photo-1587474260584-136574528ed5?auto=format&fit=crop&w=200&q=80' }} style={styles.upcomingTripImage} />
               <View style={styles.upcomingTripContent}>
                 <View style={styles.upcomingTripHeader}>
@@ -230,14 +237,11 @@ export default function TripsScreen() {
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>Happening This Weekend</Text>
-              <TouchableOpacity style={styles.seeAllButton}>
-                <Text style={styles.seeAllText}>See all</Text>
-                <Feather name="arrow-right" size={14} color="#16a34a" />
-              </TouchableOpacity>
+            
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalListContent}>
               {weekendTrips.map((item) => (
-                <TouchableOpacity key={item.id} style={styles.weekendCard} onPress={() => router.push(`/trips/${item.id}`)} activeOpacity={0.95}>
+                <TouchableOpacity key={item.id} style={styles.weekendCard} onPress={() => router.push(`/tripDetail?id=${item.id}` as any)} activeOpacity={0.95}>
                   <ImageBackground source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=300&q=80' }} style={styles.weekendImage} imageStyle={{ borderRadius: 12 }}>
                     <View style={styles.weekendOverlay}>
                       <View style={styles.weekendTopRow}>
@@ -271,10 +275,7 @@ export default function TripsScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Explore by Interest</Text>
-            <TouchableOpacity style={styles.seeAllButton}>
-              <Text style={styles.seeAllText}>See all</Text>
-              <Feather name="arrow-right" size={14} color="#16a34a" />
-            </TouchableOpacity>
+        
           </View>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.interestsContainer}>
             {INTERESTS.map((interest) => (
@@ -302,10 +303,7 @@ export default function TripsScreen() {
                 <Ionicons name="checkmark-circle" size={18} color="#16a34a" />
                 <Text style={[styles.sectionTitle, { marginLeft: 6 }]}>Official Trips</Text>
               </View>
-              <TouchableOpacity style={styles.seeAllButton}>
-                <Text style={styles.seeAllText}>See all</Text>
-                <Feather name="arrow-right" size={14} color="#16a34a" />
-              </TouchableOpacity>
+     
             </View>
             <View style={styles.officialTripContainer}>
               <ImageBackground 
@@ -315,8 +313,8 @@ export default function TripsScreen() {
               >
                 <View style={styles.officialTripOverlay}>
                   <View style={styles.officialBadge}>
-                    <Ionicons name="star" size={10} color="#fff" />
-                    <Text style={styles.officialBadgeText}>OFFICIAL</Text>
+                    <Ionicons name="shield-checkmark" size={12} color="#fff" />
+                    <Text style={styles.officialBadgeText}>GMR VERIFIED</Text>
                   </View>
                   <View style={styles.officialTripContent}>
                     <Text style={styles.officialTripTitle}>{officialTrips[0].title}</Text>
@@ -353,14 +351,11 @@ export default function TripsScreen() {
                 <Text style={styles.sectionTitle}>Community Trips</Text>
                 <Text style={styles.sectionSubtitle}>Hosted by travelers like you</Text>
               </View>
-              <TouchableOpacity style={styles.seeAllButton}>
-                <Text style={styles.seeAllText}>See all</Text>
-                <Feather name="arrow-right" size={14} color="#16a34a" />
-              </TouchableOpacity>
+         
             </View>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalListContent}>
               {communityTrips.map((trip) => (
-                <TouchableOpacity key={trip.id} style={styles.communityTripCard} onPress={() => router.push(`/trips/${trip.id}`)} activeOpacity={0.95}>
+                <TouchableOpacity key={trip.id} style={styles.communityTripCard} onPress={() => router.push(`/tripDetail?id=${trip.id}` as any)} activeOpacity={0.95}>
                   <View style={styles.hostHeader}>
                     <Image source={{ uri: trip.organizer?.photo_url || 'https://i.pravatar.cc/100' }} style={styles.hostImage} />
                     <View style={styles.hostInfo}>
@@ -398,15 +393,12 @@ export default function TripsScreen() {
           <View style={styles.halfSection}>
             <View style={[styles.sectionHeader, { marginBottom: 8 }]}>
               <Text style={[styles.sectionTitle, { fontSize: 16 }]}>Near You</Text>
-              <TouchableOpacity style={styles.seeAllButton}>
-                <Text style={styles.seeAllText}>See all</Text>
-                <Feather name="arrow-right" size={12} color="#16a34a" />
-              </TouchableOpacity>
+          
             </View>
                 {nearbyTrips.length > 0 ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalListContent}>
                 {nearbyTrips.map((item) => (
-                  <TouchableOpacity key={item.id} style={styles.smallCard} onPress={() => router.push(`/trips/${item.id}`)} activeOpacity={0.95}>
+                  <TouchableOpacity key={item.id} style={styles.smallCard} onPress={() => router.push(`/tripDetail?id=${item.id}` as any)} activeOpacity={0.95}>
                     <ImageBackground source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1511994298241-608e28f14fde?auto=format&fit=crop&w=300&q=80' }} style={styles.smallCardImage} imageStyle={{ borderRadius: 8 }}>
                       <View style={styles.smallCardOverlay}>
                         <View style={[styles.smallCardIconBadge, { backgroundColor: '#22c55e' }]}>
@@ -432,15 +424,12 @@ export default function TripsScreen() {
           <View style={styles.halfSection}>
             <View style={[styles.sectionHeader, { marginBottom: 8 }]}>
               <Text style={[styles.sectionTitle, { fontSize: 16 }]}>Last Minute Escapes</Text>
-              <TouchableOpacity style={styles.seeAllButton}>
-                <Text style={styles.seeAllText}>See all</Text>
-                <Feather name="arrow-right" size={12} color="#16a34a" />
-              </TouchableOpacity>
+         
             </View>
                 {lastMinuteTrips.length > 0 ? (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalListContent}>
                 {lastMinuteTrips.map((item) => (
-                  <TouchableOpacity key={item.id} style={styles.smallCardLarge} onPress={() => router.push(`/trips/${item.id}`)} activeOpacity={0.95}>
+                  <TouchableOpacity key={item.id} style={styles.smallCardLarge} onPress={() => router.push(`/tripDetail?id=${item.id}` as any)} activeOpacity={0.95}>
                     <ImageBackground source={{ uri: item.images?.[0] || 'https://images.unsplash.com/photo-1626621341517-bbf3d9990a23?auto=format&fit=crop&w=300&q=80' }} style={styles.smallCardImage} imageStyle={{ borderRadius: 8 }}>
                       <View style={styles.smallCardOverlay}>
                         <View style={styles.leavingTodayBadge}>
@@ -465,10 +454,20 @@ export default function TripsScreen() {
               </View>
             )}
           </View>
-
         </View>
 
+        {/* Empty Space at bottom */}
+        <View style={{ height: 40 }} />
       </ScrollView>
+
+      <TripsFilterModal 
+        visible={showFilters} 
+        onClose={() => setShowFilters(false)} 
+        onApply={(filters) => {
+          // Here you can handle the applied filters
+          console.log('Applied filters:', filters);
+        }} 
+      />
     </SafeAreaView>
   );
 }
@@ -681,15 +680,19 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'flex-end',
   },
-  heroPriceContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  heroPriceWrapper: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
   },
   heroPrice: {
     color: '#22c55e',
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
-    marginRight: 12,
+    marginBottom: 4,
+  },
+  heroDetailsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   heroDetailsRow: {
     flexDirection: 'row',

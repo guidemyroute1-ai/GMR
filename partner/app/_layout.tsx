@@ -7,6 +7,7 @@ import { View, ActivityIndicator, Alert } from 'react-native';
 import { Colors } from '../constants/colors';
 import { supabase } from '../services/supabase';
 import { NetworkBanner } from '../components/NetworkBanner';
+import { AlertProvider } from '../contexts/AlertContext';
 
 import '../firebaseMessaging';
 
@@ -253,10 +254,10 @@ export default function RootLayout() {
   }
 
   return (
-    <>
+    <AlertProvider>
       <NetworkBanner />
       <Stack screenOptions={{ headerShown: false, animation: 'fade' }} />
       <StatusBar style="auto" />
-    </>
+    </AlertProvider>
   );
 }

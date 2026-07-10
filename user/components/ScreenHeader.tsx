@@ -1,9 +1,10 @@
-import React, { ReactNode } from 'react';
+import React, { ReactNode, useEffect, useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useAuth } from '../contexts/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 interface ScreenHeaderProps {
   title: string | ReactNode;
@@ -24,6 +25,22 @@ export default function ScreenHeader({
 }: ScreenHeaderProps) {
   const router = useRouter();
   const { user } = useAuth();
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    const checkNotifications = async () => {
+      try {
+        const storedStr = await AsyncStorage.getItem('@gmr_notifications');
+        if (storedStr) {
+          const notifications = JSON.parse(storedStr);
+          setHasUnread(notifications.length > 0);
+        }
+      } catch (err) {
+        console.error('Failed to check notifications:', err);
+      }
+    };
+    checkNotifications();
+  }, []);
 
   return (
     <View style={styles.header}>
@@ -37,16 +54,10 @@ export default function ScreenHeader({
           onPress={() => (router.push as any)('/extra/notifications')}
         >
           <Ionicons name="notifications-outline" size={24} color="#1f2937" />
-          <View style={styles.notificationDot} />
+          {hasUnread && <View style={styles.notificationDot} />}
         </TouchableOpacity>
         
-        {showLocation && (
-          <TouchableOpacity style={styles.locationSelector} onPress={onLocationPress}>
-            <Ionicons name="location" size={14} color="#16a34a" />
-            <Text style={styles.locationText}>{location}</Text>
-            <Feather name="chevron-down" size={16} color="#1f2937" />
-          </TouchableOpacity>
-        )}
+
 
         {showAvatar && (
           <TouchableOpacity onPress={() => (router.push as any)('/more/Profile')}>

@@ -20,6 +20,7 @@ import { useOnboardingStore } from '../../store/useOnboardingStore';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { TextField, MultiSelectDropdown, SingleSelectDropdown } from '../../components/FormFields';
+import { AlertService } from '@/contexts/AlertContext';
 
 // ─── Guide fields (Part 2) ──────────────────────────────
 function GuideFormPart2({ data, onChange }: { data: any; onChange: (d: any) => void }) {
@@ -201,7 +202,7 @@ export default function ProfileSetup2Screen() {
         router.push('/onboarding/upload-docs');
       }
     } catch (err) {
-      Alert.alert('Error', 'Failed to save profile. Please try again.');
+      AlertService.alert('Error', 'Failed to save profile. Please try again.');
     } finally {
       setLoading(false);
     }

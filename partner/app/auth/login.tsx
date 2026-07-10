@@ -20,6 +20,7 @@ import { signInUser, getUserDoc, signInWithGoogle } from '../../services/auth';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Compass } from 'lucide-react-native';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { AlertService } from '@/contexts/AlertContext';
 
 const { height } = Dimensions.get('window');
 
@@ -37,7 +38,7 @@ export default function LoginScreen() {
 
   const handleLogin = async () => {
     if (!email.trim() || !password.trim()) {
-      Alert.alert('Missing fields', 'Please enter your email and password.');
+      AlertService.alert('Missing fields', 'Please enter your email and password.');
       return;
     }
 
@@ -63,7 +64,7 @@ export default function LoginScreen() {
     } catch (err: any) {
       console.error("Login failed:", err);
       const errorMsg = err.message || err.error_description || 'Login failed. Please check your credentials.';
-      Alert.alert('Login Failed', errorMsg);
+      AlertService.alert('Login Failed', errorMsg);
     } finally {
       setLoading(false);
     }
@@ -71,15 +72,15 @@ export default function LoginScreen() {
 
   const handleForgotPassword = async () => {
     if (!email.trim()) {
-      Alert.alert('Missing email', 'Please enter your email address to reset your password.');
+      AlertService.alert('Missing email', 'Please enter your email address to reset your password.');
       return;
     }
     try {
       const { resetPassword } = await import('../../services/auth');
       await resetPassword(email.trim());
-      Alert.alert('Password Reset', 'A password reset link has been sent to your email.');
+      AlertService.alert('Password Reset', 'A password reset link has been sent to your email.');
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Failed to send password reset email.');
+      AlertService.alert('Error', err.message || 'Failed to send password reset email.');
     }
   };
 
@@ -103,12 +104,12 @@ export default function LoginScreen() {
       if (err.code === 'SIGN_IN_CANCELLED') {
         // user canceled, just ignore
       } else if (err.message?.includes('developer_error') || err.code === '10') {
-        Alert.alert(
+        AlertService.alert(
           'Configuration Error',
           'Google Sign-In is not configured correctly. Please check that your SHA-1 fingerprint and Web Client ID match the Google Cloud Console.'
         );
       } else {
-        Alert.alert('Google Sign-In Failed', err.message || 'Unknown error occurred.');
+        AlertService.alert('Google Sign-In Failed', err.message || 'Unknown error occurred.');
       }
     } finally {
       setLoading(false);

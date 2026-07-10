@@ -34,6 +34,7 @@ import { uploadToSupabase } from '../../services/storage';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import { updateUserProfile } from '../../services/auth';
+import { AlertService } from '@/contexts/AlertContext';
 
 const firstPositiveNumber = (...values: unknown[]) => {
   for (const value of values) {
@@ -91,23 +92,23 @@ export default function ListingsScreen() {
 
   const handleAdd = async () => {
     if (!profile?.phone?.trim()) {
-      Alert.alert('Phone Number Required', 'Please update your phone number in the Profile tab before adding a listing.');
+      AlertService.alert('Phone Number Required', 'Please update your phone number in the Profile tab before adding a listing.');
       return;
     }
     if (!form.title.trim() || !form.price.trim()) {
-      Alert.alert('Missing Fields', 'Title and price are required.');
+      AlertService.alert('Missing Fields', 'Title and price are required.');
       return;
     }
     if (role === 'guide' && (detailRequired('duration') || detailRequired('meetingPoint'))) {
-      Alert.alert('Missing Fields', 'Duration and meeting point are required.');
+      AlertService.alert('Missing Fields', 'Duration and meeting point are required.');
       return;
     }
     if (role === 'hotel' && (detailRequired('roomType') || detailRequired('maxOccupancy'))) {
-      Alert.alert('Missing Fields', 'Room type and max occupancy are required.');
+      AlertService.alert('Missing Fields', 'Room type and max occupancy are required.');
       return;
     }
     if (role === 'rental' && (detailRequired('vehicleType') || detailRequired('fuelType') || detailRequired('helmet') || detailRequired('minDuration') || detailRequired('deposit'))) {
-      Alert.alert('Missing Fields', 'All vehicle details are required.');
+      AlertService.alert('Missing Fields', 'All vehicle details are required.');
       return;
     }
     if (!user) return;
@@ -153,7 +154,7 @@ export default function ListingsScreen() {
       setShowModal(false);
     } catch (err: any) {
       console.error('createListing/updateListing error:', err);
-      Alert.alert('Error', `Failed to save listing:\n${err?.message ?? String(err)}`);
+      AlertService.alert('Error', `Failed to save listing:\n${err?.message ?? String(err)}`);
     } finally {
       setSubmitting(false);
     }
@@ -179,7 +180,7 @@ export default function ListingsScreen() {
     setForm((f) => ({ ...f, details: { ...f.details, [key]: val } }));
 
   const handleDelete = (id: string, title: string) => {
-    Alert.alert('Delete Listing', `Remove "${title}"?`, [
+    AlertService.alert('Delete Listing', `Remove "${title}"?`, [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Delete',
@@ -190,7 +191,7 @@ export default function ListingsScreen() {
             await deleteListing(id);
             await loadListings();
           } catch {
-            Alert.alert('Error', 'Could not delete listing.');
+            AlertService.alert('Error', 'Could not delete listing.');
           } finally {
             setDeleting(null);
           }
@@ -204,7 +205,7 @@ export default function ListingsScreen() {
       await updateListing(listing.id, { isActive: !listing.isActive });
       await loadListings();
     } catch {
-      Alert.alert('Error', 'Could not update listing.');
+      AlertService.alert('Error', 'Could not update listing.');
     }
   };
 
@@ -243,7 +244,7 @@ export default function ListingsScreen() {
               return;
             }
             if (!profile?.isApproved) {
-              Alert.alert('Pending Approval', 'Your account is pending approval from the admin. You cannot create listings yet.');
+              AlertService.alert('Pending Approval', 'Your account is pending approval from the admin. You cannot create listings yet.');
               return;
             }
             setEditingId(null);
@@ -292,7 +293,7 @@ export default function ListingsScreen() {
               style={[styles.emptyBtn, !profile?.isApproved && { backgroundColor: Colors.textMuted }]}
               onPress={() => {
                 if (!profile?.isApproved) {
-                  Alert.alert('Pending Approval', 'Your account is pending approval from the admin. You cannot create listings yet.');
+                  AlertService.alert('Pending Approval', 'Your account is pending approval from the admin. You cannot create listings yet.');
                   return;
                 }
                 setEditingId(null);
@@ -656,9 +657,9 @@ function GuideSettingsView({ profile, user, refreshProfile }: {
   const saveRate = async () => {
     if (!user) return;
     const n = parseFloat(rate);
-    if (!n || n <= 0) { Alert.alert('Invalid', 'Enter a valid hourly rate.'); return; }
+    if (!n || n <= 0) { AlertService.alert('Invalid', 'Enter a valid hourly rate.'); return; }
     const mh = parseInt(maxHours);
-    if (!mh || mh < 3) { Alert.alert('Invalid', 'Max booking hours must be at least 3.'); return; }
+    if (!mh || mh < 3) { AlertService.alert('Invalid', 'Max booking hours must be at least 3.'); return; }
     setSaving(true);
     try {
       const updated = {
@@ -672,8 +673,8 @@ function GuideSettingsView({ profile, user, refreshProfile }: {
       };
       await updateUserProfile(user.uid, { profileData: updated });
       await refreshProfile();
-      Alert.alert('Saved', 'Settings updated.');
-    } catch (e: any) { Alert.alert('Error', e.message || 'Failed to save.'); }
+      AlertService.alert('Saved', 'Settings updated.');
+    } catch (e: any) { AlertService.alert('Error', e.message || 'Failed to save.'); }
     finally { setSaving(false); }
   };
 
@@ -681,7 +682,7 @@ function GuideSettingsView({ profile, user, refreshProfile }: {
     if (!user) return;
     const cleanDescription = description.trim();
     if (cleanDescription.length < 20) {
-      Alert.alert('Add More Detail', 'Please write at least 20 characters about your guiding experience.');
+      AlertService.alert('Add More Detail', 'Please write at least 20 characters about your guiding experience.');
       return;
     }
     setSavingDescription(true);
@@ -694,8 +695,8 @@ function GuideSettingsView({ profile, user, refreshProfile }: {
       };
       await updateUserProfile(user.uid, { profileData: updated });
       await refreshProfile();
-      Alert.alert('Saved', 'Guide description updated.');
-    } catch (e: any) { Alert.alert('Error', e.message || 'Failed to save description.'); }
+      AlertService.alert('Saved', 'Guide description updated.');
+    } catch (e: any) { AlertService.alert('Error', e.message || 'Failed to save description.'); }
     finally { setSavingDescription(false); }
   };
 
@@ -706,7 +707,7 @@ function GuideSettingsView({ profile, user, refreshProfile }: {
       const updated = { ...(profile?.profileData || {}), is_available: v };
       await updateUserProfile(user.uid, { profileData: updated });
       await refreshProfile();
-    } catch (e: any) { setAvail(!v); Alert.alert('Error', e.message || 'Failed.'); }
+    } catch (e: any) { setAvail(!v); AlertService.alert('Error', e.message || 'Failed.'); }
   };
 
   const replaceVideo = async () => {
@@ -724,8 +725,8 @@ function GuideSettingsView({ profile, user, refreshProfile }: {
       await updateUserProfile(user.uid, { kycVideoUrl: url });
       setVideoUrl(url);
       await refreshProfile();
-      Alert.alert('Success', 'Demo video updated.');
-    } catch (e: any) { Alert.alert('Error', e.message || 'Upload failed.'); }
+      AlertService.alert('Success', 'Demo video updated.');
+    } catch (e: any) { AlertService.alert('Error', e.message || 'Upload failed.'); }
     finally { setUploading(false); }
   };
 

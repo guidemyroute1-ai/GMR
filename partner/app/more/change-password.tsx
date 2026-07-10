@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/colors';
 import { Spacing, FontSize, Radius } from '../../constants/theme';
 import { supabase } from '../../services/supabase';
+import { AlertService } from '@/contexts/AlertContext';
 
 export default function ChangePasswordScreen() {
   const [newPassword, setNewPassword] = useState('');
@@ -13,17 +14,17 @@ export default function ChangePasswordScreen() {
 
   const handleUpdatePassword = async () => {
     if (!newPassword || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+      AlertService.alert('Error', 'Please fill in all fields');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      AlertService.alert('Error', 'Passwords do not match');
       return;
     }
 
     if (newPassword.length < 6) {
-      Alert.alert('Error', 'Password must be at least 6 characters');
+      AlertService.alert('Error', 'Password must be at least 6 characters');
       return;
     }
 
@@ -35,11 +36,11 @@ export default function ChangePasswordScreen() {
 
       if (error) throw error;
 
-      Alert.alert('Success', 'Password updated successfully', [
+      AlertService.alert('Success', 'Password updated successfully', [
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (error: any) {
-      Alert.alert('Error', error.message || 'Failed to update password');
+      AlertService.alert('Error', error.message || 'Failed to update password');
     } finally {
       setLoading(false);
     }

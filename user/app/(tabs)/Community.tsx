@@ -62,7 +62,7 @@ export default function CommunityScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <ScrollView 
         showsVerticalScrollIndicator={false} 
         contentContainerStyle={styles.scrollContent}
@@ -196,10 +196,10 @@ export default function CommunityScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Verified Organizers</Text>
-            <TouchableOpacity style={styles.seeAllButton}>
+            {/* <TouchableOpacity style={styles.seeAllButton}>
               <Text style={styles.seeAllText}>See all</Text>
               <Feather name="arrow-right" size={14} color="#16a34a" />
-            </TouchableOpacity>
+            </TouchableOpacity> */}
           </View>
           {(() => {
             const verifiedOrganizers = people.filter((p) => p.is_trip_organizer_verified === true);
@@ -250,7 +250,12 @@ export default function CommunityScreen() {
                 const fullDate = dateObj.toLocaleString('default', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
                 
                 return (
-                  <View key={trip.id} style={styles.eventCard}>
+                  <TouchableOpacity 
+                    key={trip.id} 
+                    style={styles.eventCard}
+                    onPress={() => router.push(`/tripDetail?id=${trip.id}` as any)}
+                    activeOpacity={0.9}
+                  >
                     <View style={styles.eventImageContainer}>
                       <Image source={{ uri: (trip.images && trip.images[0]) || 'https://images.unsplash.com/photo-1511994298241-608e28f14fde?auto=format&fit=crop&w=400&q=80' }} style={styles.eventImage} />
                       <View style={styles.eventDateBadge}>
@@ -271,13 +276,13 @@ export default function CommunityScreen() {
                       </View>
                       <View style={styles.eventFooter}>
                         <Text style={styles.eventGoingText}>{trip.joined_count || 0} Going</Text>
-                        <TouchableOpacity style={styles.interestedButton} onPress={() => router.push(`/tripDetail?id=${trip.id}` as any)}>
+                        <View style={styles.interestedButton}>
                           <Ionicons name="star-outline" size={14} color="#16a34a" />
                           <Text style={styles.interestedButtonText}>View</Text>
-                        </TouchableOpacity>
+                        </View>
                       </View>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </ScrollView>

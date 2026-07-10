@@ -21,6 +21,7 @@ import { uploadToSupabase } from '../../services/storage';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
 import {
+import { AlertService } from '@/contexts/AlertContext';
   Mail,
   Phone,
   Clipboard,
@@ -134,7 +135,7 @@ export default function ProfileScreen() {
   const handleChangePhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission required', 'Please allow access to your photo library to update your profile photo.');
+      AlertService.alert('Permission required', 'Please allow access to your photo library to update your profile photo.');
       return;
     }
 
@@ -158,7 +159,7 @@ export default function ProfileScreen() {
       setProfile({ ...profile!, photoUrl: publicUrl });
     } catch (err) {
       console.error('Photo upload error:', err);
-      Alert.alert('Upload Failed', 'Could not update your profile photo. Please try again.');
+      AlertService.alert('Upload Failed', 'Could not update your profile photo. Please try again.');
     } finally {
       setUploadingPhoto(false);
     }
@@ -172,18 +173,18 @@ export default function ProfileScreen() {
     const trimmedPhone = phone.trim();
 
     if (!trimmedName) {
-      Alert.alert('Required Field', 'Please enter your full name.');
+      AlertService.alert('Required Field', 'Please enter your full name.');
       return;
     }
 
     if (!trimmedPhone) {
-      Alert.alert('Required Field', 'Phone number is mandatory for listing partners.');
+      AlertService.alert('Required Field', 'Phone number is mandatory for listing partners.');
       return;
     }
 
     const cleanedPhone = trimmedPhone.replace(/\D/g, '');
     if (cleanedPhone.length < 8) {
-      Alert.alert('Invalid Phone Number', 'Please enter a valid phone number.');
+      AlertService.alert('Invalid Phone Number', 'Please enter a valid phone number.');
       return;
     }
 
@@ -194,7 +195,7 @@ export default function ProfileScreen() {
       setEditing(false);
     } catch (err) {
       console.error('handleSave error:', err);
-      Alert.alert('Error', 'Could not save changes. Please try again.');
+      AlertService.alert('Error', 'Could not save changes. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -241,7 +242,7 @@ export default function ProfileScreen() {
       setEditingBusiness(false);
     } catch (err) {
       console.error('handleSaveBusiness error:', err);
-      Alert.alert('Error', 'Could not save business profile. Please try again.');
+      AlertService.alert('Error', 'Could not save business profile. Please try again.');
     } finally {
       setSavingBusiness(false);
     }
@@ -249,7 +250,7 @@ export default function ProfileScreen() {
 
   // ── Sign out ───────────────────────────────────────────────────────────────
   const handleSignOut = () => {
-    Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
+    AlertService.alert('Sign Out', 'Are you sure you want to sign out?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Sign Out',
@@ -260,7 +261,7 @@ export default function ProfileScreen() {
             await signOutUser();
             // The root layout listener will handle reset and navigation
           } catch {
-            Alert.alert('Error', 'Sign out failed. Please try again.');
+            AlertService.alert('Error', 'Sign out failed. Please try again.');
           } finally {
             setSigningOut(false);
           }

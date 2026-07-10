@@ -9,6 +9,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Camera, Image as ImageIcon, ArrowLeft, CheckCircle2 } from 'lucide-react-native';
 import { updateUserProfile, uploadToSupabase } from '../../services/auth';
 import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
+import { AlertService } from '@/contexts/AlertContext';
 
 export default function ProfilePhotoScreen() {
   const { user, profile, setProfile } = useAuthStore();
@@ -23,20 +24,19 @@ export default function ProfilePhotoScreen() {
       allowsEditing: false,
       aspect: type === 'profile' ? [1, 1] : [16, 9],
       quality: 0.8,
-      base64: true,
     });
 
-    if (!result.canceled && result.assets[0].base64) {
-      const base64Uri = `data:image/jpeg;base64,${result.assets[0].base64}`;
-      if (type === 'profile') setProfileImage(base64Uri);
-      else setCoverImage(base64Uri);
+    if (!result.canceled && result.assets[0].uri) {
+      const uri = result.assets[0].uri;
+      if (type === 'profile') setProfileImage(uri);
+      else setCoverImage(uri);
     }
   };
 
   const takePhoto = async (type: 'profile' | 'cover') => {
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
-      Alert.alert('Permission needed', 'Camera permission is required to take photos.');
+      AlertService.alert('Permission needed', 'Camera permission is required to take photos.');
       return;
     }
     const result = await ImagePicker.launchCameraAsync({
@@ -53,7 +53,7 @@ export default function ProfilePhotoScreen() {
   const handleSave = async () => {
     if (!user) return;
     if (!profileImage) {
-      Alert.alert('Required', 'Please upload a profile photo.');
+      AlertService.alert('Required', 'Please upload a profile photo.');
       return;
     }
 
@@ -76,7 +76,7 @@ export default function ProfilePhotoScreen() {
       setProfile({ ...profile!, profileData: updatedData });
       router.push('/onboarding/upload-docs');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save photos.');
+      AlertService.alert('Error', 'Failed to save photos.');
     } finally {
       setLoading(false);
     }

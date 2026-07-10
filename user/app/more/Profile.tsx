@@ -270,6 +270,7 @@ export default function ProfileScreen() {
     else if (item.id === '3') router.push('../more/MyBookings');
     else if (item.id === '11') router.push('../extra/TermsPrivacy');
     else if (item.id === 'create_trip') router.push('../more/createTrip');
+    else if (item.id === 'organizer_dashboard') router.push('../more/OrganizerDashboard');
     else if (item.id === 'become_organizer') {
       if (organizerAppStatus === 'pending') {
         Alert.alert('Application Pending', 'Your organizer application is currently being reviewed.');
@@ -289,6 +290,10 @@ export default function ProfileScreen() {
       accountItems.push({
         id: 'create_trip', icon: '✈️', label: 'Create a Trip', subLabel: 'Host a new adventure',
         type: 'badge', badge: 'NEW', badgeBg: '#DCFCE7', badgeColor: COLORS.primary
+      });
+      accountItems.push({
+        id: 'organizer_dashboard', icon: '📊', label: 'Organizer Dashboard', subLabel: 'Track trips and revenue',
+        type: 'navigate'
       });
     } else {
       accountItems.push({
