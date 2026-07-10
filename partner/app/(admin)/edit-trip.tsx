@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,7 +15,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Text } from '../../components/Text';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { useAuthStore } from '../../store/useAuthStore';
 import { CalendarPickerModal } from '../../components/CalendarPickerModal';
@@ -72,11 +72,13 @@ function makeDayId() {
 }
 
 // ─── Component ─────────────────────────────────────────────────────────────
-export default function CreateTripScreen() {
+export default function EditTripScreen() {
   const router = useRouter();
+  const { id } = useLocalSearchParams();
   const { user } = useAuthStore();
 
   const [loading, setLoading] = useState(false);
+  const [isFetching, setIsFetching] = useState(true);
   const [form, setForm] = useState({
     title: '',
     subtitle: '',
@@ -101,6 +103,73 @@ export default function CreateTripScreen() {
 
   // ─── Day Plans ────────────────────────────────────────────────────
   const [dayPlans, setDayPlans] = useState<DayPlan[]>([]);
+
+  // ─── Fetch Existing Trip ──────────────────────────────────────────
+  useEffect(() => {
+    async function fetchTrip() {
+      if (!id) {
+        Alert.alert('Error', 'No trip ID provided');
+        router.back();
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('trips')
+          .select('*')
+          .eq('id', id)
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setForm({
+            title: data.title || '',
+            subtitle: data.subtitle || '',
+            description: data.description || '',
+            price: data.price?.toString() || '',
+            capacity: data.capacity?.toString() || '',
+            city: data.city || '',
+            location_text: data.location_text || '',
+            lat: data.meeting_lat || null,
+            lng: data.meeting_lng || null,
+            date: data.trip_date ? new Date(data.trip_date) : new Date(Date.now() + 864e5 * 3),
+            end_date: data.end_date ? new Date(data.end_date) : new Date(Date.now() + 864e5 * 4),
+            difficulty: data.difficulty || 'Easy',
+            what_to_bring: data.what_to_bring || '',
+          });
+
+          if (data.images && data.images.length > 0) {
+            setImages(data.images);
+          }
+
+          if (data.day_plans && data.day_plans.length > 0) {
+            setDayPlans(
+              data.day_plans.map((dp: any) => ({
+                id: dp.id || makeDayId(),
+                day: dp.day,
+                title: dp.title || '',
+                activities: dp.activities || '',
+                accommodation: dp.accommodation || '',
+                meals: dp.meals || '',
+                expanded: false, // Start collapsed for editing
+              }))
+            );
+          }
+          
+          if (data.meeting_lat && data.meeting_lng) {
+            setMeetingMode('map');
+          }
+        }
+      } catch (err: any) {
+        Alert.alert('Error', err.message || 'Could not fetch trip details');
+        router.back();
+      } finally {
+        setIsFetching(false);
+      }
+    }
+
+    fetchTrip();
+  }, [id]);
 
   const addDay = () => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -221,12 +290,10 @@ export default function CreateTripScreen() {
 
       const cleanDayPlans = dayPlans.map(({ id, expanded, ...rest }) => rest);
 
-      const { error } = await supabase.from('trips').insert({
-        organizer_id: user.uid,
+      const { error } = await supabase.from('trips').update({
         title: form.title,
         subtitle: form.subtitle,
         description: form.description,
-        trip_type: 'official', // Admin trips are marked as official
         trip_date: form.date.toISOString(),
         end_date: form.end_date.toISOString(),
         price: parseFloat(form.price),
@@ -240,20 +307,20 @@ export default function CreateTripScreen() {
           ? { meeting_lat: form.lat, meeting_lng: form.lng }
           : {}),
         images: imageUrls,
-        is_active: true, // Auto-activate for admins
-      });
+      }).eq('id', id);
 
       if (error) {
         throw error;
       }
 
       Alert.alert(
-        'Trip Created! 🎉',
-        'Your official trip has been created and will appear directly in the app.',
+        'Trip Updated! 🎉',
+        'Your official trip has been successfully updated.',
         [{ text: 'OK', onPress: () => router.back() }]
       );
     } catch (err: any) {
-      Alert.alert('Error', err.message || 'Could not create trip.');
+      console.error('Trip update error:', JSON.stringify(err, null, 2));
+      Alert.alert('Error', err.message || 'Could not update trip.');
     } finally {
       setLoading(false);
       setUploadingImages(false);
@@ -262,6 +329,14 @@ export default function CreateTripScreen() {
 
   const DIFFICULTY_OPTIONS: Array<'Easy' | 'Moderate' | 'Hard'> = ['Easy', 'Moderate', 'Hard'];
   const difficultyColor = { Easy: '#16a34a', Moderate: '#f59e0b', Hard: '#ef4444' };
+
+  if (isFetching) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#16a34a" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -647,7 +722,7 @@ export default function CreateTripScreen() {
             </View>
           ) : (
             <View style={{ alignItems: 'center', gap: 2 }}>
-              <Text style={styles.submitButtonText}>Publish Trip</Text>
+              <Text style={styles.submitButtonText}>Update Trip</Text>
             </View>
           )}
         </TouchableOpacity>

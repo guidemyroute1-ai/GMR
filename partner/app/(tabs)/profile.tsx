@@ -20,8 +20,8 @@ import { signOut as signOutUser, updateUserProfile } from '../../services/auth';
 import { uploadToSupabase } from '../../services/storage';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
-import {
 import { AlertService } from '@/contexts/AlertContext';
+import {
   Mail,
   Phone,
   Clipboard,

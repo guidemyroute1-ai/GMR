@@ -1,8 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback } from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet, Animated } from 'react-native';
 import { Colors } from '../constants/colors';
-import { BlurView } from 'expo-blur';
-
 type AlertButton = {
   text?: string;
   onPress?: () => void | Promise<void>;
@@ -140,7 +138,6 @@ export function AlertProvider({ children }: { children: ReactNode }) {
       {visible && (
         <Modal transparent visible={visible} animationType="none">
           <Animated.View style={[styles.overlay, { opacity: fadeAnim }]}>
-            <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
             <Animated.View style={[styles.alertBox, { transform: [{ scale: scaleAnim }] }]}>
               <Text style={styles.title}>{config?.title}</Text>
               {!!config?.message && <Text style={styles.message}>{config.message}</Text>}

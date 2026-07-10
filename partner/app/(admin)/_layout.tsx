@@ -115,14 +115,43 @@ export default function AdminLayout() {
         }}
       />
       <Tabs.Screen
-        name="create-trip"
+        name="trips"
         options={{
-          title: 'Create Trip',
+          title: 'Trips',
           tabBarIcon: ({ focused }) => (
             <TabIcon Icon={Map} focused={focused} />
           ),
         }}
       />
+      <Tabs.Screen
+        name="create-trip"
+        options={{
+          href: null, // Hides this screen from the bottom tab bar
+          title: 'Create Trip',
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <ChevronLeft size={24} color={Colors.primary} />
+              <Text style={styles.backText}>Back</Text>
+            </TouchableOpacity>
+          )
+        }}
+      />
+
+      <Tabs.Screen
+        name="edit-trip"
+        options={{
+          href: null, // Hides this screen from the bottom tab bar
+          title: 'Edit Trip',
+          headerLeft: () => (
+            <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+              <ChevronLeft size={24} color={Colors.primary} />
+              <Text style={styles.backText}>Back</Text>
+            </TouchableOpacity>
+          )
+        }}
+      />
+      
+
       <Tabs.Screen
         name="partner-detail"
         options={{
